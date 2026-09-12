@@ -23,7 +23,7 @@ interface Goal {
   assisted_by_id: number | null;
 }
 
-export function ResultEntry({ fixture, squad, awardTypes }: { fixture: Fixture; squad: Member[]; awardTypes: AwardType[] }) {
+export function ResultEntry({ fixture, squad, awardTypes, base }: { fixture: Fixture; squad: Member[]; awardTypes: AwardType[]; base: string }) {
   const router = useRouter();
   const qc = useQueryClient();
   const players = useMemo(() => {
@@ -102,10 +102,10 @@ export function ResultEntry({ fixture, squad, awardTypes }: { fixture: Fixture; 
         },
       });
       qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/seasons"] });
+      qc.invalidateQueries({ queryKey: ["get", "/api/v1/team-seasons"] });
       qc.invalidateQueries({ queryKey: ["get", "/api/v1/players"] });
       toast.success("Result saved");
-      router.replace(`/fixtures/${fixture.id}`);
+      router.replace(`${base}/fixtures/${fixture.id}`);
     } catch (err) {
       toast.error(errorMessage(err));
     }

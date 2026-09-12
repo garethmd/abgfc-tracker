@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ChevronRight, Plus, Users } from "lucide-react";
 import { $api } from "@/lib/api/client";
-import { useSeason } from "@/lib/season-context";
+import { useTeam } from "@/lib/team-context";
 import { PageHeader, SectionTitle } from "@/components/page-header";
 import { PlayerForm } from "@/components/features/players/player-form";
 import { Card } from "@/components/stat-card";
@@ -15,26 +15,27 @@ import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 
 export default function PlayersPage() {
-  const { season } = useSeason();
+  const { team, teamSeason, canEdit, base } = useTeam();
   const [adding, setAdding] = useState(false);
-  const seasonId = season?.id ?? 0;
-  const squad = $api.useQuery("get", "/api/v1/seasons/{season_id}/squad", { params: { path: { season_id: seasonId } } }, { enabled: !!season });
-  const board = $api.useQuery("get", "/api/v1/seasons/{season_id}/stats/leaderboard", { params: { path: { season_id: seasonId } } }, { enabled: !!season });
-  const players = $api.useQuery("get", "/api/v1/players");
+  const tsId = teamSeason?.id ?? 0;
+  const squad = $api.useQuery("get", "/api/v1/team-seasons/{team_season_id}/squad", { params: { path: { team_season_id: tsId } } }, { enabled: !!teamSeason });
+  const board = $api.useQuery("get", "/api/v1/team-seasons/{team_season_id}/stats/leaderboard", { params: { path: { team_season_id: tsId } } }, { enabled: !!teamSeason });
 
   const statsFor = (id: number) => board.data?.rows.find((r) => r.player.id === id);
-  const memberIds = new Set((squad.data ?? []).map((m) => m.player.id));
-  const notInSquad = (players.data ?? []).filter((p) => !memberIds.has(p.id));
+  const active = (squad.data ?? []).filter((m) => !m.left_at);
+  const departed = (squad.data ?? []).filter((m) => m.left_at);
 
   return (
     <>
       <PageHeader
         title="Squad"
-        description={season ? `${season.name} · ${squad.data?.length ?? 0} players` : undefined}
+        description={teamSeason ? `${team.name} · ${teamSeason.season.name} · ${active.length} players` : undefined}
         action={
-          <Button size="sm" onClick={() => setAdding(true)}>
-            <Plus className="size-4" /> Add
-          </Button>
+          canEdit ? (
+            <Button size="sm" onClick={() => setAdding(true)}>
+              <Plus className="size-4" /> Add
+            </Button>
+          ) : undefined
         }
       />
 
@@ -47,14 +48,14 @@ export default function PlayersPage() {
           icon={Users}
           title="No players in this season's squad"
           description="Add the squad and they'll show on the dashboard from day one."
-          action={<Button onClick={() => setAdding(true)}>Add a player</Button>}
+          action={canEdit ? <Button onClick={() => setAdding(true)}>Add a player</Button> : undefined}
         />
       ) : (
         <Card className="divide-y divide-border/40 overflow-hidden">
-          {squad.data.map((m) => {
+          {active.map((m) => {
             const s = statsFor(m.player.id);
             return (
-              <Link key={m.id} href={`/players/${m.player.id}`} className="flex min-h-16 items-center gap-3 px-4 py-3 hover:bg-accent/50 active:bg-accent">
+              <Link key={m.id} href={`${base}/players/${m.player.id}`} className="flex min-h-16 items-center gap-3 px-4 py-3 hover:bg-accent/50 active:bg-accent">
                 <span className="tnum flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-sm font-semibold text-muted-foreground">
                   {m.squad_number ?? "–"}
                 </span>
@@ -79,14 +80,14 @@ export default function PlayersPage() {
         </Card>
       )}
 
-      {notInSquad.length > 0 && (
+      {departed.length > 0 && (
         <section className="mt-8">
-          <SectionTitle>Not in this squad</SectionTitle>
+          <SectionTitle>Left during the season</SectionTitle>
           <Card className="divide-y divide-border/40 overflow-hidden">
-            {notInSquad.map((p) => (
-              <Link key={p.id} href={`/players/${p.id}`} className="flex min-h-14 items-center justify-between px-4 py-3 text-sm hover:bg-accent/50">
-                <span className="font-medium text-muted-foreground">{p.display_name}</span>
-                <span className="text-xs text-muted-foreground">{p.left_date ? `Left ${p.left_date}` : "Not registered"}</span>
+            {departed.map((m) => (
+              <Link key={m.id} href={`${base}/players/${m.player.id}`} className="flex min-h-14 items-center justify-between px-4 py-3 text-sm hover:bg-accent/50">
+                <span className="font-medium text-muted-foreground">{m.player.display_name}</span>
+                <span className="text-xs text-muted-foreground">Left {m.left_at}{statsFor(m.player.id) ? ` · ${statsFor(m.player.id)!.appearances} apps` : ""}</span>
               </Link>
             ))}
           </Card>

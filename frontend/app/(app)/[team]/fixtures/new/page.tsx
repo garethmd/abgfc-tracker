@@ -2,13 +2,13 @@
 
 import { PageHeader } from "@/components/page-header";
 import { FixtureForm } from "@/components/features/fixtures/fixture-form";
-import { useSeason } from "@/lib/season-context";
+import { useTeam } from "@/lib/team-context";
 
 export default function NewFixturePage() {
-  const { season } = useSeason();
+  const { teamSeason, team } = useTeam();
   return (
     <div className="mx-auto max-w-lg">
-      <PageHeader title="Add fixture" description={season ? `${season.name} season` : undefined} />
+      <PageHeader title="Add fixture" description={teamSeason ? `${team.name} · ${teamSeason.season.name}` : undefined} />
       <FixtureForm />
     </div>
   );

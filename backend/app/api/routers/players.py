@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.deps import DB, Access
 from app.core.errors import NotFoundError
 from app.schemas.player import (
+    MembershipRead,
     PlayerCreate,
     PlayerMove,
     PlayerRead,
@@ -36,10 +37,24 @@ def update_player(player_id: int, data: PlayerUpdate, db: DB, access: Access):
     return PlayerService(db, access).update(player_id, data)
 
 
-@router.get("/{player_id}/memberships", response_model=list[SquadMemberRead])
+@router.get("/{player_id}/memberships", response_model=list[MembershipRead])
 def player_memberships(player_id: int, db: DB, access: Access):
     """Every team-season the player has been in (that the caller can see)."""
-    return PlayerService(db, access).memberships(player_id)
+    return [
+        MembershipRead(
+            id=m.id,
+            team_season_id=m.team_season_id,
+            team_id=m.team_season.club_team_id,
+            team_name=m.team_season.club_team.name,
+            team_slug=m.team_season.club_team.slug,
+            season_name=m.team_season.season.name,
+            age_group=m.team_season.age_group,
+            squad_number=m.squad_number,
+            joined_at=m.joined_at,
+            left_at=m.left_at,
+        )
+        for m in PlayerService(db, access).memberships(player_id)
+    ]
 
 
 @router.get("/{player_id}/stats", response_model=PlayerStatsRow)

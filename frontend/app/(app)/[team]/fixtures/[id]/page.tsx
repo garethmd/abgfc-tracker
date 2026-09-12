@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Award, MapPin, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { $api, errorMessage, type Schema } from "@/lib/api/client";
+import { useTeam } from "@/lib/team-context";
 import { formatLongDate, formatTime, STATUS_LABEL, VENUE_LABEL } from "@/lib/format";
 import { PageHeader, SectionTitle } from "@/components/page-header";
 import { Card } from "@/components/stat-card";
@@ -23,8 +24,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-export default function FixtureDetailPage({ params }: PageProps<"/fixtures/[id]">) {
+export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixtures/[id]">) {
   const { id } = use(params);
+  const { base, canEdit } = useTeam();
   const fixtureId = Number(id);
   const router = useRouter();
   const qc = useQueryClient();
@@ -36,9 +38,9 @@ export default function FixtureDetailPage({ params }: PageProps<"/fixtures/[id]"
     try {
       await del.mutateAsync({ params: { path: { fixture_id: fixtureId } } });
       qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/seasons"] });
+      qc.invalidateQueries({ queryKey: ["get", "/api/v1/team-seasons"] });
       toast.success("Fixture deleted");
-      router.replace("/fixtures");
+      router.replace(`${base}/fixtures`);
     } catch (err) {
       toast.error(errorMessage(err));
     }
@@ -74,6 +76,7 @@ export default function FixtureDetailPage({ params }: PageProps<"/fixtures/[id]"
           </span>
         }
         action={
+          canEdit && (
           <DropdownMenu>
             <DropdownMenuTrigger className="flex size-10 items-center justify-center rounded-lg ring-1 ring-border/60 hover:bg-accent">
               <MoreHorizontal className="size-4" />
@@ -81,11 +84,11 @@ export default function FixtureDetailPage({ params }: PageProps<"/fixtures/[id]"
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link href={`/fixtures/${f.id}/edit`}><Pencil className="size-4" /> Edit fixture</Link>
+                <Link href={`${base}/fixtures/${f.id}/edit`}><Pencil className="size-4" /> Edit fixture</Link>
               </DropdownMenuItem>
               {played && (
                 <DropdownMenuItem asChild>
-                  <Link href={`/fixtures/${f.id}/entry`}><Award className="size-4" /> Edit result</Link>
+                  <Link href={`${base}/fixtures/${f.id}/entry`}><Award className="size-4" /> Edit result</Link>
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
@@ -94,6 +97,7 @@ export default function FixtureDetailPage({ params }: PageProps<"/fixtures/[id]"
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          )
         }
       />
 
@@ -119,9 +123,9 @@ export default function FixtureDetailPage({ params }: PageProps<"/fixtures/[id]"
           )}
           <span className="flex items-center gap-1"><MapPin className="size-3" />{VENUE_LABEL[f.venue]}{f.venue_notes ? ` · ${f.venue_notes}` : ""}</span>
         </div>
-        {!played && f.status === "scheduled" && (
+        {!played && f.status === "scheduled" && canEdit && (
           <Button asChild className="mt-6 h-12 w-full">
-            <Link href={`/fixtures/${f.id}/entry`}>Enter result</Link>
+            <Link href={`${base}/fixtures/${f.id}/entry`}>Enter result</Link>
           </Button>
         )}
       </Card>
@@ -141,7 +145,7 @@ export default function FixtureDetailPage({ params }: PageProps<"/fixtures/[id]"
             <SectionTitle>Goals</SectionTitle>
             {f.goals.length ? (
               <Card className="divide-y divide-border/40">
-                {f.goals.map((g) => <GoalLine key={g.id} goal={g} />)}
+                {f.goals.map((g) => <GoalLine key={g.id} goal={g} base={base} />)}
               </Card>
             ) : (
               <p className="text-sm text-muted-foreground">No goals recorded.</p>
@@ -153,7 +157,7 @@ export default function FixtureDetailPage({ params }: PageProps<"/fixtures/[id]"
                 {f.awards.map((a) => (
                   <div key={a.id} className="flex items-center justify-between px-4 py-3 text-sm">
                     <span className="text-muted-foreground">{a.award_type.name.replace("Player of the Match", "POTM")}</span>
-                    <Link href={`/players/${a.player.id}`} className="font-medium hover:underline">{a.player.display_name}</Link>
+                    <Link href={`${base}/players/${a.player.id}`} className="font-medium hover:underline">{a.player.display_name}</Link>
                   </div>
                 ))}
               </Card>
@@ -167,7 +171,7 @@ export default function FixtureDetailPage({ params }: PageProps<"/fixtures/[id]"
             {f.appearances.length ? (
               <Card className="divide-y divide-border/40">
                 {f.appearances.map((a) => (
-                  <Link key={a.id} href={`/players/${a.player.id}`} className="flex items-center justify-between px-4 py-3 text-sm hover:bg-accent/50">
+                  <Link key={a.id} href={`${base}/players/${a.player.id}`} className="flex items-center justify-between px-4 py-3 text-sm hover:bg-accent/50">
                     <span className="font-medium">{a.player.display_name}</span>
                     <span className="text-xs text-muted-foreground">{a.position?.code ?? ""}{a.captain ? " · C" : ""}</span>
                   </Link>
@@ -196,7 +200,7 @@ function TeamName({ name, align }: { name: string; align: "left" | "right" }) {
   );
 }
 
-function GoalLine({ goal: g }: { goal: Schema["GoalRead"] }) {
+function GoalLine({ goal: g, base }: { goal: Schema["GoalRead"]; base: string }) {
   const label =
     g.event_type === "opp_own_goal" ? "Own goal (opposition)" : g.event_type === "own_goal" ? "Own goal" : null;
   return (
@@ -204,7 +208,7 @@ function GoalLine({ goal: g }: { goal: Schema["GoalRead"] }) {
       <span className="tnum w-8 shrink-0 text-xs text-muted-foreground">{g.minute != null ? `${g.minute}'` : ""}</span>
       <div className="min-w-0 flex-1">
         {g.scorer ? (
-          <Link href={`/players/${g.scorer.id}`} className={cn("font-medium hover:underline", g.event_type === "own_goal" && "text-rose-600 dark:text-rose-400")}>
+          <Link href={`${base}/players/${g.scorer.id}`} className={cn("font-medium hover:underline", g.event_type === "own_goal" && "text-rose-600 dark:text-rose-400")}>
             {g.scorer.display_name}
           </Link>
         ) : (

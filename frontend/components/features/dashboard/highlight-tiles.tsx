@@ -6,7 +6,7 @@ import { joinNames } from "@/lib/format";
 
 const ICONS = [Crosshair, Handshake, Award, Star];
 
-export function HighlightTiles({ tiles }: { tiles: Schema["HighlightTile"][] }) {
+export function HighlightTiles({ tiles, base = "" }: { tiles: Schema["HighlightTile"][]; base?: string }) {
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       {tiles.map((t, i) => {
@@ -26,7 +26,7 @@ export function HighlightTiles({ tiles }: { tiles: Schema["HighlightTile"][] }) 
               {empty ? (
                 <span className="text-muted-foreground">Nothing yet</span>
               ) : t.players.length === 1 ? (
-                <Link href={`/players/${t.players[0].id}`} className="font-medium hover:underline">
+                <Link href={`${base}/players/${t.players[0].id}`} className="font-medium hover:underline">
                   {names[0]}
                 </Link>
               ) : (

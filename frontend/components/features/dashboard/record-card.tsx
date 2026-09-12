@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 type Scope = "overall" | "league";
 
-export function RecordCard({ summary }: { summary: Schema["SeasonSummary"] }) {
+export function RecordCard({ summary, base = "" }: { summary: Schema["SeasonSummary"]; base?: string }) {
   const [scope, setScope] = useState<Scope>("overall");
   const rec = summary[scope];
   const gd = rec.goal_difference;
@@ -61,7 +61,7 @@ export function RecordCard({ summary }: { summary: Schema["SeasonSummary"] }) {
         <div>
           <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Last 5</span>
           <div className="mt-1.5">
-            <FormPips form={summary.form} />
+            <FormPips form={summary.form} base={base} />
           </div>
         </div>
         <Stat label="Win rate" value={`${rec.win_pct}%`} className="items-end" />

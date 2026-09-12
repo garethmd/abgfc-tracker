@@ -1,37 +1,29 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
-import { $api, fetchClient } from "@/lib/api/client";
+import { useTeam } from "@/lib/team-context";
 import { PageHeader, SectionTitle } from "@/components/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/stat-card";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AccountCard } from "@/components/account-card";
 import { SeasonsManager } from "@/components/features/settings/seasons-manager";
+import { AwardTypesManager } from "@/components/features/settings/award-types-manager";
 import { CompetitionsManager, TeamsManager } from "@/components/features/settings/lookup-managers";
 
 export default function SettingsPage() {
-  const router = useRouter();
-  const me = $api.useQuery("get", "/api/v1/auth/me");
-
-  async function logout() {
-    await fetchClient.POST("/api/v1/auth/logout");
-    router.replace("/login");
-    router.refresh();
-  }
-
+  const { team } = useTeam();
   return (
     <div className="mx-auto max-w-2xl">
-      <PageHeader title="Settings" />
+      <PageHeader title="Settings" description={`ABGFC ${team.name}`} />
 
       <Tabs defaultValue="seasons">
         <TabsList className="mb-4 h-11 w-full">
           <TabsTrigger value="seasons" className="flex-1">Seasons</TabsTrigger>
-          <TabsTrigger value="competitions" className="flex-1">Competitions</TabsTrigger>
-          <TabsTrigger value="teams" className="flex-1">Teams</TabsTrigger>
+          <TabsTrigger value="awards" className="flex-1">Awards</TabsTrigger>
+          <TabsTrigger value="competitions" className="flex-1">Leagues</TabsTrigger>
+          <TabsTrigger value="teams" className="flex-1">Opposition</TabsTrigger>
         </TabsList>
         <TabsContent value="seasons"><SeasonsManager /></TabsContent>
+        <TabsContent value="awards"><AwardTypesManager /></TabsContent>
         <TabsContent value="competitions"><CompetitionsManager /></TabsContent>
         <TabsContent value="teams"><TeamsManager /></TabsContent>
       </Tabs>
@@ -43,13 +35,7 @@ export default function SettingsPage() {
 
       <section className="mt-10">
         <SectionTitle>Account</SectionTitle>
-        <Card className="flex items-center justify-between p-4">
-          <div className="text-sm">
-            <p className="font-medium">{me.data?.username ?? "…"}</p>
-            <p className="text-xs capitalize text-muted-foreground">{me.data?.role}</p>
-          </div>
-          <Button variant="outline" size="sm" onClick={logout}><LogOut className="size-4" /> Sign out</Button>
-        </Card>
+        <AccountCard />
       </section>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { fetchClient, errorMessage } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function LoginForm() {
-  const router = useRouter();
   const params = useSearchParams();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -26,8 +25,8 @@ export function LoginForm() {
       return;
     }
     const next = params.get("next");
-    router.replace(next && next.startsWith("/") ? next : "/");
-    router.refresh();
+    // Full reload on purpose: nothing cached from a previous user may survive a sign-in.
+    window.location.assign(next && next.startsWith("/") ? next : "/");
   }
 
   return (

@@ -140,3 +140,16 @@
 @utility tnum {
   font-variant-numeric: tabular-nums;
 }
+
+/* Per-team accent: TeamProvider sets --team-accent; dark mode lifts it so it reads on black. */
+.team-accent {
+  --primary: var(--team-accent);
+  --ring: oklch(from var(--team-accent) l c h / 50%);
+  --chart-1: var(--team-accent);
+}
+.dark .team-accent {
+  --primary: oklch(from var(--team-accent) clamp(0.68, calc(l + 0.22), 0.82) c h);
+  --primary-foreground: oklch(0.13 0.02 260);
+  --ring: oklch(from var(--team-accent) 0.7 c h / 50%);
+  --chart-1: oklch(from var(--team-accent) clamp(0.68, calc(l + 0.22), 0.82) c h);
+}

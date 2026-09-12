@@ -1211,6 +1211,32 @@ export interface components {
             /** Username */
             username: string;
         };
+        /**
+         * MembershipRead
+         * @description A player's spell in one team-season, for their history.
+         */
+        MembershipRead: {
+            /** Age Group */
+            age_group: string | null;
+            /** Id */
+            id: number;
+            /** Joined At */
+            joined_at: string | null;
+            /** Left At */
+            left_at: string | null;
+            /** Season Name */
+            season_name: string;
+            /** Squad Number */
+            squad_number: number | null;
+            /** Team Id */
+            team_id: number;
+            /** Team Name */
+            team_name: string;
+            /** Team Season Id */
+            team_season_id: number;
+            /** Team Slug */
+            team_slug: string;
+        };
         /** PlayerCreate */
         PlayerCreate: {
             /** Cohort Id */
@@ -2759,7 +2785,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SquadMemberRead"][];
+                    "application/json": components["schemas"]["MembershipRead"][];
                 };
             };
             /** @description Validation Error */

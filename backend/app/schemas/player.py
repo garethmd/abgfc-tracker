@@ -66,6 +66,21 @@ class SquadMemberRead(ORMModel):
     left_at: date | None
 
 
+class MembershipRead(ORMModel):
+    """A player's spell in one team-season, for their history."""
+
+    id: int
+    team_season_id: int
+    team_id: int
+    team_name: str
+    team_slug: str
+    season_name: str
+    age_group: str | None
+    squad_number: int | None
+    joined_at: date | None
+    left_at: date | None
+
+
 class PlayerMove(InputModel):
     """Move a player between two teams' squads (same cohort) - an age-group coach action."""
 

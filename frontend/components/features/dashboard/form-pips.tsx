@@ -8,7 +8,7 @@ const STYLE: Record<"W" | "D" | "L", string> = {
   L: "bg-rose-500/15 text-rose-700 ring-rose-500/30 dark:text-rose-400",
 };
 
-export function FormPips({ form, size = "md" }: { form: Schema["FormEntry"][]; size?: "sm" | "md" }) {
+export function FormPips({ form, size = "md", base = "" }: { form: Schema["FormEntry"][]; size?: "sm" | "md"; base?: string }) {
   if (!form.length) {
     return (
       <div className="flex gap-1.5">
@@ -23,7 +23,7 @@ export function FormPips({ form, size = "md" }: { form: Schema["FormEntry"][]; s
       {form.map((f) => (
         <Link
           key={f.fixture_id}
-          href={`/fixtures/${f.fixture_id}`}
+          href={`${base}/fixtures/${f.fixture_id}`}
           title={`${f.our_score}–${f.their_score} v ${f.opposition}`}
           className={cn(
             "flex items-center justify-center rounded-full text-xs font-semibold ring-1 transition-transform active:scale-95",

@@ -1711,6 +1711,95 @@
         "title": "MeRead",
         "type": "object"
       },
+      "MembershipRead": {
+        "description": "A player's spell in one team-season, for their history.",
+        "properties": {
+          "age_group": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Group"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "joined_at": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Joined At"
+          },
+          "left_at": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Left At"
+          },
+          "season_name": {
+            "title": "Season Name",
+            "type": "string"
+          },
+          "squad_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Squad Number"
+          },
+          "team_id": {
+            "title": "Team Id",
+            "type": "integer"
+          },
+          "team_name": {
+            "title": "Team Name",
+            "type": "string"
+          },
+          "team_season_id": {
+            "title": "Team Season Id",
+            "type": "integer"
+          },
+          "team_slug": {
+            "title": "Team Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "team_season_id",
+          "team_id",
+          "team_name",
+          "team_slug",
+          "season_name",
+          "age_group",
+          "squad_number",
+          "joined_at",
+          "left_at"
+        ],
+        "title": "MembershipRead",
+        "type": "object"
+      },
       "PlayerCreate": {
         "additionalProperties": false,
         "properties": {
@@ -5210,7 +5299,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/SquadMemberRead"
+                    "$ref": "#/components/schemas/MembershipRead"
                   },
                   "title": "Response Player Memberships Api V1 Players  Player Id  Memberships Get",
                   "type": "array"

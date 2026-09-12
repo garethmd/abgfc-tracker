@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { CalendarDays, Plus } from "lucide-react";
 import { $api } from "@/lib/api/client";
-import { useSeason } from "@/lib/season-context";
+import { useTeam } from "@/lib/team-context";
 import { PageHeader, SectionTitle } from "@/components/page-header";
 import { FixtureRow } from "@/components/features/fixtures/fixture-row";
 import { Card } from "@/components/stat-card";
@@ -13,12 +13,12 @@ import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 
 export default function FixturesPage() {
-  const { season } = useSeason();
+  const { teamSeason, canEdit, base } = useTeam();
   const fixtures = $api.useQuery(
     "get",
     "/api/v1/fixtures",
-    { params: { query: { season_id: season?.id ?? 0 } } },
-    { enabled: !!season },
+    { params: { query: { team_season_id: teamSeason?.id ?? 0 } } },
+    { enabled: !!teamSeason },
   );
 
   const upcoming = (fixtures.data ?? []).filter((f) => f.status === "scheduled");
@@ -29,13 +29,15 @@ export default function FixturesPage() {
     <>
       <PageHeader
         title="Fixtures"
-        description={season ? `${season.name} · ${fixtures.data?.length ?? 0} fixtures` : undefined}
+        description={teamSeason ? `${teamSeason.season.name} · ${fixtures.data?.length ?? 0} fixtures` : undefined}
         action={
-          <Button asChild size="sm">
-            <Link href="/fixtures/new">
-              <Plus className="size-4" /> Add
-            </Link>
-          </Button>
+          canEdit ? (
+            <Button asChild size="sm">
+              <Link href={`${base}/fixtures/new`}>
+                <Plus className="size-4" /> Add
+              </Link>
+            </Button>
+          ) : undefined
         }
       />
 
@@ -52,9 +54,11 @@ export default function FixturesPage() {
           title="No fixtures yet"
           description="Add the first fixture and enter the result after the game."
           action={
-            <Button asChild>
-              <Link href="/fixtures/new">Add a fixture</Link>
-            </Button>
+            canEdit ? (
+              <Button asChild>
+                <Link href={`${base}/fixtures/new`}>Add a fixture</Link>
+              </Button>
+            ) : undefined
           }
         />
       ) : (
@@ -63,17 +67,19 @@ export default function FixturesPage() {
             <section>
               <SectionTitle>Next up</SectionTitle>
               <Card className="overflow-hidden">
-                <FixtureRow fixture={nextUp} />
-                <div className="border-t border-border/60 p-3">
-                  <Button asChild className="h-11 w-full">
-                    <Link href={`/fixtures/${nextUp.id}/entry`}>Enter result</Link>
-                  </Button>
-                </div>
+                <FixtureRow fixture={nextUp} base={base} />
+                {canEdit && (
+                  <div className="border-t border-border/60 p-3">
+                    <Button asChild className="h-11 w-full">
+                      <Link href={`${base}/fixtures/${nextUp.id}/entry`}>Enter result</Link>
+                    </Button>
+                  </div>
+                )}
               </Card>
               {upcoming.length > 1 && (
                 <Card className="mt-3 divide-y divide-border/40 overflow-hidden">
                   {upcoming.slice(1).map((f) => (
-                    <FixtureRow key={f.id} fixture={f} />
+                    <FixtureRow key={f.id} fixture={f} base={base} />
                   ))}
                 </Card>
               )}
@@ -85,7 +91,7 @@ export default function FixturesPage() {
             {others.length ? (
               <Card className="divide-y divide-border/40 overflow-hidden">
                 {others.map((f) => (
-                  <FixtureRow key={f.id} fixture={f} />
+                  <FixtureRow key={f.id} fixture={f} base={base} />
                 ))}
               </Card>
             ) : (

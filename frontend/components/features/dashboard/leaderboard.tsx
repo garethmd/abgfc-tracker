@@ -9,7 +9,11 @@ import { cn } from "@/lib/utils";
 
 const AWARD_SHORT: Record<string, string> = { coaches_potm: "Coaches'", parents_potm: "Parents'" };
 
-export function Leaderboard({ board }: { board: Schema["Leaderboard"] }) {
+function awardLabel(code: string) {
+  return AWARD_SHORT[code] ?? code.replace(/^[a-z0-9-]+_/, "").replace(/_/g, " ");
+}
+
+export function Leaderboard({ board, base = "" }: { board: Schema["Leaderboard"]; base?: string }) {
   if (!board.rows.length) {
     return (
       <EmptyState
@@ -34,7 +38,7 @@ export function Leaderboard({ board }: { board: Schema["Leaderboard"] }) {
               <Th title="Goals per game">GPG</Th>
               {board.award_types.map((a) => (
                 <Th key={a.award_type_id} title={a.award_type_code}>
-                  {AWARD_SHORT[a.award_type_code] ?? a.award_type_code}
+                  {awardLabel(a.award_type_code)}
                 </Th>
               ))}
             </tr>
@@ -43,7 +47,7 @@ export function Leaderboard({ board }: { board: Schema["Leaderboard"] }) {
             {board.rows.map((r, i) => (
               <tr key={r.player.id} className={cn("border-b border-border/40 last:border-0", noGames && "text-muted-foreground")}>
                 <td className="sticky left-0 z-10 bg-card py-3 pl-4 pr-2">
-                  <Link href={`/players/${r.player.id}`} className="flex items-center gap-2.5 font-medium hover:underline">
+                  <Link href={`${base}/players/${r.player.id}`} className="flex items-center gap-2.5 font-medium hover:underline">
                     <span
                       className={cn(
                         "flex size-6 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold",

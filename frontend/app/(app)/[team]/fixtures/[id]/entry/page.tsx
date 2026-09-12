@@ -2,24 +2,26 @@
 
 import { use } from "react";
 import { $api } from "@/lib/api/client";
+import { useTeam } from "@/lib/team-context";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { ResultEntry } from "@/components/features/fixtures/result-entry";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/error-state";
 
-export default function ResultEntryPage({ params }: PageProps<"/fixtures/[id]/entry">) {
+export default function ResultEntryPage({ params }: PageProps<"/[team]/fixtures/[id]/entry">) {
   const { id } = use(params);
   const fixtureId = Number(id);
+  const { team, base } = useTeam();
   const fixture = $api.useQuery("get", "/api/v1/fixtures/{fixture_id}", { params: { path: { fixture_id: fixtureId } } });
-  const seasonId = fixture.data?.season_id ?? 0;
+  const teamSeasonId = fixture.data?.team_season_id ?? 0;
   const squad = $api.useQuery(
     "get",
-    "/api/v1/seasons/{season_id}/squad",
-    { params: { path: { season_id: seasonId } } },
+    "/api/v1/team-seasons/{team_season_id}/squad",
+    { params: { path: { team_season_id: teamSeasonId } } },
     { enabled: !!fixture.data },
   );
-  const awardTypes = $api.useQuery("get", "/api/v1/award-types");
+  const awardTypes = $api.useQuery("get", "/api/v1/award-types", { params: { query: { club_team_id: team.id } } });
 
   const error = fixture.error ?? squad.error ?? awardTypes.error;
   if (error) return <ErrorState error={error} onRetry={() => { fixture.refetch(); squad.refetch(); awardTypes.refetch(); }} />;
@@ -40,7 +42,7 @@ export default function ResultEntryPage({ params }: PageProps<"/fixtures/[id]/en
         title={f.status === "played" ? "Edit result" : "Enter result"}
         description={`v ${f.opposition.name} · ${formatDate(f.kickoff_at)}`}
       />
-      <ResultEntry fixture={f} squad={squad.data} awardTypes={awardTypes.data} />
+      <ResultEntry fixture={f} squad={squad.data} awardTypes={awardTypes.data} base={base} />
     </div>
   );
 }

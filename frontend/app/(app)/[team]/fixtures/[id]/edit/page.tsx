@@ -7,7 +7,7 @@ import { FixtureForm } from "@/components/features/fixtures/fixture-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/error-state";
 
-export default function EditFixturePage({ params }: PageProps<"/fixtures/[id]/edit">) {
+export default function EditFixturePage({ params }: PageProps<"/[team]/fixtures/[id]/edit">) {
   const { id } = use(params);
   const fixture = $api.useQuery("get", "/api/v1/fixtures/{fixture_id}", { params: { path: { fixture_id: Number(id) } } });
 

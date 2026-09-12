@@ -16,11 +16,11 @@ export function resultOf(f: Schema["FixtureRead"]): "W" | "D" | "L" | null {
   return f.our_score > f.their_score ? "W" : f.our_score < f.their_score ? "L" : "D";
 }
 
-export function FixtureRow({ fixture: f }: { fixture: Schema["FixtureRead"] }) {
+export function FixtureRow({ fixture: f, base = "" }: { fixture: Schema["FixtureRead"]; base?: string }) {
   const result = resultOf(f);
   return (
     <Link
-      href={`/fixtures/${f.id}`}
+      href={`${base}/fixtures/${f.id}`}
       className="flex min-h-16 items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/50 active:bg-accent"
     >
       <div className="flex w-12 shrink-0 flex-col items-center">

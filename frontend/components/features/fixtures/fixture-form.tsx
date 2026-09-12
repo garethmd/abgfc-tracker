@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { $api, errorMessage, type Schema } from "@/lib/api/client";
-import { useSeason } from "@/lib/season-context";
+import { useTeam } from "@/lib/team-context";
 import { toLocalInput, VENUE_LABEL, STATUS_LABEL } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,7 @@ function defaultKickoff() {
 export function FixtureForm({ fixture }: { fixture?: Fixture }) {
   const router = useRouter();
   const qc = useQueryClient();
-  const { season } = useSeason();
+  const { teamSeason, base } = useTeam();
   const competitions = $api.useQuery("get", "/api/v1/competitions");
   const teams = $api.useQuery("get", "/api/v1/teams");
 
@@ -50,7 +50,7 @@ export function FixtureForm({ fixture }: { fixture?: Fixture }) {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!season) return;
+    if (!teamSeason) return;
     try {
       let oppositionId = Number(teamId);
       if (teamId === "__new__") {
@@ -74,11 +74,11 @@ export function FixtureForm({ fixture }: { fixture?: Fixture }) {
           body: { ...common, status: fixture.status === "played" ? undefined : status },
         });
       } else {
-        saved = await create.mutateAsync({ body: { ...common, season_id: season.id, status } });
+        saved = await create.mutateAsync({ body: { ...common, team_season_id: teamSeason.id, status } });
       }
       qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });
       toast.success(fixture ? "Fixture updated" : "Fixture added");
-      router.replace(`/fixtures/${saved.id}`);
+      router.replace(`${base}/fixtures/${saved.id}`);
     } catch (err) {
       toast.error(errorMessage(err));
     }
