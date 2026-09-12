@@ -1,0 +1,42 @@
+const dateFmt = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" });
+const longDateFmt = new Intl.DateTimeFormat("en-GB", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+const timeFmt = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" });
+
+export function formatDate(iso: string): string {
+  return dateFmt.format(new Date(iso));
+}
+
+export function formatLongDate(iso: string): string {
+  return longDateFmt.format(new Date(iso));
+}
+
+export function formatTime(iso: string): string {
+  return timeFmt.format(new Date(iso));
+}
+
+/** "2026-10-17T10:00" for <input type="datetime-local"> */
+export function toLocalInput(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export function joinNames(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} & ${names[names.length - 1]}`;
+}
+
+export const STATUS_LABEL: Record<string, string> = {
+  scheduled: "Scheduled",
+  played: "Played",
+  postponed: "Postponed",
+  cancelled: "Cancelled",
+  abandoned: "Abandoned",
+};
+
+export const VENUE_LABEL: Record<string, string> = { home: "Home", away: "Away", neutral: "Neutral" };

@@ -1,0 +1,32 @@
+services:
+  backend:
+    build: ./backend
+    environment:
+      ABGFC_DATABASE_URL: sqlite:////data/abgfc.db
+      ABGFC_MEDIA_DIR: /data/media
+      ABGFC_SECRET_KEY: ${ABGFC_SECRET_KEY:-dev-only-change-me-please}
+      ABGFC_COACH_USERNAME: ${ABGFC_COACH_USERNAME:-coach}
+      ABGFC_COACH_PASSWORD: ${ABGFC_COACH_PASSWORD:-changeme}
+      ABGFC_CORS_ORIGINS: '["http://localhost:3000"]'
+    volumes:
+      - abgfc-data:/data   # SQLite file + uploaded media; never a public bucket
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  frontend:
+    build: ./frontend
+    environment:
+      BACKEND_URL: http://backend:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  abgfc-data:

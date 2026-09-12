@@ -1,0 +1,62 @@
+from enum import StrEnum
+
+
+class CompetitionType(StrEnum):
+    LEAGUE = "league"
+    CUP = "cup"
+    FRIENDLY = "friendly"
+    TOURNAMENT = "tournament"
+
+
+class Venue(StrEnum):
+    HOME = "home"
+    AWAY = "away"
+    NEUTRAL = "neutral"
+
+
+class FixtureStatus(StrEnum):
+    SCHEDULED = "scheduled"
+    PLAYED = "played"
+    POSTPONED = "postponed"
+    CANCELLED = "cancelled"
+    ABANDONED = "abandoned"
+
+
+class EventType(StrEnum):
+    """Match events. Goals are the addressable thing (media attaches to them);
+    an ASSIST row points at its GOAL via related_event_id."""
+
+    GOAL = "goal"  # our player scores
+    ASSIST = "assist"  # our player assists; related_event_id -> goal
+    OWN_GOAL = "own_goal"  # our player, into our own net (counts for them)
+    OPP_OWN_GOAL = "opp_own_goal"  # opposition own goal (counts for us, no player)
+
+
+class AwardScope(StrEnum):
+    MATCH = "match"
+    MONTH = "month"
+    SEASON = "season"
+
+
+class PositionCategory(StrEnum):
+    GK = "GK"
+    DEF = "DEF"
+    MID = "MID"
+    FWD = "FWD"
+
+
+class MediaKind(StrEnum):
+    YOUTUBE = "youtube"
+    PHOTO = "photo"
+    FILE = "file"
+
+
+class UserRole(StrEnum):
+    COACH = "coach"
+    ADMIN = "admin"
+
+
+def check_in(column: str, enum: type[StrEnum]) -> str:
+    """SQL fragment for a CHECK constraint restricting a column to an enum's values."""
+    values = ", ".join(f"'{v.value}'" for v in enum)
+    return f"{column} IN ({values})"
