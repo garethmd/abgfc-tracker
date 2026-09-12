@@ -184,6 +184,69 @@ def seed_real_season(db: Session) -> Season:
             fixture_id=m1.id,
         )
     )
+
+    # Remaining fixtures from the league site. Times of 08:00/00:00 are the site's
+    # placeholders, kept as-is until real kick-offs are confirmed.
+    for name, ctype in [
+        ("Conference League", CompetitionType.LEAGUE),
+        ("Zidane League", CompetitionType.LEAGUE),
+    ]:
+        if name not in comps:
+            comps[name] = Competition(name=name, type=ctype)
+            db.add(comps[name])
+    db.flush()
+
+    teams: dict[str, Team] = {"Manor Colts": manor_colts}
+    for name, short in [
+        ("Alton Youth Wildfire", "Alton Wildfire"),
+        ("Haslemere Town Harriers", "Haslemere"),
+        ("Grayshott Youth Bears", "Grayshott"),
+        ("Crookham Rovers Rogues", "Crookham"),
+        ("Aldershot B&G Blacks", "ABGFC Blacks"),
+        ("Hook Pumas", "Hook"),
+        ("Curley Park Rangers Cobras", "Curley Park Cobras"),
+        ("Hawley Youth Falcons", "Hawley"),
+        ("Camberley Town Razors", "Camberley"),
+        ("Mytchett Athletic Ospreys", "Mytchett"),
+        ("Churt Junior Heat", "Churt"),
+        ("Hart Youth Ospreys", "Hart"),
+        ("Curley Park Rangers Spitfires", "Curley Park Spitfires"),
+    ]:
+        teams[name] = Team(name=name, short_name=short)
+        db.add(teams[name])
+    db.flush()
+
+    CONF, ZID = comps["Conference League"], comps["Zidane League"]
+    H, A = Venue.HOME, Venue.AWAY
+    upcoming = [
+        # (match, date, time, opposition, venue, ground, competition)
+        (2, (9, 19), (8, 0), "Alton Youth Wildfire", H, "Aldershot Park", CONF),
+        (3, (9, 26), (0, 0), "Haslemere Town Harriers", A, "Camelsdale Recreation Ground #1", ZID),
+        (4, (10, 3), (8, 0), "Grayshott Youth Bears", A, "Grayshott Youth ground", CONF),
+        (5, (10, 10), (8, 0), "Crookham Rovers Rogues", A, "Cody Sports and Social Club 4", ZID),
+        (6, (10, 17), (8, 0), "Aldershot B&G Blacks", A, "Aldershot Park", CONF),
+        (7, (10, 24), (8, 0), "Hook Pumas", H, "Aldershot Park", ZID),
+        (8, (11, 7), (8, 0), "Curley Park Rangers Cobras", H, "Aldershot Park", CONF),
+        (9, (11, 14), (8, 0), "Hawley Youth Falcons", H, "Aldershot Park", ZID),
+        (10, (11, 21), (8, 0), "Camberley Town Razors", H, "Aldershot Park", ZID),
+        (11, (11, 28), (10, 0), "Mytchett Athletic Ospreys", A, "Holly Lodge Primary Academy", ZID),
+        (12, (12, 5), (8, 0), "Churt Junior Heat", H, "Aldershot Park", ZID),
+        (13, (12, 12), (8, 0), "Hart Youth Ospreys", A, "Zebon Copse Centre Pitch 1", ZID),
+        (14, (12, 19), (8, 0), "Curley Park Rangers Spitfires", A, "Connaught Pavilion", ZID),
+    ]
+    for num, (month, day), (hh, mm), opp, venue, ground, comp in upcoming:
+        db.add(
+            Fixture(
+                season_id=season.id,
+                competition_id=comp.id,
+                opposition_team_id=teams[opp].id,
+                match_number=num,
+                kickoff_at=datetime(2026, month, day, hh, mm),
+                venue=venue,
+                venue_notes=ground,
+                status=FixtureStatus.SCHEDULED,
+            )
+        )
     db.flush()
     return season
 
