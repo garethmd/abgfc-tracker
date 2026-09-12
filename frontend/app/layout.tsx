@@ -7,9 +7,9 @@ const geistSans = Geist({ variable: "--font-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: { default: "ABGFC Blues", template: "%s · ABGFC Blues" },
-  description: "Aldershot Boys & Girls FC Blues — team stats",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "Blues" },
+  title: { default: "ABGFC", template: "%s · ABGFC" },
+  description: "Aldershot Boys & Girls FC — team stats",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "ABGFC" },
 };
 
 export const viewport: Viewport = {

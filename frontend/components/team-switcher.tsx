@@ -22,7 +22,7 @@ export function TeamSwitcher({ current }: { current?: { name: string; slug: stri
 
   const brand = (
     <span className="flex items-center gap-2">
-      <Crest letter={label[0]} colour={current?.colour} />
+      <Crest colour={current?.colour} />
       <span className="font-semibold tracking-tight">{label}</span>
     </span>
   );

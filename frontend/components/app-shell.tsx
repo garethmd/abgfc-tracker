@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
@@ -96,13 +97,17 @@ export function AppShell({
   );
 }
 
-export function Crest({ letter = "B", colour }: { letter?: string; colour?: string | null }) {
+/** The club crest; a coloured dot marks which of our teams you're looking at. */
+export function Crest({ colour, size = 32 }: { colour?: string | null; size?: number }) {
   return (
-    <span
-      className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary text-[11px] font-bold text-primary-foreground"
-      style={colour ? { background: colour } : undefined}
-    >
-      {letter}
+    <span className="relative inline-flex shrink-0" style={{ width: size, height: size }}>
+      <Image src="/crest.png" alt="" width={size} height={size} className="size-full object-contain" priority />
+      {colour && (
+        <span
+          className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full ring-2 ring-background"
+          style={{ background: colour }}
+        />
+      )}
     </span>
   );
 }

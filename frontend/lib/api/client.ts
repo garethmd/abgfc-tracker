@@ -4,14 +4,26 @@ import type { components, paths } from "./schema";
 
 export type Schema = components["schemas"];
 
+let redirecting = false;
+
 const redirectOn401: Middleware = {
-  async onResponse({ response }) {
+  async onResponse({ response, request }) {
     if (
       response.status === 401 &&
       typeof window !== "undefined" &&
-      !window.location.pathname.startsWith("/login")
+      !window.location.pathname.startsWith("/login") &&
+      !request.url.includes("/auth/logout") &&
+      !redirecting
     ) {
+      redirecting = true;
       const next = window.location.pathname;
+      // The session cookie is HttpOnly, so ask the API to clear it first - otherwise
+      // proxy.ts sees a (dead) cookie and bounces /login straight back here.
+      try {
+        await fetch("/api/v1/auth/logout", { method: "POST", credentials: "include" });
+      } catch {
+        /* best effort */
+      }
       // Full reload on purpose: drops all cached query state for the signed-out user.
       // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.assign(`/login${next !== "/" ? `?next=${encodeURIComponent(next)}` : ""}`);
