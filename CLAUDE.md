@@ -12,7 +12,8 @@ the FA doesn't allow them at U10, so the app only ever reports our own record.
 
 ```bash
 make install        # uv sync + npm install
-make seed-demo      # reset data/abgfc.db, migrate, load the demo 2026/27 season
+make seed           # migrate, coach login, and the real 2026/27 season from the sheet
+make seed-demo      # or: reset and load the fictional demo season the tests use
 make dev            # API on :8000, Next on :3000 (both hot reload)
 ```
 

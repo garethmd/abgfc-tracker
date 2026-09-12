@@ -27,10 +27,10 @@ migrate: ## Apply Alembic migrations
 migration: ## Autogenerate a migration: make migration m="add foo"
 	cd $(BACKEND) && uv run alembic revision --autogenerate -m "$(m)"
 
-seed: ## Reference data + coach login (idempotent)
+seed: ## Reference data + coach login + the real 2026/27 season (idempotent)
 	cd $(BACKEND) && uv run python -m scripts.seed
 
-seed-demo: ## Reset the dev DB and load the demo 2026/27 season
+seed-demo: ## Reset the dev DB and load the fictional demo season (the test oracle)
 	cd $(BACKEND) && uv run python -m scripts.seed --reset --demo
 
 test: ## Run the backend test suite

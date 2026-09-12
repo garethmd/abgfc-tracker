@@ -101,6 +101,93 @@ def seed_user(db: Session, username: str, password: str) -> User:
     return user
 
 
+def seed_real_season(db: Session) -> Season:
+    """The actual 2026/27 season, transcribed from the coaches' Google Sheet
+    (tabs: Fixtures, Match Stats, Appearances, Squad). Extend this as results come in
+    until the app replaces the sheet entirely.
+
+    The sheet records assists per player per match, not per goal; where a match has
+    several goals the assist is attached to the first one.
+    """
+    seed_reference_data(db)
+    comps = {c.name: c for c in CompetitionRepository(db).list_all()}
+    award_types = {a.code: a for a in AwardTypeRepository(db).list_all()}
+
+    season = Season(
+        name="2026/27", start_date=date(2026, 9, 1), end_date=date(2027, 5, 31), is_current=True
+    )
+    db.add(season)
+    db.flush()
+
+    players: dict[str, Player] = {}
+    for name in SQUAD:
+        p = Player(first_name=name, display_name=name, joined_date=date(2026, 9, 1))
+        db.add(p)
+        db.flush()
+        db.add(SquadMember(season_id=season.id, player_id=p.id))
+        players[name] = p
+
+    manor_colts = Team(name="Manor Colts")
+    db.add(manor_colts)
+    db.flush()
+
+    # Match 1 — Sat 12 Sep 2026, League, Manor Colts, 2-2 (D), Aldershot Park
+    m1 = Fixture(
+        season_id=season.id,
+        competition_id=comps["League"].id,
+        opposition_team_id=manor_colts.id,
+        match_number=1,
+        kickoff_at=datetime(2026, 9, 12, 10, 0),
+        venue=Venue.HOME,
+        venue_notes="Aldershot Park",
+        status=FixtureStatus.PLAYED,
+        our_score=2,
+        their_score=2,
+    )
+    db.add(m1)
+    db.flush()
+    for name in SQUAD:
+        if name != "Kayson":
+            db.add(Appearance(fixture_id=m1.id, player_id=players[name].id, started=True))
+    goal1 = MatchEvent(
+        fixture_id=m1.id, player_id=players["William"].id, event_type=EventType.GOAL, sequence=1
+    )
+    db.add(goal1)
+    db.flush()
+    db.add(
+        MatchEvent(
+            fixture_id=m1.id,
+            player_id=players["Noah"].id,
+            event_type=EventType.ASSIST,
+            sequence=2,
+            related_event_id=goal1.id,
+        )
+    )
+    db.add(
+        MatchEvent(
+            fixture_id=m1.id, player_id=players["William"].id, event_type=EventType.GOAL, sequence=3
+        )
+    )
+    db.add(
+        Award(
+            award_type_id=award_types["coaches_potm"].id,
+            season_id=season.id,
+            player_id=players["Noah"].id,
+            fixture_id=m1.id,
+        )
+    )
+    db.add(
+        Award(
+            award_type_id=award_types["parents_potm"].id,
+            season_id=season.id,
+            player_id=players["Ayla"].id,
+            fixture_id=m1.id,
+        )
+    )
+    db.flush()
+    return season
+
+
 @dataclass
 class DemoSeason:
     season: Season
