@@ -19,9 +19,10 @@ services:
       retries: 5
 
   frontend:
-    build: ./frontend
-    environment:
-      BACKEND_URL: http://backend:8000
+    build:
+      context: ./frontend
+      args:
+        BACKEND_URL: http://backend:8000   # baked into Next rewrites at build time
     ports:
       - "3000:3000"
     depends_on:
