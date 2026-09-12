@@ -127,14 +127,19 @@ def seed_real_season(db: Session) -> Season:
         db.add(SquadMember(season_id=season.id, player_id=p.id))
         players[name] = p
 
+    for name in ("Conference League", "Zidane League"):
+        if name not in comps:
+            comps[name] = Competition(name=name, type=CompetitionType.LEAGUE)
+            db.add(comps[name])
+    comps["League"].is_active = False  # the specific leagues above replace the generic one
     manor_colts = Team(name="Manor Colts")
     db.add(manor_colts)
     db.flush()
 
-    # Match 1 — Sat 12 Sep 2026, League, Manor Colts, 2-2 (D), Aldershot Park
+    # Match 1 — Sat 12 Sep 2026, Zidane League, Manor Colts, 2-2 (D), Aldershot Park
     m1 = Fixture(
         season_id=season.id,
-        competition_id=comps["League"].id,
+        competition_id=comps["Zidane League"].id,
         opposition_team_id=manor_colts.id,
         match_number=1,
         kickoff_at=datetime(2026, 9, 12, 10, 0),
@@ -187,15 +192,6 @@ def seed_real_season(db: Session) -> Season:
 
     # Remaining fixtures from the league site. Times of 08:00/00:00 are the site's
     # placeholders, kept as-is until real kick-offs are confirmed.
-    for name, ctype in [
-        ("Conference League", CompetitionType.LEAGUE),
-        ("Zidane League", CompetitionType.LEAGUE),
-    ]:
-        if name not in comps:
-            comps[name] = Competition(name=name, type=ctype)
-            db.add(comps[name])
-    db.flush()
-
     teams: dict[str, Team] = {"Manor Colts": manor_colts}
     for name, short in [
         ("Alton Youth Wildfire", "Alton Wildfire"),
