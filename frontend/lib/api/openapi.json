@@ -207,8 +207,53 @@
         "title": "AwardScope",
         "type": "string"
       },
+      "AwardTypeCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "club_team_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Club Team Id"
+          },
+          "name": {
+            "examples": [
+              "Most improved"
+            ],
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/AwardScope",
+            "default": "match"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "AwardTypeCreate",
+        "type": "object"
+      },
       "AwardTypeRead": {
         "properties": {
+          "club_team_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Club Team Id"
+          },
           "code": {
             "title": "Code",
             "type": "string"
@@ -235,6 +280,7 @@
         },
         "required": [
           "id",
+          "club_team_id",
           "code",
           "name",
           "scope",
@@ -242,6 +288,485 @@
           "is_active"
         ],
         "title": "AwardTypeRead",
+        "type": "object"
+      },
+      "AwardTypeUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "AwardTypeUpdate",
+        "type": "object"
+      },
+      "ChangePasswordRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "current_password": {
+            "title": "Current Password",
+            "type": "string"
+          },
+          "new_password": {
+            "maxLength": 200,
+            "minLength": 8,
+            "title": "New Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "title": "ChangePasswordRequest",
+        "type": "object"
+      },
+      "ClubTeamCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "cohort_id": {
+            "title": "Cohort Id",
+            "type": "integer"
+          },
+          "colour": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Colour"
+          },
+          "name": {
+            "examples": [
+              "Blacks"
+            ],
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z0-9-]{1,50}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
+          },
+          "sort_order": {
+            "default": 0,
+            "title": "Sort Order",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cohort_id",
+          "name"
+        ],
+        "title": "ClubTeamCreate",
+        "type": "object"
+      },
+      "ClubTeamRead": {
+        "properties": {
+          "cohort_id": {
+            "title": "Cohort Id",
+            "type": "integer"
+          },
+          "colour": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Colour"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "sort_order": {
+            "title": "Sort Order",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "cohort_id",
+          "name",
+          "slug",
+          "colour",
+          "sort_order",
+          "is_active"
+        ],
+        "title": "ClubTeamRead",
+        "type": "object"
+      },
+      "ClubTeamUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "colour": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Colour"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 50,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z0-9-]{1,50}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
+          },
+          "sort_order": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sort Order"
+          }
+        },
+        "title": "ClubTeamUpdate",
+        "type": "object"
+      },
+      "CohortAccess": {
+        "properties": {
+          "cohort": {
+            "$ref": "#/components/schemas/CohortRead"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          }
+        },
+        "required": [
+          "cohort",
+          "role"
+        ],
+        "title": "CohortAccess",
+        "type": "object"
+      },
+      "CohortCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "birth_year_start": {
+            "anyOf": [
+              {
+                "maximum": 2100.0,
+                "minimum": 2000.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Year Start"
+          },
+          "name": {
+            "examples": [
+              "Born 2016/17"
+            ],
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "CohortCreate",
+        "type": "object"
+      },
+      "CohortOverview": {
+        "properties": {
+          "cohort_id": {
+            "title": "Cohort Id",
+            "type": "integer"
+          },
+          "players": {
+            "items": {
+              "$ref": "#/components/schemas/CohortPlayerRow"
+            },
+            "title": "Players",
+            "type": "array"
+          },
+          "season_id": {
+            "title": "Season Id",
+            "type": "integer"
+          },
+          "teams": {
+            "items": {
+              "$ref": "#/components/schemas/CohortTeamRecord"
+            },
+            "title": "Teams",
+            "type": "array"
+          }
+        },
+        "required": [
+          "cohort_id",
+          "season_id",
+          "teams",
+          "players"
+        ],
+        "title": "CohortOverview",
+        "type": "object"
+      },
+      "CohortPlayerRow": {
+        "description": "A player's appearances across every team in the age group - the fairness view.",
+        "properties": {
+          "appearances": {
+            "title": "Appearances",
+            "type": "integer"
+          },
+          "assists": {
+            "title": "Assists",
+            "type": "integer"
+          },
+          "goals": {
+            "title": "Goals",
+            "type": "integer"
+          },
+          "minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minutes"
+          },
+          "player": {
+            "$ref": "#/components/schemas/PlayerSummary"
+          },
+          "starts": {
+            "title": "Starts",
+            "type": "integer"
+          },
+          "teams": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Teams",
+            "type": "array"
+          }
+        },
+        "required": [
+          "player",
+          "teams",
+          "appearances",
+          "starts",
+          "goals",
+          "assists",
+          "minutes"
+        ],
+        "title": "CohortPlayerRow",
+        "type": "object"
+      },
+      "CohortRead": {
+        "properties": {
+          "birth_year_start": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Year Start"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "birth_year_start",
+          "is_active"
+        ],
+        "title": "CohortRead",
+        "type": "object"
+      },
+      "CohortTeamRecord": {
+        "properties": {
+          "club_team_id": {
+            "title": "Club Team Id",
+            "type": "integer"
+          },
+          "form": {
+            "items": {
+              "$ref": "#/components/schemas/FormEntry"
+            },
+            "title": "Form",
+            "type": "array"
+          },
+          "league": {
+            "$ref": "#/components/schemas/TeamRecord"
+          },
+          "overall": {
+            "$ref": "#/components/schemas/TeamRecord"
+          },
+          "squad_size": {
+            "title": "Squad Size",
+            "type": "integer"
+          },
+          "team_name": {
+            "title": "Team Name",
+            "type": "string"
+          },
+          "team_season_id": {
+            "title": "Team Season Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "team_season_id",
+          "club_team_id",
+          "team_name",
+          "overall",
+          "league",
+          "form",
+          "squad_size"
+        ],
+        "title": "CohortTeamRecord",
+        "type": "object"
+      },
+      "CohortUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "birth_year_start": {
+            "anyOf": [
+              {
+                "maximum": 2100.0,
+                "minimum": 2000.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Year Start"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 50,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "CohortUpdate",
         "type": "object"
       },
       "CompetitionCreate": {
@@ -399,13 +924,13 @@
             "title": "Opposition Team Id",
             "type": "integer"
           },
-          "season_id": {
-            "title": "Season Id",
-            "type": "integer"
-          },
           "status": {
             "$ref": "#/components/schemas/FixtureStatus",
             "default": "scheduled"
+          },
+          "team_season_id": {
+            "title": "Team Season Id",
+            "type": "integer"
           },
           "venue": {
             "$ref": "#/components/schemas/Venue",
@@ -425,7 +950,7 @@
           }
         },
         "required": [
-          "season_id",
+          "team_season_id",
           "competition_id",
           "opposition_team_id",
           "kickoff_at"
@@ -515,12 +1040,12 @@
             ],
             "title": "Our Score"
           },
-          "season_id": {
-            "title": "Season Id",
-            "type": "integer"
-          },
           "status": {
             "$ref": "#/components/schemas/FixtureStatus"
+          },
+          "team_season_id": {
+            "title": "Team Season Id",
+            "type": "integer"
           },
           "their_score": {
             "anyOf": [
@@ -557,7 +1082,7 @@
         },
         "required": [
           "id",
-          "season_id",
+          "team_season_id",
           "competition",
           "opposition",
           "match_number",
@@ -638,12 +1163,12 @@
             ],
             "title": "Our Score"
           },
-          "season_id": {
-            "title": "Season Id",
-            "type": "integer"
-          },
           "status": {
             "$ref": "#/components/schemas/FixtureStatus"
+          },
+          "team_season_id": {
+            "title": "Team Season Id",
+            "type": "integer"
           },
           "their_score": {
             "anyOf": [
@@ -673,7 +1198,7 @@
         },
         "required": [
           "id",
-          "season_id",
+          "team_season_id",
           "competition",
           "opposition",
           "match_number",
@@ -1085,13 +1610,13 @@
             "title": "Rows",
             "type": "array"
           },
-          "season_id": {
-            "title": "Season Id",
+          "team_season_id": {
+            "title": "Team Season Id",
             "type": "integer"
           }
         },
         "required": [
-          "season_id",
+          "team_season_id",
           "competition_type",
           "award_types",
           "rows"
@@ -1121,9 +1646,85 @@
         "title": "LoginRequest",
         "type": "object"
       },
+      "MeRead": {
+        "properties": {
+          "club_role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserRole"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cohorts": {
+            "items": {
+              "$ref": "#/components/schemas/CohortAccess"
+            },
+            "title": "Cohorts",
+            "type": "array"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/RoleRead"
+            },
+            "title": "Roles",
+            "type": "array"
+          },
+          "teams": {
+            "items": {
+              "$ref": "#/components/schemas/TeamAccess"
+            },
+            "title": "Teams",
+            "type": "array"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "display_name",
+          "roles",
+          "club_role",
+          "cohorts",
+          "teams"
+        ],
+        "title": "MeRead",
+        "type": "object"
+      },
       "PlayerCreate": {
         "additionalProperties": false,
         "properties": {
+          "cohort_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cohort Id"
+          },
           "date_of_birth": {
             "anyOf": [
               {
@@ -1189,7 +1790,20 @@
             ],
             "title": "Notes"
           },
-          "season_id": {
+          "squad_number": {
+            "anyOf": [
+              {
+                "maximum": 99.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Squad Number"
+          },
+          "team_season_id": {
             "anyOf": [
               {
                 "type": "integer"
@@ -1198,7 +1812,34 @@
                 "type": "null"
               }
             ],
-            "title": "Season Id"
+            "title": "Team Season Id"
+          }
+        },
+        "required": [
+          "first_name"
+        ],
+        "title": "PlayerCreate",
+        "type": "object"
+      },
+      "PlayerMove": {
+        "additionalProperties": false,
+        "description": "Move a player between two teams' squads (same cohort) - an age-group coach action.",
+        "properties": {
+          "from_team_season_id": {
+            "title": "From Team Season Id",
+            "type": "integer"
+          },
+          "left_at": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Left At"
           },
           "squad_number": {
             "anyOf": [
@@ -1212,16 +1853,32 @@
               }
             ],
             "title": "Squad Number"
+          },
+          "to_team_season_id": {
+            "title": "To Team Season Id",
+            "type": "integer"
           }
         },
         "required": [
-          "first_name"
+          "from_team_season_id",
+          "to_team_season_id"
         ],
-        "title": "PlayerCreate",
+        "title": "PlayerMove",
         "type": "object"
       },
       "PlayerRead": {
         "properties": {
+          "cohort_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cohort Id"
+          },
           "date_of_birth": {
             "anyOf": [
               {
@@ -1295,6 +1952,7 @@
         },
         "required": [
           "id",
+          "cohort_id",
           "first_name",
           "last_name",
           "display_name",
@@ -1578,6 +2236,71 @@
         "title": "ResultSubmit",
         "type": "object"
       },
+      "RoleAssignment": {
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "scope_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope Id"
+          },
+          "scope_type": {
+            "$ref": "#/components/schemas/RoleScope"
+          }
+        },
+        "required": [
+          "role",
+          "scope_type"
+        ],
+        "title": "RoleAssignment",
+        "type": "object"
+      },
+      "RoleRead": {
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "scope_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope Id"
+          },
+          "scope_type": {
+            "$ref": "#/components/schemas/RoleScope"
+          }
+        },
+        "required": [
+          "role",
+          "scope_type",
+          "scope_id"
+        ],
+        "title": "RoleRead",
+        "type": "object"
+      },
+      "RoleScope": {
+        "enum": [
+          "club",
+          "cohort",
+          "team"
+        ],
+        "title": "RoleScope",
+        "type": "string"
+      },
       "SeasonCreate": {
         "additionalProperties": false,
         "properties": {
@@ -1592,18 +2315,6 @@
               }
             ],
             "title": "End Date"
-          },
-          "is_current": {
-            "default": false,
-            "title": "Is Current",
-            "type": "boolean"
-          },
-          "match_minutes": {
-            "default": 50,
-            "maximum": 120.0,
-            "minimum": 10.0,
-            "title": "Match Minutes",
-            "type": "integer"
           },
           "name": {
             "examples": [
@@ -1651,14 +2362,6 @@
             "title": "Id",
             "type": "integer"
           },
-          "is_current": {
-            "title": "Is Current",
-            "type": "boolean"
-          },
-          "match_minutes": {
-            "title": "Match Minutes",
-            "type": "integer"
-          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -1680,9 +2383,7 @@
           "id",
           "name",
           "start_date",
-          "end_date",
-          "match_minutes",
-          "is_current"
+          "end_date"
         ],
         "title": "SeasonRead",
         "type": "object"
@@ -1709,13 +2410,13 @@
           "overall": {
             "$ref": "#/components/schemas/TeamRecord"
           },
-          "season_id": {
-            "title": "Season Id",
+          "team_season_id": {
+            "title": "Team Season Id",
             "type": "integer"
           }
         },
         "required": [
-          "season_id",
+          "team_season_id",
           "overall",
           "league",
           "form",
@@ -1738,19 +2439,6 @@
               }
             ],
             "title": "End Date"
-          },
-          "match_minutes": {
-            "anyOf": [
-              {
-                "maximum": 120.0,
-                "minimum": 10.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Match Minutes"
           },
           "name": {
             "anyOf": [
@@ -1779,6 +2467,22 @@
           }
         },
         "title": "SeasonUpdate",
+        "type": "object"
+      },
+      "SetPasswordRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "new_password": {
+            "maxLength": 200,
+            "minLength": 8,
+            "title": "New Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "new_password"
+        ],
+        "title": "SetPasswordRequest",
         "type": "object"
       },
       "SquadMemberRead": {
@@ -1824,10 +2528,6 @@
               }
             ]
           },
-          "season_id": {
-            "title": "Season Id",
-            "type": "integer"
-          },
           "squad_number": {
             "anyOf": [
               {
@@ -1838,11 +2538,15 @@
               }
             ],
             "title": "Squad Number"
+          },
+          "team_season_id": {
+            "title": "Team Season Id",
+            "type": "integer"
           }
         },
         "required": [
           "id",
-          "season_id",
+          "team_season_id",
           "player",
           "squad_number",
           "primary_position",
@@ -1905,6 +2609,35 @@
           }
         },
         "title": "SquadMemberUpsert",
+        "type": "object"
+      },
+      "TeamAccess": {
+        "description": "One team the signed-in user can see, with what they may do there.",
+        "properties": {
+          "current_team_season_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Team Season Id"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "team": {
+            "$ref": "#/components/schemas/ClubTeamRead"
+          }
+        },
+        "required": [
+          "team",
+          "role",
+          "current_team_season_id"
+        ],
+        "title": "TeamAccess",
         "type": "object"
       },
       "TeamCreate": {
@@ -2060,6 +2793,191 @@
         "title": "TeamRecord",
         "type": "object"
       },
+      "TeamSeasonRead": {
+        "properties": {
+          "age_group": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Group"
+          },
+          "club_team": {
+            "$ref": "#/components/schemas/ClubTeamRead"
+          },
+          "format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Format"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "is_current": {
+            "title": "Is Current",
+            "type": "boolean"
+          },
+          "match_minutes": {
+            "title": "Match Minutes",
+            "type": "integer"
+          },
+          "season": {
+            "$ref": "#/components/schemas/SeasonRead"
+          }
+        },
+        "required": [
+          "id",
+          "club_team",
+          "season",
+          "age_group",
+          "format",
+          "match_minutes",
+          "is_current"
+        ],
+        "title": "TeamSeasonRead",
+        "type": "object"
+      },
+      "TeamSeasonStart": {
+        "additionalProperties": false,
+        "description": "Start a team's participation in a season. Give an existing season_id or a new\nseason_name; optionally copy the squad forward from a previous team-season.",
+        "properties": {
+          "age_group": {
+            "anyOf": [
+              {
+                "maxLength": 10,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Group"
+          },
+          "copy_squad_from_team_season_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Copy Squad From Team Season Id"
+          },
+          "format": {
+            "anyOf": [
+              {
+                "maxLength": 10,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "examples": [
+              "7v7",
+              "9v9"
+            ],
+            "title": "Format"
+          },
+          "make_current": {
+            "default": true,
+            "title": "Make Current",
+            "type": "boolean"
+          },
+          "match_minutes": {
+            "default": 50,
+            "maximum": 120.0,
+            "minimum": 10.0,
+            "title": "Match Minutes",
+            "type": "integer"
+          },
+          "season_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Season Id"
+          },
+          "season_name": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "examples": [
+              "2027/28"
+            ],
+            "title": "Season Name"
+          }
+        },
+        "title": "TeamSeasonStart",
+        "type": "object"
+      },
+      "TeamSeasonUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "age_group": {
+            "anyOf": [
+              {
+                "maxLength": 10,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Group"
+          },
+          "format": {
+            "anyOf": [
+              {
+                "maxLength": 10,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Format"
+          },
+          "match_minutes": {
+            "anyOf": [
+              {
+                "maximum": 120.0,
+                "minimum": 10.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Match Minutes"
+          }
+        },
+        "title": "TeamSeasonUpdate",
+        "type": "object"
+      },
       "TeamUpdate": {
         "additionalProperties": false,
         "properties": {
@@ -2115,14 +3033,33 @@
         "title": "TeamUpdate",
         "type": "object"
       },
-      "UserRead": {
+      "UserAdminRead": {
         "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
           "id": {
             "title": "Id",
             "type": "integer"
           },
-          "role": {
-            "$ref": "#/components/schemas/UserRole"
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/RoleRead"
+            },
+            "title": "Roles",
+            "type": "array"
           },
           "username": {
             "title": "Username",
@@ -2132,18 +3069,96 @@
         "required": [
           "id",
           "username",
-          "role"
+          "display_name",
+          "is_active",
+          "roles"
         ],
-        "title": "UserRead",
+        "title": "UserAdminRead",
+        "type": "object"
+      },
+      "UserCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "password": {
+            "maxLength": 200,
+            "minLength": 8,
+            "title": "Password",
+            "type": "string"
+          },
+          "roles": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RoleAssignment"
+            },
+            "title": "Roles",
+            "type": "array"
+          },
+          "username": {
+            "maxLength": 50,
+            "minLength": 2,
+            "pattern": "^[a-zA-Z0-9._-]+$",
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "UserCreate",
         "type": "object"
       },
       "UserRole": {
+        "description": "Ordered: viewer < coach < admin.",
         "enum": [
+          "viewer",
           "coach",
           "admin"
         ],
         "title": "UserRole",
         "type": "string"
+      },
+      "UserUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          }
+        },
+        "title": "UserUpdate",
+        "type": "object"
       },
       "ValidationError": {
         "properties": {
@@ -2227,6 +3242,58 @@
         ]
       }
     },
+    "/api/v1/auth/change-password": {
+      "post": {
+        "operationId": "change_password_api_v1_auth_change_password_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Change Password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "operationId": "login_api_v1_auth_login_post",
@@ -2245,7 +3312,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserRead"
+                  "$ref": "#/components/schemas/MeRead"
                 }
               }
             },
@@ -2308,7 +3375,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserRead"
+                  "$ref": "#/components/schemas/MeRead"
                 }
               }
             },
@@ -2333,8 +3400,25 @@
     },
     "/api/v1/award-types": {
       "get": {
+        "description": "Club-wide award types, plus the given team's own.",
         "operationId": "list_award_types_api_v1_award_types_get",
         "parameters": [
+          {
+            "in": "query",
+            "name": "club_team_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Club Team Id"
+            }
+          },
           {
             "in": "query",
             "name": "active_only",
@@ -2391,6 +3475,814 @@
         "summary": "List Award Types",
         "tags": [
           "lookups"
+        ]
+      },
+      "post": {
+        "operationId": "create_award_type_api_v1_award_types_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AwardTypeCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AwardTypeRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Award Type",
+        "tags": [
+          "lookups"
+        ]
+      }
+    },
+    "/api/v1/award-types/{award_type_id}": {
+      "patch": {
+        "operationId": "update_award_type_api_v1_award_types__award_type_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "award_type_id",
+            "required": true,
+            "schema": {
+              "title": "Award Type Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AwardTypeUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AwardTypeRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Award Type",
+        "tags": [
+          "lookups"
+        ]
+      }
+    },
+    "/api/v1/club-teams": {
+      "get": {
+        "operationId": "list_club_teams_api_v1_club_teams_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cohort_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cohort Id"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ClubTeamRead"
+                  },
+                  "title": "Response List Club Teams Api V1 Club Teams Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Club Teams",
+        "tags": [
+          "club"
+        ]
+      },
+      "post": {
+        "operationId": "create_club_team_api_v1_club_teams_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClubTeamCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClubTeamRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Club Team",
+        "tags": [
+          "club"
+        ]
+      }
+    },
+    "/api/v1/club-teams/by-slug/{slug}": {
+      "get": {
+        "operationId": "get_club_team_by_slug_api_v1_club_teams_by_slug__slug__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClubTeamRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Club Team By Slug",
+        "tags": [
+          "club"
+        ]
+      }
+    },
+    "/api/v1/club-teams/{team_id}": {
+      "get": {
+        "operationId": "get_club_team_api_v1_club_teams__team_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "team_id",
+            "required": true,
+            "schema": {
+              "title": "Team Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClubTeamRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Club Team",
+        "tags": [
+          "club"
+        ]
+      },
+      "patch": {
+        "operationId": "update_club_team_api_v1_club_teams__team_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "team_id",
+            "required": true,
+            "schema": {
+              "title": "Team Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClubTeamUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClubTeamRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Club Team",
+        "tags": [
+          "club"
+        ]
+      }
+    },
+    "/api/v1/club-teams/{team_id}/seasons": {
+      "get": {
+        "operationId": "list_team_seasons_api_v1_club_teams__team_id__seasons_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "team_id",
+            "required": true,
+            "schema": {
+              "title": "Team Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TeamSeasonRead"
+                  },
+                  "title": "Response List Team Seasons Api V1 Club Teams  Team Id  Seasons Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Team Seasons",
+        "tags": [
+          "club"
+        ]
+      },
+      "post": {
+        "description": "Roll the team into a season - optionally copying last season's squad forward.",
+        "operationId": "start_team_season_api_v1_club_teams__team_id__seasons_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "team_id",
+            "required": true,
+            "schema": {
+              "title": "Team Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamSeasonStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamSeasonRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Team Season",
+        "tags": [
+          "club"
+        ]
+      }
+    },
+    "/api/v1/cohorts": {
+      "get": {
+        "operationId": "list_cohorts_api_v1_cohorts_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CohortRead"
+                  },
+                  "title": "Response List Cohorts Api V1 Cohorts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Cohorts",
+        "tags": [
+          "club"
+        ]
+      },
+      "post": {
+        "operationId": "create_cohort_api_v1_cohorts_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CohortCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CohortRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Cohort",
+        "tags": [
+          "club"
+        ]
+      }
+    },
+    "/api/v1/cohorts/{cohort_id}": {
+      "patch": {
+        "operationId": "update_cohort_api_v1_cohorts__cohort_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cohort_id",
+            "required": true,
+            "schema": {
+              "title": "Cohort Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CohortUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CohortRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Cohort",
+        "tags": [
+          "club"
+        ]
+      }
+    },
+    "/api/v1/cohorts/{cohort_id}/overview": {
+      "get": {
+        "description": "Every team in the age group side by side, and each player's game time across them.",
+        "operationId": "cohort_overview_api_v1_cohorts__cohort_id__overview_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cohort_id",
+            "required": true,
+            "schema": {
+              "title": "Cohort Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "season_id",
+            "required": true,
+            "schema": {
+              "title": "Season Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CohortOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cohort Overview",
+        "tags": [
+          "club"
         ]
       }
     },
@@ -2627,7 +4519,7 @@
         "parameters": [
           {
             "in": "query",
-            "name": "season_id",
+            "name": "team_season_id",
             "required": false,
             "schema": {
               "anyOf": [
@@ -2638,7 +4530,7 @@
                   "type": "null"
                 }
               ],
-              "title": "Season Id"
+              "title": "Team Season Id"
             }
           },
           {
@@ -3027,6 +4919,22 @@
         "parameters": [
           {
             "in": "query",
+            "name": "cohort_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cohort Id"
+            }
+          },
+          {
+            "in": "query",
             "name": "include_left",
             "required": false,
             "schema": {
@@ -3265,6 +5173,137 @@
         ]
       }
     },
+    "/api/v1/players/{player_id}/memberships": {
+      "get": {
+        "description": "Every team-season the player has been in (that the caller can see).",
+        "operationId": "player_memberships_api_v1_players__player_id__memberships_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "player_id",
+            "required": true,
+            "schema": {
+              "title": "Player Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SquadMemberRead"
+                  },
+                  "title": "Response Player Memberships Api V1 Players  Player Id  Memberships Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Player Memberships",
+        "tags": [
+          "players"
+        ]
+      }
+    },
+    "/api/v1/players/{player_id}/move": {
+      "post": {
+        "operationId": "move_player_api_v1_players__player_id__move_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "player_id",
+            "required": true,
+            "schema": {
+              "title": "Player Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlayerMove"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SquadMemberRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Move Player",
+        "tags": [
+          "players"
+        ]
+      }
+    },
     "/api/v1/players/{player_id}/stats": {
       "get": {
         "operationId": "player_stats_api_v1_players__player_id__stats_get",
@@ -3280,18 +5319,11 @@
           },
           {
             "in": "query",
-            "name": "season_id",
-            "required": false,
+            "name": "team_season_id",
+            "required": true,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Season Id"
+              "title": "Team Season Id",
+              "type": "integer"
             }
           },
           {
@@ -3502,55 +5534,6 @@
         ]
       }
     },
-    "/api/v1/seasons/current": {
-      "get": {
-        "operationId": "current_season_api_v1_seasons_current_get",
-        "parameters": [
-          {
-            "in": "cookie",
-            "name": "abgfc_session",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Abgfc Session"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SeasonRead"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Current Season",
-        "tags": [
-          "seasons"
-        ]
-      }
-    },
     "/api/v1/seasons/{season_id}": {
       "delete": {
         "operationId": "delete_season_api_v1_seasons__season_id__delete",
@@ -3724,16 +5707,16 @@
         ]
       }
     },
-    "/api/v1/seasons/{season_id}/make-current": {
-      "post": {
-        "operationId": "make_current_api_v1_seasons__season_id__make_current_post",
+    "/api/v1/team-seasons/{team_season_id}": {
+      "get": {
+        "operationId": "get_team_season_api_v1_team_seasons__team_season_id__get",
         "parameters": [
           {
             "in": "path",
-            "name": "season_id",
+            "name": "team_season_id",
             "required": true,
             "schema": {
-              "title": "Season Id",
+              "title": "Team Season Id",
               "type": "integer"
             }
           },
@@ -3759,7 +5742,131 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SeasonRead"
+                  "$ref": "#/components/schemas/TeamSeasonRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Team Season",
+        "tags": [
+          "club"
+        ]
+      },
+      "patch": {
+        "operationId": "update_team_season_api_v1_team_seasons__team_season_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "team_season_id",
+            "required": true,
+            "schema": {
+              "title": "Team Season Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamSeasonUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamSeasonRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Team Season",
+        "tags": [
+          "club"
+        ]
+      }
+    },
+    "/api/v1/team-seasons/{team_season_id}/make-current": {
+      "post": {
+        "operationId": "make_current_api_v1_team_seasons__team_season_id__make_current_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "team_season_id",
+            "required": true,
+            "schema": {
+              "title": "Team Season Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamSeasonRead"
                 }
               }
             },
@@ -3778,20 +5885,20 @@
         },
         "summary": "Make Current",
         "tags": [
-          "seasons"
+          "club"
         ]
       }
     },
-    "/api/v1/seasons/{season_id}/squad": {
+    "/api/v1/team-seasons/{team_season_id}/squad": {
       "get": {
-        "operationId": "list_squad_api_v1_seasons__season_id__squad_get",
+        "operationId": "list_squad_api_v1_team_seasons__team_season_id__squad_get",
         "parameters": [
           {
             "in": "path",
-            "name": "season_id",
+            "name": "team_season_id",
             "required": true,
             "schema": {
-              "title": "Season Id",
+              "title": "Team Season Id",
               "type": "integer"
             }
           },
@@ -3820,7 +5927,7 @@
                   "items": {
                     "$ref": "#/components/schemas/SquadMemberRead"
                   },
-                  "title": "Response List Squad Api V1 Seasons  Season Id  Squad Get",
+                  "title": "Response List Squad Api V1 Team Seasons  Team Season Id  Squad Get",
                   "type": "array"
                 }
               }
@@ -3840,20 +5947,20 @@
         },
         "summary": "List Squad",
         "tags": [
-          "seasons"
+          "club"
         ]
       }
     },
-    "/api/v1/seasons/{season_id}/squad/{player_id}": {
+    "/api/v1/team-seasons/{team_season_id}/squad/{player_id}": {
       "delete": {
-        "operationId": "remove_squad_member_api_v1_seasons__season_id__squad__player_id__delete",
+        "operationId": "remove_squad_member_api_v1_team_seasons__team_season_id__squad__player_id__delete",
         "parameters": [
           {
             "in": "path",
-            "name": "season_id",
+            "name": "team_season_id",
             "required": true,
             "schema": {
-              "title": "Season Id",
+              "title": "Team Season Id",
               "type": "integer"
             }
           },
@@ -3900,18 +6007,18 @@
         },
         "summary": "Remove Squad Member",
         "tags": [
-          "seasons"
+          "club"
         ]
       },
       "put": {
-        "operationId": "upsert_squad_member_api_v1_seasons__season_id__squad__player_id__put",
+        "operationId": "upsert_squad_member_api_v1_team_seasons__team_season_id__squad__player_id__put",
         "parameters": [
           {
             "in": "path",
-            "name": "season_id",
+            "name": "team_season_id",
             "required": true,
             "schema": {
-              "title": "Season Id",
+              "title": "Team Season Id",
               "type": "integer"
             }
           },
@@ -3975,20 +6082,20 @@
         },
         "summary": "Upsert Squad Member",
         "tags": [
-          "seasons"
+          "club"
         ]
       }
     },
-    "/api/v1/seasons/{season_id}/stats/leaderboard": {
+    "/api/v1/team-seasons/{team_season_id}/stats/leaderboard": {
       "get": {
-        "operationId": "season_leaderboard_api_v1_seasons__season_id__stats_leaderboard_get",
+        "operationId": "season_leaderboard_api_v1_team_seasons__team_season_id__stats_leaderboard_get",
         "parameters": [
           {
             "in": "path",
-            "name": "season_id",
+            "name": "team_season_id",
             "required": true,
             "schema": {
-              "title": "Season Id",
+              "title": "Team Season Id",
               "type": "integer"
             }
           },
@@ -4049,20 +6156,20 @@
         },
         "summary": "Season Leaderboard",
         "tags": [
-          "seasons"
+          "club"
         ]
       }
     },
-    "/api/v1/seasons/{season_id}/stats/summary": {
+    "/api/v1/team-seasons/{team_season_id}/stats/summary": {
       "get": {
-        "operationId": "season_summary_api_v1_seasons__season_id__stats_summary_get",
+        "operationId": "season_summary_api_v1_team_seasons__team_season_id__stats_summary_get",
         "parameters": [
           {
             "in": "path",
-            "name": "season_id",
+            "name": "team_season_id",
             "required": true,
             "schema": {
-              "title": "Season Id",
+              "title": "Team Season Id",
               "type": "integer"
             }
           },
@@ -4107,7 +6214,7 @@
         },
         "summary": "Season Summary",
         "tags": [
-          "seasons"
+          "club"
         ]
       }
     },
@@ -4391,6 +6498,375 @@
         "summary": "Update Team",
         "tags": [
           "lookups"
+        ]
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "description": "Users within the caller's admin scope.",
+        "operationId": "list_users_api_v1_users_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UserAdminRead"
+                  },
+                  "title": "Response List Users Api V1 Users Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Users",
+        "tags": [
+          "users"
+        ]
+      },
+      "post": {
+        "operationId": "create_user_api_v1_users_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserAdminRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create User",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/users/{user_id}": {
+      "get": {
+        "operationId": "get_user_api_v1_users__user_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserAdminRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get User",
+        "tags": [
+          "users"
+        ]
+      },
+      "patch": {
+        "operationId": "update_user_api_v1_users__user_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserAdminRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update User",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/users/{user_id}/password": {
+      "post": {
+        "description": "Admin reset - the \"forgot password\" path.",
+        "operationId": "set_password_api_v1_users__user_id__password_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Password",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/users/{user_id}/roles": {
+      "put": {
+        "operationId": "set_roles_api_v1_users__user_id__roles_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/RoleAssignment"
+                },
+                "title": "Roles",
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserAdminRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Roles",
+        "tags": [
+          "users"
         ]
       }
     }

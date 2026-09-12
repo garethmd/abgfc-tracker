@@ -15,6 +15,8 @@ from app.models import (
     Award,
     AwardScope,
     AwardType,
+    ClubTeam,
+    Cohort,
     Competition,
     CompetitionType,
     EventType,
@@ -24,14 +26,20 @@ from app.models import (
     Player,
     Position,
     PositionCategory,
+    RoleScope,
     Season,
     SquadMember,
     Team,
+    TeamSeason,
     User,
     UserRole,
+    UserRoleAssignment,
     Venue,
 )
+from app.repositories.club import ClubTeamRepository, CohortRepository
 from app.repositories.lookups import AwardTypeRepository, CompetitionRepository, PositionRepository
+from app.repositories.seasons import SeasonRepository
+from app.repositories.users import UserRepository
 
 SQUAD = [
     "Alexander",
@@ -89,11 +97,13 @@ def seed_reference_data(db: Session) -> None:
 
 
 def seed_user(db: Session, username: str, password: str) -> User:
-    from sqlalchemy import select
-
-    user = db.scalar(select(User).where(User.username == username))
+    """The club admin login. Re-running updates the password."""
+    user = UserRepository(db).get_by_username(username)
     if user is None:
-        user = User(username=username, password_hash=hash_password(password), role=UserRole.ADMIN)
+        user = User(
+            username=username, display_name="Club admin", password_hash=hash_password(password)
+        )
+        user.roles = [UserRoleAssignment(role=UserRole.ADMIN, scope_type=RoleScope.CLUB)]
         db.add(user)
     else:
         user.password_hash = hash_password(password)
@@ -101,44 +111,96 @@ def seed_user(db: Session, username: str, password: str) -> User:
     return user
 
 
+CLUB_TEAMS = [
+    # (name, slug, accent colour)
+    ("Blues", "blues", "oklch(0.5 0.2 258)"),
+    ("Blacks", "blacks", "oklch(0.3 0.01 260)"),
+    ("Reds", "reds", "oklch(0.55 0.2 25)"),
+    ("Whites", "whites", "oklch(0.6 0.02 260)"),
+]
+
+
+def seed_club_structure(db: Session, season_name: str = "2026/27") -> dict[str, TeamSeason]:
+    """Idempotent: the 2016/17 cohort, its four teams, the season, and a current
+    team-season for each team. Returns team-seasons keyed by team slug."""
+    cohort = CohortRepository(db).get_by_name("Born 2016/17")
+    if cohort is None:
+        cohort = Cohort(name="Born 2016/17", birth_year_start=2016)
+        db.add(cohort)
+        db.flush()
+
+    season = SeasonRepository(db).get_by_name(season_name)
+    if season is None:
+        start = int(season_name.split("/")[0])
+        season = Season(
+            name=season_name, start_date=date(start, 9, 1), end_date=date(start + 1, 5, 31)
+        )
+        db.add(season)
+        db.flush()
+
+    teams = ClubTeamRepository(db)
+    result: dict[str, TeamSeason] = {}
+    for i, (name, slug, colour) in enumerate(CLUB_TEAMS):
+        team = teams.get_by_slug(slug)
+        if team is None:
+            team = ClubTeam(cohort_id=cohort.id, name=name, slug=slug, colour=colour, sort_order=i)
+            db.add(team)
+            db.flush()
+        ts = next((t for t in team.team_seasons if t.season_id == season.id), None)
+        if ts is None:
+            ts = TeamSeason(
+                club_team_id=team.id,
+                season_id=season.id,
+                age_group=cohort.age_group_for(season),
+                format="7v7",
+                match_minutes=50,
+                is_current=True,
+            )
+            db.add(ts)
+            db.flush()
+        result[slug] = ts
+    return result
+
+
 def seed_real_season(db: Session) -> Season:
     """The actual 2026/27 season, transcribed from the coaches' Google Sheet
-    (tabs: Fixtures, Match Stats, Appearances, Squad). Extend this as results come in
-    until the app replaces the sheet entirely.
+    (tabs: Fixtures, Match Stats, Appearances, Squad) and the league fixture list.
+    Extend this as results come in until the app replaces the sheet entirely.
 
     The sheet records assists per player per match, not per goal; where a match has
     several goals the assist is attached to the first one.
     """
     seed_reference_data(db)
+    team_seasons = seed_club_structure(db)
+    blues = team_seasons["blues"]
+    season = blues.season
+    cohort_id = blues.club_team.cohort_id
     comps = {c.name: c for c in CompetitionRepository(db).list_all()}
     award_types = {a.code: a for a in AwardTypeRepository(db).list_all()}
-
-    season = Season(
-        name="2026/27", start_date=date(2026, 9, 1), end_date=date(2027, 5, 31), is_current=True
-    )
-    db.add(season)
-    db.flush()
-
-    players: dict[str, Player] = {}
-    for name in SQUAD:
-        p = Player(first_name=name, display_name=name, joined_date=date(2026, 9, 1))
-        db.add(p)
-        db.flush()
-        db.add(SquadMember(season_id=season.id, player_id=p.id))
-        players[name] = p
 
     for name in ("Conference League", "Zidane League"):
         if name not in comps:
             comps[name] = Competition(name=name, type=CompetitionType.LEAGUE)
             db.add(comps[name])
     comps["League"].is_active = False  # the specific leagues above replace the generic one
+
+    players: dict[str, Player] = {}
+    for name in SQUAD:
+        p = Player(
+            cohort_id=cohort_id, first_name=name, display_name=name, joined_date=date(2026, 9, 1)
+        )
+        db.add(p)
+        db.flush()
+        db.add(SquadMember(team_season_id=blues.id, player_id=p.id))
+        players[name] = p
+
     manor_colts = Team(name="Manor Colts")
     db.add(manor_colts)
     db.flush()
 
     # Match 1 — Sat 12 Sep 2026, Zidane League, Manor Colts, 2-2 (D), Aldershot Park
     m1 = Fixture(
-        season_id=season.id,
+        team_season_id=blues.id,
         competition_id=comps["Zidane League"].id,
         opposition_team_id=manor_colts.id,
         match_number=1,
@@ -176,7 +238,7 @@ def seed_real_season(db: Session) -> Season:
     db.add(
         Award(
             award_type_id=award_types["coaches_potm"].id,
-            season_id=season.id,
+            team_season_id=blues.id,
             player_id=players["Noah"].id,
             fixture_id=m1.id,
         )
@@ -184,7 +246,7 @@ def seed_real_season(db: Session) -> Season:
     db.add(
         Award(
             award_type_id=award_types["parents_potm"].id,
-            season_id=season.id,
+            team_season_id=blues.id,
             player_id=players["Ayla"].id,
             fixture_id=m1.id,
         )
@@ -210,6 +272,7 @@ def seed_real_season(db: Session) -> Season:
     ]:
         teams[name] = Team(name=name, short_name=short)
         db.add(teams[name])
+    teams["Aldershot B&G Blacks"].club_team_id = team_seasons["blacks"].club_team_id  # derby
     db.flush()
 
     CONF, ZID = comps["Conference League"], comps["Zidane League"]
@@ -233,7 +296,7 @@ def seed_real_season(db: Session) -> Season:
     for num, (month, day), (hh, mm), opp, venue, ground, comp in upcoming:
         db.add(
             Fixture(
-                season_id=season.id,
+                team_season_id=blues.id,
                 competition_id=comp.id,
                 opposition_team_id=teams[opp].id,
                 match_number=num,
@@ -250,6 +313,7 @@ def seed_real_season(db: Session) -> Season:
 @dataclass
 class DemoSeason:
     season: Season
+    team_season: TeamSeason
     players: dict[str, Player]
     competitions: dict[str, Competition]
     award_types: dict[str, AwardType]
@@ -280,24 +344,26 @@ def seed_demo_season(db: Session) -> DemoSeason:
     coaches' POTM Archie (2); parents' POTM Max & Noah (2).
     """
     seed_reference_data(db)
+    team_seasons = seed_club_structure(db)
+    blues = team_seasons["blues"]
+    season = blues.season
     comps = {c.name: c for c in CompetitionRepository(db).list_all()}
     award_types = {a.code: a for a in AwardTypeRepository(db).list_all()}
     fwd = next(p for p in PositionRepository(db).list_all() if p.code == "FWD")
 
-    season = Season(
-        name="2026/27", start_date=date(2026, 9, 1), end_date=date(2027, 5, 31), is_current=True
-    )
-    db.add(season)
-    db.flush()
-
     players: dict[str, Player] = {}
     for i, name in enumerate(SQUAD, start=1):
-        p = Player(first_name=name, display_name=name, joined_date=date(2026, 9, 1))
+        p = Player(
+            cohort_id=blues.club_team.cohort_id,
+            first_name=name,
+            display_name=name,
+            joined_date=date(2026, 9, 1),
+        )
         db.add(p)
         db.flush()
         db.add(
             SquadMember(
-                season_id=season.id,
+                team_season_id=blues.id,
                 player_id=p.id,
                 squad_number=i,
                 primary_position_id=fwd.id if name == "Archie" else None,
@@ -318,7 +384,7 @@ def seed_demo_season(db: Session) -> DemoSeason:
         teams[name] = t
     db.flush()
 
-    demo = DemoSeason(season, players, comps, award_types, teams)
+    demo = DemoSeason(season, blues, players, comps, award_types, teams)
     P = players
     absent = lambda *names: [n for n in SQUAD if n not in names]  # noqa: E731
 
@@ -337,7 +403,7 @@ def seed_demo_season(db: Session) -> DemoSeason:
         parents=(),
     ):
         f = Fixture(
-            season_id=season.id,
+            team_season_id=blues.id,
             competition_id=comps[comp].id,
             opposition_team_id=teams[opp].id,
             match_number=num,
@@ -381,7 +447,7 @@ def seed_demo_season(db: Session) -> DemoSeason:
             db.add(
                 Award(
                     award_type_id=award_types["coaches_potm"].id,
-                    season_id=season.id,
+                    team_season_id=blues.id,
                     player_id=P[name].id,
                     fixture_id=f.id,
                 )
@@ -390,7 +456,7 @@ def seed_demo_season(db: Session) -> DemoSeason:
             db.add(
                 Award(
                     award_type_id=award_types["parents_potm"].id,
-                    season_id=season.id,
+                    team_season_id=blues.id,
                     player_id=P[name].id,
                     fixture_id=f.id,
                 )

@@ -17,12 +17,12 @@ class Award(TimestampMixin, Base):
     __tablename__ = "awards"
     __table_args__ = (
         UniqueConstraint("award_type_id", "fixture_id", "player_id"),
-        Index("ix_awards_season_id_award_type_id", "season_id", "award_type_id"),
+        Index("ix_awards_team_season_id_award_type_id", "team_season_id", "award_type_id"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     award_type_id: Mapped[int] = mapped_column(ForeignKey("award_types.id", ondelete="RESTRICT"))
-    season_id: Mapped[int] = mapped_column(ForeignKey("seasons.id", ondelete="RESTRICT"))
+    team_season_id: Mapped[int] = mapped_column(ForeignKey("team_seasons.id", ondelete="RESTRICT"))
     player_id: Mapped[int] = mapped_column(
         ForeignKey("players.id", ondelete="RESTRICT"), index=True
     )

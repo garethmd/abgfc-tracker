@@ -1,15 +1,20 @@
 from sqlalchemy.orm import Session
 
-from app.core.errors import ConflictError, NotFoundError
-from app.models import Season
-from app.repositories.fixtures import FixtureRepository
+from app.core.errors import ConflictError
+from app.models import Season, UserRole
+from app.repositories.club import TeamSeasonRepository
 from app.repositories.seasons import SeasonRepository
 from app.schemas.season import SeasonCreate, SeasonUpdate
+from app.services.access import Access
 
 
 class SeasonService:
-    def __init__(self, db: Session):
+    """Club-wide seasons. Anyone signed in can see them; creating one is harmless
+    (it's a name), so coaches may do it when starting their team's season."""
+
+    def __init__(self, db: Session, access: Access):
         self.db = db
+        self.access = access
         self.repo = SeasonRepository(db)
 
     def list_all(self) -> list[Season]:
@@ -18,24 +23,21 @@ class SeasonService:
     def get(self, id: int) -> Season:
         return self.repo.get_or_404(id)
 
-    def current(self) -> Season:
-        season = self.repo.get_current()
-        if season is None:
-            raise NotFoundError("No current season - create one first")
-        return season
-
     def create(self, data: SeasonCreate) -> Season:
         if self.repo.get_by_name(data.name):
             raise ConflictError(f"Season '{data.name}' already exists")
-        make_current = data.is_current or self.repo.get_current() is None
-        season = Season(**data.model_dump(exclude={"is_current"}))
-        self.repo.add(season)
-        if make_current:
-            self.repo.set_current(season)
+        season = self.repo.add(Season(**data.model_dump()))
         self.db.commit()
         return season
 
+    def get_or_create(self, name: str) -> Season:
+        season = self.repo.get_by_name(name)
+        if season is None:
+            season = self.repo.add(Season(name=name, **_dates_for(name)))
+        return season
+
     def update(self, id: int, data: SeasonUpdate) -> Season:
+        self.access.require_club(UserRole.ADMIN)
         season = self.repo.get_or_404(id)
         changes = data.model_dump(exclude_unset=True)
         if "name" in changes:
@@ -47,17 +49,21 @@ class SeasonService:
         self.db.commit()
         return season
 
-    def make_current(self, id: int) -> Season:
-        season = self.repo.get_or_404(id)
-        self.repo.set_current(season)
-        self.db.commit()
-        return season
-
     def delete(self, id: int) -> None:
+        self.access.require_club(UserRole.ADMIN)
         season = self.repo.get_or_404(id)
-        if FixtureRepository(self.db).list_all(season_id=id):
-            raise ConflictError("Season has fixtures; delete those first")
-        if season.squad_members:
-            raise ConflictError("Season has squad members; remove them first")
+        if TeamSeasonRepository(self.db).list_for_season(id):
+            raise ConflictError("Season is in use by a team; remove those first")
         self.repo.delete(season)
         self.db.commit()
+
+
+def _dates_for(name: str) -> dict:
+    """'2027/28' -> Sept 1 2027 to May 31 2028; anything else -> no dates."""
+    from datetime import date
+
+    try:
+        start = int(name.split("/")[0])
+        return {"start_date": date(start, 9, 1), "end_date": date(start + 1, 5, 31)}
+    except (ValueError, IndexError):
+        return {}

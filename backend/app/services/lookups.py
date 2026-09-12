@@ -1,12 +1,20 @@
 from sqlalchemy.orm import Session
 
 from app.core.errors import ConflictError
-from app.models import Competition, Team
+from app.models import AwardType, Competition, Team, UserRole
+from app.repositories.club import ClubTeamRepository
 from app.repositories.fixtures import FixtureRepository
-from app.repositories.lookups import CompetitionRepository
+from app.repositories.lookups import AwardTypeRepository, CompetitionRepository
 from app.repositories.teams import TeamRepository
-from app.schemas.lookup import CompetitionCreate, CompetitionUpdate
+from app.schemas.lookup import (
+    AwardTypeCreate,
+    AwardTypeUpdate,
+    CompetitionCreate,
+    CompetitionUpdate,
+)
 from app.schemas.team import TeamCreate, TeamUpdate
+from app.services.access import Access
+from app.services.club import slugify
 
 
 class CompetitionService:
@@ -84,3 +92,60 @@ class TeamService:
             raise ConflictError("Team has fixtures and cannot be deleted")
         self.repo.delete(team)
         self.db.commit()
+
+
+class AwardTypeService:
+    """Club-wide award types (both POTMs) plus per-team ones ("Blues most improved")."""
+
+    def __init__(self, db: Session, access: Access):
+        self.db = db
+        self.access = access
+        self.repo = AwardTypeRepository(db)
+
+    def list_for_team(self, club_team_id: int | None, active_only: bool = True) -> list[AwardType]:
+        if club_team_id is not None:
+            self.access.require_team(ClubTeamRepository(self.db).get_or_404(club_team_id))
+            return self.repo.list_all(active_only=active_only, club_team_id=club_team_id)
+        types = self.repo.list_all(active_only=active_only)
+        visible = self.access.visible_team_ids()
+        return [
+            t
+            for t in types
+            if t.club_team_id is None or visible is None or t.club_team_id in visible
+        ]
+
+    def create(self, data: AwardTypeCreate) -> AwardType:
+        if data.club_team_id is None:
+            self.access.require_club(UserRole.ADMIN)
+            code = slugify(data.name).replace("-", "_")
+        else:
+            team = ClubTeamRepository(self.db).get_or_404(data.club_team_id)
+            self.access.require_team(team, UserRole.COACH)
+            code = f"{team.slug}_{slugify(data.name)}".replace("-", "_")
+        if self.repo.get_by_code(code):
+            raise ConflictError(f"Award '{data.name}' already exists")
+        existing = self.repo.list_all()
+        award = self.repo.add(
+            AwardType(
+                code=code,
+                name=data.name,
+                scope=data.scope,
+                club_team_id=data.club_team_id,
+                sort_order=max((a.sort_order for a in existing), default=-1) + 1,
+            )
+        )
+        self.db.commit()
+        return award
+
+    def update(self, id: int, data: AwardTypeUpdate) -> AwardType:
+        award = self.repo.get_or_404(id)
+        if award.club_team_id is None:
+            self.access.require_club(UserRole.ADMIN)
+        else:
+            self.access.require_team(
+                ClubTeamRepository(self.db).get_or_404(award.club_team_id), UserRole.COACH
+            )
+        for k, v in data.model_dump(exclude_unset=True).items():
+            setattr(award, k, v)
+        self.db.commit()
+        return award

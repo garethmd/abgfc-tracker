@@ -6,7 +6,14 @@ API = "/api/v1"
 
 
 def test_everything_requires_login(client: TestClient):
-    for path in [f"{API}/seasons", f"{API}/players", f"{API}/fixtures", f"{API}/auth/me"]:
+    for path in [
+        f"{API}/seasons",
+        f"{API}/players",
+        f"{API}/fixtures",
+        f"{API}/auth/me",
+        f"{API}/club-teams",
+        f"{API}/users",
+    ]:
         assert client.get(path).status_code == 401, path
 
 
@@ -20,55 +27,79 @@ def test_login_bad_password(client: TestClient, db):
 
 
 def test_login_logout(auth_client: TestClient):
-    assert auth_client.get(f"{API}/auth/me").json()["username"] == "coach"
+    me = auth_client.get(f"{API}/auth/me").json()
+    assert me["username"] == "coach" and me["club_role"] == "admin"
     assert auth_client.post(f"{API}/auth/logout").status_code == 204
     assert auth_client.get(f"{API}/auth/me").status_code == 401
 
 
-def test_season_crud_and_current(auth_client: TestClient):
-    r = auth_client.post(f"{API}/seasons", json={"name": "2026/27"})
-    assert r.status_code == 201
-    first = r.json()
-    assert first["is_current"] is True  # first season becomes current automatically
+def test_team_season_start_and_roll_over(auth_client: TestClient, demo: DemoSeason):
+    team_id = demo.team_season.club_team_id
+    seasons = auth_client.get(f"{API}/club-teams/{team_id}/seasons").json()
+    assert [s["season"]["name"] for s in seasons] == ["2026/27"]
+    assert seasons[0]["is_current"] and seasons[0]["age_group"] == "U10"
 
-    r = auth_client.post(f"{API}/seasons", json={"name": "2027/28"})
-    second = r.json()
-    assert second["is_current"] is False
-    assert auth_client.post(f"{API}/seasons", json={"name": "2027/28"}).status_code == 409
-
-    auth_client.post(f"{API}/seasons/{second['id']}/make-current")
-    assert auth_client.get(f"{API}/seasons/current").json()["id"] == second["id"]
-    assert auth_client.get(f"{API}/seasons/{first['id']}").json()["is_current"] is False
-
-    assert (
-        auth_client.patch(f"{API}/seasons/{first['id']}", json={"match_minutes": 40}).json()[
-            "match_minutes"
-        ]
-        == 40
-    )
-    assert auth_client.delete(f"{API}/seasons/{first['id']}").status_code == 204
-    assert auth_client.get(f"{API}/seasons/{first['id']}").status_code == 404
-
-
-def test_player_create_with_squad_and_leave(auth_client: TestClient):
-    season = auth_client.post(f"{API}/seasons", json={"name": "2026/27"}).json()
+    # Roll into next season, copying the squad forward; age group is derived.
     r = auth_client.post(
-        f"{API}/players",
-        json={"first_name": "Archie", "season_id": season["id"], "squad_number": 9},
+        f"{API}/club-teams/{team_id}/seasons",
+        json={
+            "season_name": "2027/28",
+            "copy_squad_from_team_season_id": demo.team_season.id,
+            "match_minutes": 60,
+        },
     )
-    assert r.status_code == 201
-    archie = r.json()
-    assert archie["display_name"] == "Archie"
+    assert r.status_code == 201, r.text
+    nxt = r.json()
+    assert nxt["season"]["name"] == "2027/28" and nxt["age_group"] == "U11" and nxt["is_current"]
+    squad = auth_client.get(f"{API}/team-seasons/{nxt['id']}/squad").json()
+    assert len(squad) == 11 and {m["squad_number"] for m in squad} == set(range(1, 12))
+    assert (
+        auth_client.get(f"{API}/team-seasons/{demo.team_season.id}").json()["is_current"] is False
+    )
 
-    squad = auth_client.get(f"{API}/seasons/{season['id']}/squad").json()
+    # Same season twice is a conflict; the club-wide season row was created once.
+    assert (
+        auth_client.post(
+            f"{API}/club-teams/{team_id}/seasons", json={"season_name": "2027/28"}
+        ).status_code
+        == 409
+    )
+    assert [s["name"] for s in auth_client.get(f"{API}/seasons").json()] == ["2027/28", "2026/27"]
+
+    # Fresh season stats are all zeros but the squad is listed.
+    board = auth_client.get(f"{API}/team-seasons/{nxt['id']}/stats/leaderboard").json()
+    assert len(board["rows"]) == 11 and all(r["appearances"] == 0 for r in board["rows"])
+
+    auth_client.post(f"{API}/team-seasons/{demo.team_season.id}/make-current")
+    me = auth_client.get(f"{API}/auth/me").json()
+    blues = next(t for t in me["teams"] if t["team"]["slug"] == "blues")
+    assert blues["current_team_season_id"] == demo.team_season.id
+
+
+def test_player_create_with_squad_and_leave(auth_client: TestClient, db):
+    from app.services.bootstrap import seed_club_structure
+
+    ts = seed_club_structure(db)["blacks"]
+    db.commit()
+    r = auth_client.post(
+        f"{API}/players", json={"first_name": "Archie", "team_season_id": ts.id, "squad_number": 9}
+    )
+    assert r.status_code == 201, r.text
+    archie = r.json()
+    assert archie["display_name"] == "Archie" and archie["cohort_id"] == ts.club_team.cohort_id
+
+    squad = auth_client.get(f"{API}/team-seasons/{ts.id}/squad").json()
     assert [(m["player"]["display_name"], m["squad_number"]) for m in squad] == [("Archie", 9)]
 
     # Number clash is a 409 with a useful message
-    max_ = auth_client.post(f"{API}/players", json={"first_name": "Max"}).json()
-    r = auth_client.put(
-        f"{API}/seasons/{season['id']}/squad/{max_['id']}", json={"squad_number": 9}
-    )
+    max_ = auth_client.post(
+        f"{API}/players", json={"first_name": "Max", "cohort_id": ts.club_team.cohort_id}
+    ).json()
+    r = auth_client.put(f"{API}/team-seasons/{ts.id}/squad/{max_['id']}", json={"squad_number": 9})
     assert r.status_code == 409 and "Archie" in r.json()["detail"]
+
+    # Needs an age group one way or the other
+    assert auth_client.post(f"{API}/players", json={"first_name": "Nobody"}).status_code == 422
 
     # Leaving is a date, not a delete
     r = auth_client.patch(f"{API}/players/{archie['id']}", json={"left_date": "2027-01-01"})
@@ -78,16 +109,16 @@ def test_player_create_with_squad_and_leave(auth_client: TestClient):
 
 
 def test_fixture_crud(auth_client: TestClient, db):
-    from app.services.bootstrap import seed_reference_data
+    from app.services.bootstrap import seed_club_structure, seed_reference_data
 
     seed_reference_data(db)
+    ts = seed_club_structure(db)["blues"]
     db.commit()
-    season = auth_client.post(f"{API}/seasons", json={"name": "2026/27"}).json()
     league = next(c for c in auth_client.get(f"{API}/competitions").json() if c["type"] == "league")
     team = auth_client.post(f"{API}/teams", json={"name": "Fleet Spurs"}).json()
 
     body = {
-        "season_id": season["id"],
+        "team_season_id": ts.id,
         "competition_id": league["id"],
         "opposition_team_id": team["id"],
         "kickoff_at": "2026-09-05T10:00:00",
@@ -161,7 +192,7 @@ def test_post_match_entry_flow(auth_client: TestClient, demo: DemoSeason):
     assert d["warnings"] == []
 
     # Stats reflect it: Archie 6 goals, 4 assists, 7 apps; Teddy 3 apps, 1 goal
-    board = auth_client.get(f"{API}/seasons/{demo.season.id}/stats/leaderboard").json()
+    board = auth_client.get(f"{API}/team-seasons/{demo.team_season.id}/stats/leaderboard").json()
     rows = {r["player"]["display_name"]: r for r in board["rows"]}
     assert (rows["Archie"]["goals"], rows["Archie"]["assists"], rows["Archie"]["appearances"]) == (
         6,
@@ -169,7 +200,7 @@ def test_post_match_entry_flow(auth_client: TestClient, demo: DemoSeason):
         7,
     )
     assert (rows["Teddy"]["goals"], rows["Teddy"]["appearances"]) == (1, 3)
-    summary = auth_client.get(f"{API}/seasons/{demo.season.id}/stats/summary").json()
+    summary = auth_client.get(f"{API}/team-seasons/{demo.team_season.id}/stats/summary").json()
     assert summary["overall"]["played"] == 7 and summary["overall"]["won"] == 3
     assert [f["result"] for f in summary["form"]] == ["L", "W", "L", "L", "W"]
 
@@ -181,7 +212,9 @@ def test_post_match_entry_flow(auth_client: TestClient, demo: DemoSeason):
     assert len(d["goals"]) == 1 and d["awards"] == []
     rows = {
         r["player"]["display_name"]: r
-        for r in auth_client.get(f"{API}/seasons/{demo.season.id}/stats/leaderboard").json()["rows"]
+        for r in auth_client.get(
+            f"{API}/team-seasons/{demo.team_season.id}/stats/leaderboard"
+        ).json()["rows"]
     }
     assert rows["Archie"]["goals"] == 5
 
@@ -236,11 +269,15 @@ def test_fixture_detail_shape(auth_client: TestClient, demo: DemoSeason):
         "Archie",
     ]
     assert len(d["appearances"]) == 9
-    fixtures = auth_client.get(f"{API}/fixtures?season_id={demo.season.id}&status=played").json()
+    fixtures = auth_client.get(
+        f"{API}/fixtures?team_season_id={demo.team_season.id}&status=played"
+    ).json()
     assert len(fixtures) == 6
 
 
 def test_player_stats_endpoint(auth_client: TestClient, demo: DemoSeason):
-    r = auth_client.get(f"{API}/players/{demo.players['Archie'].id}/stats")
+    r = auth_client.get(
+        f"{API}/players/{demo.players['Archie'].id}/stats?team_season_id={demo.team_season.id}"
+    )
     assert r.status_code == 200
     assert (r.json()["goals"], r.json()["squad_number"]) == (5, 2)

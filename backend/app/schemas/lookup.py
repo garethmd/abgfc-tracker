@@ -31,8 +31,20 @@ class CompetitionRead(ORMModel):
     is_active: bool
 
 
+class AwardTypeCreate(InputModel):
+    name: str = Field(min_length=1, max_length=100, examples=["Most improved"])
+    club_team_id: int | None = None  # None = club-wide (admins only)
+    scope: AwardScope = AwardScope.MATCH
+
+
+class AwardTypeUpdate(InputModel):
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    is_active: bool | None = None
+
+
 class AwardTypeRead(ORMModel):
     id: int
+    club_team_id: int | None
     code: str
     name: str
     scope: AwardScope

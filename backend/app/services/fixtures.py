@@ -9,11 +9,12 @@ from app.models import (
     Fixture,
     FixtureStatus,
     MatchEvent,
+    UserRole,
 )
+from app.repositories.club import TeamSeasonRepository
 from app.repositories.fixtures import FixtureRepository
 from app.repositories.lookups import AwardTypeRepository, CompetitionRepository, PositionRepository
 from app.repositories.players import PlayerRepository
-from app.repositories.seasons import SeasonRepository
 from app.repositories.teams import TeamRepository
 from app.schemas.fixture import (
     AppearanceRead,
@@ -25,47 +26,57 @@ from app.schemas.fixture import (
     ResultSubmit,
 )
 from app.schemas.player import PlayerSummary
+from app.services.access import Access
 from app.services.stats import score_warnings
 
 
 class FixtureService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, access: Access):
         self.db = db
+        self.access = access
         self.repo = FixtureRepository(db)
 
-    def list_all(self, season_id=None, competition_id=None, status=None) -> list[Fixture]:
-        return self.repo.list_all(season_id=season_id, competition_id=competition_id, status=status)
+    def list_all(self, team_season_id=None, competition_id=None, status=None) -> list[Fixture]:
+        if team_season_id is not None:
+            self._team_season(team_season_id)
+        return self.repo.list_all(
+            team_season_id=team_season_id,
+            team_ids=self.access.visible_team_ids(),
+            competition_id=competition_id,
+            status=status,
+        )
 
-    def get(self, id: int) -> Fixture:
-        return self.repo.get_or_404(id)
-
-    def detail(self, id: int) -> FixtureDetail:
+    def get(self, id: int, minimum: UserRole = UserRole.VIEWER) -> Fixture:
         fixture = self.repo.get_detail(id)
         if fixture is None:
             raise NotFoundError(f"Fixture {id} not found")
-        return self._to_detail(fixture)
+        self.access.require_team_season(fixture.team_season, minimum)
+        return fixture
+
+    def detail(self, id: int) -> FixtureDetail:
+        return self._to_detail(self.get(id))
 
     def create(self, data: FixtureCreate) -> Fixture:
-        SeasonRepository(self.db).get_or_404(data.season_id)
+        self._team_season(data.team_season_id, UserRole.COACH)
         CompetitionRepository(self.db).get_or_404(data.competition_id)
         TeamRepository(self.db).get_or_404(data.opposition_team_id)
         payload = data.model_dump()
         if payload["match_number"] is None:
-            payload["match_number"] = self.repo.next_match_number(data.season_id)
-        self._check_match_number(data.season_id, payload["match_number"], None)
+            payload["match_number"] = self.repo.next_match_number(data.team_season_id)
+        self._check_match_number(data.team_season_id, payload["match_number"], None)
         fixture = self.repo.add(Fixture(**payload))
         self.db.commit()
         return self.repo.get_detail(fixture.id)
 
     def update(self, id: int, data: FixtureUpdate) -> Fixture:
-        fixture = self.repo.get_or_404(id)
+        fixture = self.get(id, UserRole.COACH)
         changes = data.model_dump(exclude_unset=True)
         if "competition_id" in changes:
             CompetitionRepository(self.db).get_or_404(changes["competition_id"])
         if "opposition_team_id" in changes:
             TeamRepository(self.db).get_or_404(changes["opposition_team_id"])
         if changes.get("match_number") is not None:
-            self._check_match_number(fixture.season_id, changes["match_number"], id)
+            self._check_match_number(fixture.team_season_id, changes["match_number"], id)
         for k, v in changes.items():
             setattr(fixture, k, v)
         if fixture.status == FixtureStatus.PLAYED and (
@@ -76,19 +87,22 @@ class FixtureService:
         return self.repo.get_detail(id)
 
     def delete(self, id: int) -> None:
-        fixture = self.repo.get_or_404(id)
+        fixture = self.get(id, UserRole.COACH)
         self.repo.delete(fixture)  # appearances/events/awards cascade
         self.db.commit()
 
     def submit_result(self, id: int, data: ResultSubmit) -> FixtureDetail:
         """Replace the fixture's whole result atomically and mark it played."""
-        fixture = self.repo.get_detail(id)
-        if fixture is None:
-            raise NotFoundError(f"Fixture {id} not found")
+        fixture = self.get(id, UserRole.COACH)
 
         players = PlayerRepository(self.db)
         positions = PositionRepository(self.db)
-        award_types = {a.id: a for a in AwardTypeRepository(self.db).list_all()}
+        award_types = {
+            a.id: a
+            for a in AwardTypeRepository(self.db).list_all(
+                club_team_id=fixture.team_season.club_team_id
+            )
+        }
 
         played_ids = {a.player_id for a in data.appearances}
         for a in data.appearances:
@@ -152,7 +166,7 @@ class FixtureService:
             fixture.awards.append(
                 Award(
                     award_type_id=aw.award_type_id,
-                    season_id=fixture.season_id,
+                    team_season_id=fixture.team_season_id,
                     player_id=aw.player_id,
                 )
             )
@@ -161,8 +175,15 @@ class FixtureService:
 
     # --- helpers ----------------------------------------------------------------
 
-    def _check_match_number(self, season_id: int, number: int, exclude_id: int | None) -> None:
-        for f in self.repo.list_all(season_id=season_id):
+    def _team_season(self, id: int, minimum: UserRole = UserRole.VIEWER):
+        ts = TeamSeasonRepository(self.db).get(id)
+        if ts is None:
+            raise NotFoundError(f"Team season {id} not found")
+        self.access.require_team_season(ts, minimum)
+        return ts
+
+    def _check_match_number(self, team_season_id: int, number: int, exclude_id: int | None) -> None:
+        for f in self.repo.list_all(team_season_id=team_season_id):
             if f.match_number == number and f.id != exclude_id:
                 raise ConflictError(f"Match number {number} is already used this season")
 
@@ -192,7 +213,7 @@ class FixtureService:
                 k: getattr(fixture, k)
                 for k in (
                     "id",
-                    "season_id",
+                    "team_season_id",
                     "competition",
                     "opposition",
                     "match_number",

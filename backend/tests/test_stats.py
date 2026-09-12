@@ -105,7 +105,7 @@ def test_highlights_tie_lists_every_name_and_zero_is_empty():
 
 
 def test_season_summary_records(db, demo: DemoSeason):
-    s = StatsService(db).season_summary(demo.season.id)
+    s = StatsService(db).season_summary(demo.team_season.id)
 
     assert s.overall.model_dump() == {
         "played": 6,
@@ -130,14 +130,14 @@ def test_season_summary_records(db, demo: DemoSeason):
 
 
 def test_form_is_last_five_chronological(db, demo: DemoSeason):
-    s = StatsService(db).season_summary(demo.season.id)
+    s = StatsService(db).season_summary(demo.team_season.id)
     assert [f.result for f in s.form] == ["D", "L", "W", "L", "L"]
     assert s.form[-1].opposition == "Farnborough Town Youth"
     assert (s.form[-1].our_score, s.form[-1].their_score) == (1, 3)
 
 
 def test_highlights_from_demo(db, demo: DemoSeason):
-    s = StatsService(db).season_summary(demo.season.id)
+    s = StatsService(db).season_summary(demo.team_season.id)
     by_label = {t.label: t for t in s.highlights}
     names = lambda t: [p.display_name for p in t.players]  # noqa: E731
 
@@ -168,7 +168,7 @@ EXPECTED_ALL = {
 
 
 def test_leaderboard_all_competitions(db, demo: DemoSeason):
-    board = StatsService(db).leaderboard(demo.season.id)
+    board = StatsService(db).leaderboard(demo.team_season.id)
     assert len(board.rows) == 11
     for name, (apps, g, a, og, coaches, parents) in EXPECTED_ALL.items():
         r = _row(board, name)
@@ -198,7 +198,7 @@ EXPECTED_LEAGUE = {
 
 
 def test_leaderboard_league_only(db, demo: DemoSeason):
-    board = StatsService(db).leaderboard(demo.season.id, competition_type="league")
+    board = StatsService(db).leaderboard(demo.team_season.id, competition_type="league")
     for name, (apps, g, a) in EXPECTED_LEAGUE.items():
         r = _row(board, name)
         assert (r.appearances, r.goals, r.assists) == (apps, g, a), name
@@ -207,26 +207,29 @@ def test_leaderboard_league_only(db, demo: DemoSeason):
 
 
 def test_empty_season_is_all_zeros(db, demo: DemoSeason):
-    from app.models import Season
+    from app.models import Season, TeamSeason
 
     empty = Season(name="2027/28")
     db.add(empty)
+    db.flush()
+    ts = TeamSeason(club_team_id=demo.team_season.club_team_id, season_id=empty.id)
+    db.add(ts)
     db.commit()
     svc = StatsService(db)
-    s = svc.season_summary(empty.id)
+    s = svc.season_summary(ts.id)
     assert s.overall.played == 0 and s.form == []
     assert all(t.value == 0 and t.players == [] for t in s.highlights)
-    assert svc.leaderboard(empty.id).rows == []
+    assert svc.leaderboard(ts.id).rows == []
 
 
 def test_player_who_left_squad_still_counts(db, demo: DemoSeason):
     """Appearances belong to the fixture, so a player removed from the squad keeps their stats."""
     from app.repositories.players import SquadRepository
 
-    member = SquadRepository(db).get_member(demo.season.id, demo.players["Reece"].id)
+    member = SquadRepository(db).get_member(demo.team_season.id, demo.players["Reece"].id)
     db.delete(member)
     db.commit()
-    board = StatsService(db).leaderboard(demo.season.id)
+    board = StatsService(db).leaderboard(demo.team_season.id)
     r = _row(board, "Reece")
     assert (r.appearances, r.squad_number) == (4, None)
 
@@ -237,10 +240,10 @@ def test_minutes_appear_once_every_appearance_has_stints(db, demo: DemoSeason):
     assert len(apps) == 2
     apps[0].stints.append(PlayerStint(on_minute=0, off_minute=25))
     db.commit()
-    assert StatsService(db).player_season(teddy.id, demo.season.id).minutes is None
+    assert StatsService(db).player_season(teddy.id, demo.team_season.id).minutes is None
     apps[1].stints.append(PlayerStint(on_minute=10, off_minute=None))
     db.commit()
-    assert StatsService(db).player_season(teddy.id, demo.season.id).minutes == 25 + 40
+    assert StatsService(db).player_season(teddy.id, demo.team_season.id).minutes == 25 + 40
 
 
 def test_score_warnings(db, demo: DemoSeason):

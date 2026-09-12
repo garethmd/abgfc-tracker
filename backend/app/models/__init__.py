@@ -1,6 +1,7 @@
 """Import every model so SQLAlchemy can resolve string relationship targets."""
 
 from app.models.award import Award
+from app.models.club import ClubTeam, Cohort, TeamSeason
 from app.models.enums import (
     AwardScope,
     CompetitionType,
@@ -8,6 +9,7 @@ from app.models.enums import (
     FixtureStatus,
     MediaKind,
     PositionCategory,
+    RoleScope,
     UserRole,
     Venue,
 )
@@ -19,8 +21,14 @@ from app.models.player import Player, SquadMember
 from app.models.season import Season
 from app.models.team import Team
 from app.models.user import User
+from app.models.user import UserRole as UserRoleAssignment
 
 __all__ = [
+    "ClubTeam",
+    "Cohort",
+    "RoleScope",
+    "TeamSeason",
+    "UserRoleAssignment",
     "Appearance",
     "Award",
     "AwardScope",

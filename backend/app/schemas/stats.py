@@ -52,7 +52,7 @@ class HighlightTile(BaseModel):
 
 
 class SeasonSummary(BaseModel):
-    season_id: int
+    team_season_id: int
     overall: TeamRecord
     league: TeamRecord
     form: list[FormEntry]  # last 5, most recent last
@@ -60,7 +60,36 @@ class SeasonSummary(BaseModel):
 
 
 class Leaderboard(BaseModel):
-    season_id: int
+    team_season_id: int
     competition_type: str | None
     award_types: list[AwardCount]  # column headers (count = 0) - keeps the table shape stable
     rows: list[PlayerStatsRow]
+
+
+class CohortTeamRecord(BaseModel):
+    team_season_id: int
+    club_team_id: int
+    team_name: str
+    overall: TeamRecord
+    league: TeamRecord
+    form: list[FormEntry]
+    squad_size: int
+
+
+class CohortPlayerRow(BaseModel):
+    """A player's appearances across every team in the age group - the fairness view."""
+
+    player: PlayerSummary
+    teams: list[str]
+    appearances: int
+    starts: int
+    goals: int
+    assists: int
+    minutes: int | None
+
+
+class CohortOverview(BaseModel):
+    cohort_id: int
+    season_id: int
+    teams: list[CohortTeamRecord]
+    players: list[CohortPlayerRow]

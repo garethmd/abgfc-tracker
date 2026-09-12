@@ -13,8 +13,10 @@ class PlayerCreate(InputModel):
     date_of_birth: date | None = None
     joined_date: date | None = None
     notes: str | None = None
-    # Convenience: add to this season's squad on creation.
-    season_id: int | None = None
+    # Which age group; defaults to the team-season's cohort when adding to a squad.
+    cohort_id: int | None = None
+    # Convenience: add to this team's squad on creation.
+    team_season_id: int | None = None
     squad_number: int | None = Field(default=None, ge=1, le=99)
 
 
@@ -30,6 +32,7 @@ class PlayerUpdate(InputModel):
 
 class PlayerRead(ORMModel):
     id: int
+    cohort_id: int | None
     first_name: str
     last_name: str | None
     display_name: str
@@ -55,9 +58,18 @@ class SquadMemberUpsert(InputModel):
 
 class SquadMemberRead(ORMModel):
     id: int
-    season_id: int
+    team_season_id: int
     player: PlayerRead
     squad_number: int | None
     primary_position: PositionRead | None
     joined_at: date | None
     left_at: date | None
+
+
+class PlayerMove(InputModel):
+    """Move a player between two teams' squads (same cohort) - an age-group coach action."""
+
+    from_team_season_id: int
+    to_team_season_id: int
+    left_at: date | None = None
+    squad_number: int | None = Field(default=None, ge=1, le=99)

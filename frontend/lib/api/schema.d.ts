@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change Password */
+        post: operations["change_password_api_v1_auth_change_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -79,8 +96,158 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Award Types */
+        /**
+         * List Award Types
+         * @description Club-wide award types, plus the given team's own.
+         */
         get: operations["list_award_types_api_v1_award_types_get"];
+        put?: never;
+        /** Create Award Type */
+        post: operations["create_award_type_api_v1_award_types_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/award-types/{award_type_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Award Type */
+        patch: operations["update_award_type_api_v1_award_types__award_type_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/club-teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Club Teams */
+        get: operations["list_club_teams_api_v1_club_teams_get"];
+        put?: never;
+        /** Create Club Team */
+        post: operations["create_club_team_api_v1_club_teams_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/club-teams/by-slug/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Club Team By Slug */
+        get: operations["get_club_team_by_slug_api_v1_club_teams_by_slug__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/club-teams/{team_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Club Team */
+        get: operations["get_club_team_api_v1_club_teams__team_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Club Team */
+        patch: operations["update_club_team_api_v1_club_teams__team_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/club-teams/{team_id}/seasons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Team Seasons */
+        get: operations["list_team_seasons_api_v1_club_teams__team_id__seasons_get"];
+        put?: never;
+        /**
+         * Start Team Season
+         * @description Roll the team into a season - optionally copying last season's squad forward.
+         */
+        post: operations["start_team_season_api_v1_club_teams__team_id__seasons_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cohorts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Cohorts */
+        get: operations["list_cohorts_api_v1_cohorts_get"];
+        put?: never;
+        /** Create Cohort */
+        post: operations["create_cohort_api_v1_cohorts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cohorts/{cohort_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Cohort */
+        patch: operations["update_cohort_api_v1_cohorts__cohort_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/cohorts/{cohort_id}/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Cohort Overview
+         * @description Every team in the age group side by side, and each player's game time across them.
+         */
+        get: operations["cohort_overview_api_v1_cohorts__cohort_id__overview_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -218,6 +385,43 @@ export interface paths {
         patch: operations["update_player_api_v1_players__player_id__patch"];
         trace?: never;
     };
+    "/api/v1/players/{player_id}/memberships": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Player Memberships
+         * @description Every team-season the player has been in (that the caller can see).
+         */
+        get: operations["player_memberships_api_v1_players__player_id__memberships_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/players/{player_id}/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move Player */
+        post: operations["move_player_api_v1_players__player_id__move_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/players/{player_id}/stats": {
         parameters: {
             query?: never;
@@ -270,23 +474,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/seasons/current": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Current Season */
-        get: operations["current_season_api_v1_seasons_current_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/seasons/{season_id}": {
         parameters: {
             query?: never;
@@ -306,7 +493,25 @@ export interface paths {
         patch: operations["update_season_api_v1_seasons__season_id__patch"];
         trace?: never;
     };
-    "/api/v1/seasons/{season_id}/make-current": {
+    "/api/v1/team-seasons/{team_season_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Team Season */
+        get: operations["get_team_season_api_v1_team_seasons__team_season_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Team Season */
+        patch: operations["update_team_season_api_v1_team_seasons__team_season_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/team-seasons/{team_season_id}/make-current": {
         parameters: {
             query?: never;
             header?: never;
@@ -316,14 +521,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Make Current */
-        post: operations["make_current_api_v1_seasons__season_id__make_current_post"];
+        post: operations["make_current_api_v1_team_seasons__team_season_id__make_current_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/seasons/{season_id}/squad": {
+    "/api/v1/team-seasons/{team_season_id}/squad": {
         parameters: {
             query?: never;
             header?: never;
@@ -331,7 +536,7 @@ export interface paths {
             cookie?: never;
         };
         /** List Squad */
-        get: operations["list_squad_api_v1_seasons__season_id__squad_get"];
+        get: operations["list_squad_api_v1_team_seasons__team_season_id__squad_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -340,7 +545,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/seasons/{season_id}/squad/{player_id}": {
+    "/api/v1/team-seasons/{team_season_id}/squad/{player_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -349,16 +554,16 @@ export interface paths {
         };
         get?: never;
         /** Upsert Squad Member */
-        put: operations["upsert_squad_member_api_v1_seasons__season_id__squad__player_id__put"];
+        put: operations["upsert_squad_member_api_v1_team_seasons__team_season_id__squad__player_id__put"];
         post?: never;
         /** Remove Squad Member */
-        delete: operations["remove_squad_member_api_v1_seasons__season_id__squad__player_id__delete"];
+        delete: operations["remove_squad_member_api_v1_team_seasons__team_season_id__squad__player_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/seasons/{season_id}/stats/leaderboard": {
+    "/api/v1/team-seasons/{team_season_id}/stats/leaderboard": {
         parameters: {
             query?: never;
             header?: never;
@@ -366,7 +571,7 @@ export interface paths {
             cookie?: never;
         };
         /** Season Leaderboard */
-        get: operations["season_leaderboard_api_v1_seasons__season_id__stats_leaderboard_get"];
+        get: operations["season_leaderboard_api_v1_team_seasons__team_season_id__stats_leaderboard_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -375,7 +580,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/seasons/{season_id}/stats/summary": {
+    "/api/v1/team-seasons/{team_season_id}/stats/summary": {
         parameters: {
             query?: never;
             header?: never;
@@ -383,7 +588,7 @@ export interface paths {
             cookie?: never;
         };
         /** Season Summary */
-        get: operations["season_summary_api_v1_seasons__season_id__stats_summary_get"];
+        get: operations["season_summary_api_v1_team_seasons__team_season_id__stats_summary_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -427,6 +632,82 @@ export interface paths {
         head?: never;
         /** Update Team */
         patch: operations["update_team_api_v1_teams__team_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Users
+         * @description Users within the caller's admin scope.
+         */
+        get: operations["list_users_api_v1_users_get"];
+        put?: never;
+        /** Create User */
+        post: operations["create_user_api_v1_users_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get User */
+        get: operations["get_user_api_v1_users__user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update User */
+        patch: operations["update_user_api_v1_users__user_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/users/{user_id}/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Password
+         * @description Admin reset - the "forgot password" path.
+         */
+        post: operations["set_password_api_v1_users__user_id__password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{user_id}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Roles */
+        put: operations["set_roles_api_v1_users__user_id__roles_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
 }
@@ -499,8 +780,22 @@ export interface components {
          * @enum {string}
          */
         AwardScope: "match" | "month" | "season";
+        /** AwardTypeCreate */
+        AwardTypeCreate: {
+            /** Club Team Id */
+            club_team_id?: number | null;
+            /**
+             * Name
+             * @example Most improved
+             */
+            name: string;
+            /** @default match */
+            scope?: components["schemas"]["AwardScope"];
+        };
         /** AwardTypeRead */
         AwardTypeRead: {
+            /** Club Team Id */
+            club_team_id: number | null;
             /** Code */
             code: string;
             /** Id */
@@ -512,6 +807,149 @@ export interface components {
             scope: components["schemas"]["AwardScope"];
             /** Sort Order */
             sort_order: number;
+        };
+        /** AwardTypeUpdate */
+        AwardTypeUpdate: {
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Name */
+            name?: string | null;
+        };
+        /** ChangePasswordRequest */
+        ChangePasswordRequest: {
+            /** Current Password */
+            current_password: string;
+            /** New Password */
+            new_password: string;
+        };
+        /** ClubTeamCreate */
+        ClubTeamCreate: {
+            /** Cohort Id */
+            cohort_id: number;
+            /** Colour */
+            colour?: string | null;
+            /**
+             * Name
+             * @example Blacks
+             */
+            name: string;
+            /** Slug */
+            slug?: string | null;
+            /**
+             * Sort Order
+             * @default 0
+             */
+            sort_order?: number;
+        };
+        /** ClubTeamRead */
+        ClubTeamRead: {
+            /** Cohort Id */
+            cohort_id: number;
+            /** Colour */
+            colour: string | null;
+            /** Id */
+            id: number;
+            /** Is Active */
+            is_active: boolean;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /** Sort Order */
+            sort_order: number;
+        };
+        /** ClubTeamUpdate */
+        ClubTeamUpdate: {
+            /** Colour */
+            colour?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Name */
+            name?: string | null;
+            /** Slug */
+            slug?: string | null;
+            /** Sort Order */
+            sort_order?: number | null;
+        };
+        /** CohortAccess */
+        CohortAccess: {
+            cohort: components["schemas"]["CohortRead"];
+            role: components["schemas"]["UserRole"];
+        };
+        /** CohortCreate */
+        CohortCreate: {
+            /** Birth Year Start */
+            birth_year_start?: number | null;
+            /**
+             * Name
+             * @example Born 2016/17
+             */
+            name: string;
+        };
+        /** CohortOverview */
+        CohortOverview: {
+            /** Cohort Id */
+            cohort_id: number;
+            /** Players */
+            players: components["schemas"]["CohortPlayerRow"][];
+            /** Season Id */
+            season_id: number;
+            /** Teams */
+            teams: components["schemas"]["CohortTeamRecord"][];
+        };
+        /**
+         * CohortPlayerRow
+         * @description A player's appearances across every team in the age group - the fairness view.
+         */
+        CohortPlayerRow: {
+            /** Appearances */
+            appearances: number;
+            /** Assists */
+            assists: number;
+            /** Goals */
+            goals: number;
+            /** Minutes */
+            minutes: number | null;
+            player: components["schemas"]["PlayerSummary"];
+            /** Starts */
+            starts: number;
+            /** Teams */
+            teams: string[];
+        };
+        /** CohortRead */
+        CohortRead: {
+            /** Birth Year Start */
+            birth_year_start: number | null;
+            /** Id */
+            id: number;
+            /** Is Active */
+            is_active: boolean;
+            /** Name */
+            name: string;
+        };
+        /** CohortTeamRecord */
+        CohortTeamRecord: {
+            /** Club Team Id */
+            club_team_id: number;
+            /** Form */
+            form: components["schemas"]["FormEntry"][];
+            league: components["schemas"]["TeamRecord"];
+            overall: components["schemas"]["TeamRecord"];
+            /** Squad Size */
+            squad_size: number;
+            /** Team Name */
+            team_name: string;
+            /** Team Season Id */
+            team_season_id: number;
+        };
+        /** CohortUpdate */
+        CohortUpdate: {
+            /** Birth Year Start */
+            birth_year_start?: number | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Name */
+            name?: string | null;
         };
         /** CompetitionCreate */
         CompetitionCreate: {
@@ -564,10 +1002,10 @@ export interface components {
             notes?: string | null;
             /** Opposition Team Id */
             opposition_team_id: number;
-            /** Season Id */
-            season_id: number;
             /** @default scheduled */
             status?: components["schemas"]["FixtureStatus"];
+            /** Team Season Id */
+            team_season_id: number;
             /** @default home */
             venue?: components["schemas"]["Venue"];
             /** Venue Notes */
@@ -598,9 +1036,9 @@ export interface components {
             opposition: components["schemas"]["TeamRead"];
             /** Our Score */
             our_score: number | null;
-            /** Season Id */
-            season_id: number;
             status: components["schemas"]["FixtureStatus"];
+            /** Team Season Id */
+            team_season_id: number;
             /** Their Score */
             their_score: number | null;
             venue: components["schemas"]["Venue"];
@@ -628,9 +1066,9 @@ export interface components {
             opposition: components["schemas"]["TeamRead"];
             /** Our Score */
             our_score: number | null;
-            /** Season Id */
-            season_id: number;
             status: components["schemas"]["FixtureStatus"];
+            /** Team Season Id */
+            team_season_id: number;
             /** Their Score */
             their_score: number | null;
             venue: components["schemas"]["Venue"];
@@ -747,8 +1185,8 @@ export interface components {
             competition_type: string | null;
             /** Rows */
             rows: components["schemas"]["PlayerStatsRow"][];
-            /** Season Id */
-            season_id: number;
+            /** Team Season Id */
+            team_season_id: number;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -757,8 +1195,26 @@ export interface components {
             /** Username */
             username: string;
         };
+        /** MeRead */
+        MeRead: {
+            club_role: components["schemas"]["UserRole"] | null;
+            /** Cohorts */
+            cohorts: components["schemas"]["CohortAccess"][];
+            /** Display Name */
+            display_name: string | null;
+            /** Id */
+            id: number;
+            /** Roles */
+            roles: components["schemas"]["RoleRead"][];
+            /** Teams */
+            teams: components["schemas"]["TeamAccess"][];
+            /** Username */
+            username: string;
+        };
         /** PlayerCreate */
         PlayerCreate: {
+            /** Cohort Id */
+            cohort_id?: number | null;
             /** Date Of Birth */
             date_of_birth?: string | null;
             /** Display Name */
@@ -771,13 +1227,29 @@ export interface components {
             last_name?: string | null;
             /** Notes */
             notes?: string | null;
-            /** Season Id */
-            season_id?: number | null;
             /** Squad Number */
             squad_number?: number | null;
+            /** Team Season Id */
+            team_season_id?: number | null;
+        };
+        /**
+         * PlayerMove
+         * @description Move a player between two teams' squads (same cohort) - an age-group coach action.
+         */
+        PlayerMove: {
+            /** From Team Season Id */
+            from_team_season_id: number;
+            /** Left At */
+            left_at?: string | null;
+            /** Squad Number */
+            squad_number?: number | null;
+            /** To Team Season Id */
+            to_team_season_id: number;
         };
         /** PlayerRead */
         PlayerRead: {
+            /** Cohort Id */
+            cohort_id: number | null;
             /** Date Of Birth */
             date_of_birth: string | null;
             /** Display Name */
@@ -883,20 +1355,29 @@ export interface components {
             /** Their Score */
             their_score: number;
         };
+        /** RoleAssignment */
+        RoleAssignment: {
+            role: components["schemas"]["UserRole"];
+            /** Scope Id */
+            scope_id?: number | null;
+            scope_type: components["schemas"]["RoleScope"];
+        };
+        /** RoleRead */
+        RoleRead: {
+            role: components["schemas"]["UserRole"];
+            /** Scope Id */
+            scope_id: number | null;
+            scope_type: components["schemas"]["RoleScope"];
+        };
+        /**
+         * RoleScope
+         * @enum {string}
+         */
+        RoleScope: "club" | "cohort" | "team";
         /** SeasonCreate */
         SeasonCreate: {
             /** End Date */
             end_date?: string | null;
-            /**
-             * Is Current
-             * @default false
-             */
-            is_current?: boolean;
-            /**
-             * Match Minutes
-             * @default 50
-             */
-            match_minutes?: number;
             /**
              * Name
              * @example 2026/27
@@ -911,10 +1392,6 @@ export interface components {
             end_date: string | null;
             /** Id */
             id: number;
-            /** Is Current */
-            is_current: boolean;
-            /** Match Minutes */
-            match_minutes: number;
             /** Name */
             name: string;
             /** Start Date */
@@ -928,19 +1405,22 @@ export interface components {
             highlights: components["schemas"]["HighlightTile"][];
             league: components["schemas"]["TeamRecord"];
             overall: components["schemas"]["TeamRecord"];
-            /** Season Id */
-            season_id: number;
+            /** Team Season Id */
+            team_season_id: number;
         };
         /** SeasonUpdate */
         SeasonUpdate: {
             /** End Date */
             end_date?: string | null;
-            /** Match Minutes */
-            match_minutes?: number | null;
             /** Name */
             name?: string | null;
             /** Start Date */
             start_date?: string | null;
+        };
+        /** SetPasswordRequest */
+        SetPasswordRequest: {
+            /** New Password */
+            new_password: string;
         };
         /** SquadMemberRead */
         SquadMemberRead: {
@@ -952,10 +1432,10 @@ export interface components {
             left_at: string | null;
             player: components["schemas"]["PlayerRead"];
             primary_position: components["schemas"]["PositionRead"] | null;
-            /** Season Id */
-            season_id: number;
             /** Squad Number */
             squad_number: number | null;
+            /** Team Season Id */
+            team_season_id: number;
         };
         /** SquadMemberUpsert */
         SquadMemberUpsert: {
@@ -967,6 +1447,16 @@ export interface components {
             primary_position_id?: number | null;
             /** Squad Number */
             squad_number?: number | null;
+        };
+        /**
+         * TeamAccess
+         * @description One team the signed-in user can see, with what they may do there.
+         */
+        TeamAccess: {
+            /** Current Team Season Id */
+            current_team_season_id: number | null;
+            role: components["schemas"]["UserRole"];
+            team: components["schemas"]["ClubTeamRead"];
         };
         /** TeamCreate */
         TeamCreate: {
@@ -1011,6 +1501,64 @@ export interface components {
             /** Won */
             won: number;
         };
+        /** TeamSeasonRead */
+        TeamSeasonRead: {
+            /** Age Group */
+            age_group: string | null;
+            club_team: components["schemas"]["ClubTeamRead"];
+            /** Format */
+            format: string | null;
+            /** Id */
+            id: number;
+            /** Is Current */
+            is_current: boolean;
+            /** Match Minutes */
+            match_minutes: number;
+            season: components["schemas"]["SeasonRead"];
+        };
+        /**
+         * TeamSeasonStart
+         * @description Start a team's participation in a season. Give an existing season_id or a new
+         *     season_name; optionally copy the squad forward from a previous team-season.
+         */
+        TeamSeasonStart: {
+            /** Age Group */
+            age_group?: string | null;
+            /** Copy Squad From Team Season Id */
+            copy_squad_from_team_season_id?: number | null;
+            /**
+             * Format
+             * @example 7v7
+             * @example 9v9
+             */
+            format?: string | null;
+            /**
+             * Make Current
+             * @default true
+             */
+            make_current?: boolean;
+            /**
+             * Match Minutes
+             * @default 50
+             */
+            match_minutes?: number;
+            /** Season Id */
+            season_id?: number | null;
+            /**
+             * Season Name
+             * @example 2027/28
+             */
+            season_name?: string | null;
+        };
+        /** TeamSeasonUpdate */
+        TeamSeasonUpdate: {
+            /** Age Group */
+            age_group?: string | null;
+            /** Format */
+            format?: string | null;
+            /** Match Minutes */
+            match_minutes?: number | null;
+        };
         /** TeamUpdate */
         TeamUpdate: {
             /** Colours */
@@ -1022,19 +1570,46 @@ export interface components {
             /** Short Name */
             short_name?: string | null;
         };
-        /** UserRead */
-        UserRead: {
+        /** UserAdminRead */
+        UserAdminRead: {
+            /** Display Name */
+            display_name: string | null;
             /** Id */
             id: number;
-            role: components["schemas"]["UserRole"];
+            /** Is Active */
+            is_active: boolean;
+            /** Roles */
+            roles: components["schemas"]["RoleRead"][];
+            /** Username */
+            username: string;
+        };
+        /** UserCreate */
+        UserCreate: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Password */
+            password: string;
+            /**
+             * Roles
+             * @default []
+             */
+            roles?: components["schemas"]["RoleAssignment"][];
             /** Username */
             username: string;
         };
         /**
          * UserRole
+         * @description Ordered: viewer < coach < admin.
          * @enum {string}
          */
-        UserRole: "coach" | "admin";
+        UserRole: "viewer" | "coach" | "admin";
+        /** UserUpdate */
+        UserUpdate: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -1084,6 +1659,39 @@ export interface operations {
             };
         };
     };
+    change_password_api_v1_auth_change_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     login_api_v1_auth_login_post: {
         parameters: {
             query?: never;
@@ -1103,7 +1711,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserRead"];
+                    "application/json": components["schemas"]["MeRead"];
                 };
             };
             /** @description Validation Error */
@@ -1152,7 +1760,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserRead"];
+                    "application/json": components["schemas"]["MeRead"];
                 };
             };
             /** @description Validation Error */
@@ -1169,6 +1777,7 @@ export interface operations {
     list_award_types_api_v1_award_types_get: {
         parameters: {
             query?: {
+                club_team_id?: number | null;
                 active_only?: boolean;
             };
             header?: never;
@@ -1186,6 +1795,457 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AwardTypeRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_award_type_api_v1_award_types_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AwardTypeCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AwardTypeRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_award_type_api_v1_award_types__award_type_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                award_type_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AwardTypeUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AwardTypeRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_club_teams_api_v1_club_teams_get: {
+        parameters: {
+            query?: {
+                cohort_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubTeamRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_club_team_api_v1_club_teams_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClubTeamCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubTeamRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_club_team_by_slug_api_v1_club_teams_by_slug__slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubTeamRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_club_team_api_v1_club_teams__team_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubTeamRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_club_team_api_v1_club_teams__team_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClubTeamUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubTeamRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_team_seasons_api_v1_club_teams__team_id__seasons_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamSeasonRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_team_season_api_v1_club_teams__team_id__seasons_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeamSeasonStart"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamSeasonRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_cohorts_api_v1_cohorts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CohortRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_cohort_api_v1_cohorts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CohortCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CohortRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_cohort_api_v1_cohorts__cohort_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cohort_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CohortUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CohortRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cohort_overview_api_v1_cohorts__cohort_id__overview_get: {
+        parameters: {
+            query: {
+                season_id: number;
+            };
+            header?: never;
+            path: {
+                cohort_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CohortOverview"];
                 };
             };
             /** @description Validation Error */
@@ -1336,7 +2396,7 @@ export interface operations {
     list_fixtures_api_v1_fixtures_get: {
         parameters: {
             query?: {
-                season_id?: number | null;
+                team_season_id?: number | null;
                 competition_id?: number | null;
                 status?: components["schemas"]["FixtureStatus"] | null;
             };
@@ -1544,6 +2604,7 @@ export interface operations {
     list_players_api_v1_players_get: {
         parameters: {
             query?: {
+                cohort_id?: number | null;
                 include_left?: boolean;
             };
             header?: never;
@@ -1679,10 +2740,80 @@ export interface operations {
             };
         };
     };
+    player_memberships_api_v1_players__player_id__memberships_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                player_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SquadMemberRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    move_player_api_v1_players__player_id__move_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                player_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlayerMove"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SquadMemberRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     player_stats_api_v1_players__player_id__stats_get: {
         parameters: {
-            query?: {
-                season_id?: number | null;
+            query: {
+                team_season_id: number;
             };
             header?: never;
             path: {
@@ -1811,37 +2942,6 @@ export interface operations {
             };
         };
     };
-    current_season_api_v1_seasons_current_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: {
-                abgfc_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SeasonRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_season_api_v1_seasons__season_id__get: {
         parameters: {
             query?: never;
@@ -1943,12 +3043,12 @@ export interface operations {
             };
         };
     };
-    make_current_api_v1_seasons__season_id__make_current_post: {
+    get_team_season_api_v1_team_seasons__team_season_id__get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                season_id: number;
+                team_season_id: number;
             };
             cookie?: {
                 abgfc_session?: string | null;
@@ -1962,7 +3062,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SeasonRead"];
+                    "application/json": components["schemas"]["TeamSeasonRead"];
                 };
             };
             /** @description Validation Error */
@@ -1976,12 +3076,82 @@ export interface operations {
             };
         };
     };
-    list_squad_api_v1_seasons__season_id__squad_get: {
+    update_team_season_api_v1_team_seasons__team_season_id__patch: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                season_id: number;
+                team_season_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeamSeasonUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamSeasonRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    make_current_api_v1_team_seasons__team_season_id__make_current_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_season_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamSeasonRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_squad_api_v1_team_seasons__team_season_id__squad_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_season_id: number;
             };
             cookie?: {
                 abgfc_session?: string | null;
@@ -2009,12 +3179,12 @@ export interface operations {
             };
         };
     };
-    upsert_squad_member_api_v1_seasons__season_id__squad__player_id__put: {
+    upsert_squad_member_api_v1_team_seasons__team_season_id__squad__player_id__put: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                season_id: number;
+                team_season_id: number;
                 player_id: number;
             };
             cookie?: {
@@ -2047,12 +3217,12 @@ export interface operations {
             };
         };
     };
-    remove_squad_member_api_v1_seasons__season_id__squad__player_id__delete: {
+    remove_squad_member_api_v1_team_seasons__team_season_id__squad__player_id__delete: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                season_id: number;
+                team_season_id: number;
                 player_id: number;
             };
             cookie?: {
@@ -2079,14 +3249,14 @@ export interface operations {
             };
         };
     };
-    season_leaderboard_api_v1_seasons__season_id__stats_leaderboard_get: {
+    season_leaderboard_api_v1_team_seasons__team_season_id__stats_leaderboard_get: {
         parameters: {
             query?: {
                 competition_type?: string | null;
             };
             header?: never;
             path: {
-                season_id: number;
+                team_season_id: number;
             };
             cookie?: {
                 abgfc_session?: string | null;
@@ -2114,12 +3284,12 @@ export interface operations {
             };
         };
     };
-    season_summary_api_v1_seasons__season_id__stats_summary_get: {
+    season_summary_api_v1_team_seasons__team_season_id__stats_summary_get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                season_id: number;
+                team_season_id: number;
             };
             cookie?: {
                 abgfc_session?: string | null;
@@ -2301,6 +3471,214 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TeamRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_users_api_v1_users_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserAdminRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_user_api_v1_users_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserAdminRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_api_v1_users__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserAdminRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_user_api_v1_users__user_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserAdminRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_password_api_v1_users__user_id__password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_roles_api_v1_users__user_id__roles_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleAssignment"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserAdminRead"];
                 };
             };
             /** @description Validation Error */

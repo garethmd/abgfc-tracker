@@ -1,10 +1,11 @@
 from logging.config import fileConfig
 
+from sqlalchemy import create_engine
+
 import app.models  # noqa: F401  (registers every table on Base.metadata)
 from alembic import context
 from app.config import get_settings
 from app.db.base import Base
-from app.db.session import make_engine
 
 config = context.config
 if config.config_file_name is not None:
@@ -27,8 +28,10 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    # make_engine enables SQLite foreign keys on every connection.
-    connectable = make_engine(config.get_main_option("sqlalchemy.url"))
+    # Deliberately NOT app.db.session.make_engine: batch mode rebuilds tables with
+    # DROP + CREATE, which SQLite refuses while foreign keys are enforced. The app
+    # itself always runs with PRAGMA foreign_keys=ON.
+    connectable = create_engine(config.get_main_option("sqlalchemy.url"))
     with connectable.connect() as connection:
         # SQLite can't ALTER most things; batch mode rebuilds tables for us.
         context.configure(

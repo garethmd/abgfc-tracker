@@ -10,7 +10,7 @@ from app.schemas.team import TeamRead
 
 
 class FixtureCreate(InputModel):
-    season_id: int
+    team_season_id: int
     competition_id: int
     opposition_team_id: int
     match_number: int | None = Field(default=None, ge=1)
@@ -38,7 +38,7 @@ class FixtureUpdate(InputModel):
 
 class FixtureRead(ORMModel):
     id: int
-    season_id: int
+    team_season_id: int
     competition: CompetitionRead
     opposition: TeamRead
     match_number: int | None

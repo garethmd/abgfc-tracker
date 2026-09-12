@@ -27,8 +27,18 @@ class AwardTypeRepository(BaseRepository[AwardType]):
     model = AwardType
     label = "Award type"
 
-    def list_all(self, active_only: bool = False) -> list[AwardType]:
+    def list_all(
+        self, active_only: bool = False, club_team_id: int | None = None
+    ) -> list[AwardType]:
+        """club_team_id given: club-wide types plus that team's own."""
         stmt = select(AwardType).order_by(AwardType.sort_order, AwardType.id)
         if active_only:
             stmt = stmt.where(AwardType.is_active.is_(True))
+        if club_team_id is not None:
+            stmt = stmt.where(
+                (AwardType.club_team_id.is_(None)) | (AwardType.club_team_id == club_team_id)
+            )
         return list(self.db.scalars(stmt))
+
+    def get_by_code(self, code: str) -> AwardType | None:
+        return self.db.scalar(select(AwardType).where(AwardType.code == code))

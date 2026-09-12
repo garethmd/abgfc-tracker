@@ -18,25 +18,25 @@ from app.models.enums import FixtureStatus, Venue, check_in
 
 if TYPE_CHECKING:
     from app.models.award import Award
+    from app.models.club import TeamSeason
     from app.models.lookup import Competition
     from app.models.match import Appearance, MatchEvent
-    from app.models.season import Season
     from app.models.team import Team
 
 
 class Fixture(TimestampMixin, Base):
     __tablename__ = "fixtures"
     __table_args__ = (
-        UniqueConstraint("season_id", "match_number"),
+        UniqueConstraint("team_season_id", "match_number"),
         CheckConstraint(check_in("venue", Venue), name="venue"),
         CheckConstraint(check_in("status", FixtureStatus), name="status"),
         CheckConstraint("our_score IS NULL OR our_score >= 0", name="our_score_nonneg"),
         CheckConstraint("their_score IS NULL OR their_score >= 0", name="their_score_nonneg"),
-        Index("ix_fixtures_season_id_kickoff_at", "season_id", "kickoff_at"),
+        Index("ix_fixtures_team_season_id_kickoff_at", "team_season_id", "kickoff_at"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    season_id: Mapped[int] = mapped_column(ForeignKey("seasons.id", ondelete="RESTRICT"))
+    team_season_id: Mapped[int] = mapped_column(ForeignKey("team_seasons.id", ondelete="RESTRICT"))
     competition_id: Mapped[int] = mapped_column(ForeignKey("competitions.id", ondelete="RESTRICT"))
     opposition_team_id: Mapped[int] = mapped_column(
         ForeignKey("teams.id", ondelete="RESTRICT"), index=True
@@ -50,10 +50,12 @@ class Fixture(TimestampMixin, Base):
     # The service layer warns when goal events disagree with these.
     our_score: Mapped[int | None] = mapped_column(Integer)
     their_score: Mapped[int | None] = mapped_column(Integer)
-    duration_minutes: Mapped[int | None] = mapped_column(Integer)  # overrides season.match_minutes
+    duration_minutes: Mapped[int | None] = mapped_column(
+        Integer
+    )  # overrides team_season.match_minutes
     notes: Mapped[str | None] = mapped_column(Text)
 
-    season: Mapped["Season"] = relationship(back_populates="fixtures")
+    team_season: Mapped["TeamSeason"] = relationship(back_populates="fixtures")
     competition: Mapped["Competition"] = relationship()
     opposition: Mapped["Team"] = relationship()
     appearances: Mapped[list["Appearance"]] = relationship(
@@ -68,4 +70,4 @@ class Fixture(TimestampMixin, Base):
 
     @property
     def effective_duration(self) -> int:
-        return self.duration_minutes or self.season.match_minutes
+        return self.duration_minutes or self.team_season.match_minutes

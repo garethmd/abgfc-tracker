@@ -52,8 +52,21 @@ class MediaKind(StrEnum):
 
 
 class UserRole(StrEnum):
-    COACH = "coach"
-    ADMIN = "admin"
+    """Ordered: viewer < coach < admin."""
+
+    VIEWER = "viewer"  # read only (parents, later)
+    COACH = "coach"  # enter results, manage squad
+    ADMIN = "admin"  # plus manage users, teams, seasons within the scope
+
+    @property
+    def level(self) -> int:
+        return ["viewer", "coach", "admin"].index(self.value)
+
+
+class RoleScope(StrEnum):
+    CLUB = "club"
+    COHORT = "cohort"
+    TEAM = "team"
 
 
 def check_in(column: str, enum: type[StrEnum]) -> str:

@@ -8,6 +8,7 @@ from app.core.errors import AuthError
 from app.core.security import SESSION_COOKIE, read_session_token
 from app.db.session import get_db
 from app.models import User
+from app.services.access import Access as AccessModel
 from app.services.auth import AuthService
 
 DB = Annotated[Session, Depends(get_db)]
@@ -29,3 +30,10 @@ def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def get_access(db: DB, user: CurrentUser) -> AccessModel:
+    return AccessModel.for_user(db, user)
+
+
+Access = Annotated[AccessModel, Depends(get_access)]

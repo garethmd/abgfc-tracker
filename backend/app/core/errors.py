@@ -20,3 +20,7 @@ class ValidationError(AppError):
 
 class AuthError(AppError):
     status_code = 401
+
+
+class ForbiddenError(AppError):
+    status_code = 403

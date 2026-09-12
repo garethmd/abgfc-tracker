@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, CheckConstraint, Integer, String
+from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -31,11 +31,15 @@ class Competition(Base):
 
 
 class AwardType(Base):
-    """Adding a third award is a row here, not a migration."""
+    """Adding a third award is a row here, not a migration.
+    club_team_id NULL = club-wide (both POTMs); set = only that team uses it."""
 
     __tablename__ = "award_types"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    club_team_id: Mapped[int | None] = mapped_column(
+        ForeignKey("club_teams.id", ondelete="CASCADE"), index=True
+    )
     code: Mapped[str] = mapped_column(String(50), unique=True)
     name: Mapped[str] = mapped_column(String(100))
     scope: Mapped[AwardScope] = mapped_column(

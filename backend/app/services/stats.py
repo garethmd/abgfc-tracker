@@ -22,14 +22,17 @@ from app.models import (
     Player,
 )
 from app.models import Award as AwardModel
+from app.repositories.club import ClubTeamRepository, TeamSeasonRepository
 from app.repositories.fixtures import FixtureRepository
 from app.repositories.lookups import AwardTypeRepository
 from app.repositories.players import SquadRepository
-from app.repositories.seasons import SeasonRepository
 from app.repositories.stats import StatsRepository
 from app.schemas.player import PlayerSummary
 from app.schemas.stats import (
     AwardCount,
+    CohortOverview,
+    CohortPlayerRow,
+    CohortTeamRecord,
     FormEntry,
     HighlightTile,
     Leaderboard,
@@ -37,6 +40,7 @@ from app.schemas.stats import (
     SeasonSummary,
     TeamRecord,
 )
+from app.services.access import Access  # noqa: F401  (type only)
 
 Result = Literal["W", "D", "L"]
 
@@ -259,32 +263,43 @@ def highlights(
 
 
 class StatsService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, access: "Access | None" = None):
         self.db = db
-        self.seasons = SeasonRepository(db)
+        self.access = access
+        self.team_seasons = TeamSeasonRepository(db)
         self.fixtures = FixtureRepository(db)
         self.squad = SquadRepository(db)
         self.award_types = AwardTypeRepository(db)
         self.stats = StatsRepository(db)
 
-    def season_summary(self, season_id: int) -> SeasonSummary:
-        self.seasons.get_or_404(season_id)
-        played = self.fixtures.list_played(season_id)
+    def _team_season(self, team_season_id: int):
+        from app.core.errors import NotFoundError
+
+        ts = self.team_seasons.get(team_season_id)
+        if ts is None:
+            raise NotFoundError(f"Team season {team_season_id} not found")
+        if self.access is not None:
+            self.access.require_team_season(ts)
+        return ts
+
+    def season_summary(self, team_season_id: int) -> SeasonSummary:
+        self._team_season(team_season_id)
+        played = self.fixtures.list_played(team_season_id)
         league = [f for f in played if f.competition.type == CompetitionType.LEAGUE]
-        rows, award_types = self._rows(season_id, None)
+        rows, award_types = self._rows(team_season_id, None)
         return SeasonSummary(
-            season_id=season_id,
+            team_season_id=team_season_id,
             overall=team_record(played),
             league=team_record(league),
             form=form(played),
             highlights=highlights(rows, award_types),
         )
 
-    def leaderboard(self, season_id: int, competition_type: str | None = None) -> Leaderboard:
-        self.seasons.get_or_404(season_id)
-        rows, award_types = self._rows(season_id, competition_type)
+    def leaderboard(self, team_season_id: int, competition_type: str | None = None) -> Leaderboard:
+        self._team_season(team_season_id)
+        rows, award_types = self._rows(team_season_id, competition_type)
         return Leaderboard(
-            season_id=season_id,
+            team_season_id=team_season_id,
             competition_type=competition_type,
             award_types=[
                 AwardCount(award_type_id=a.id, award_type_code=a.code, count=0) for a in award_types
@@ -292,20 +307,70 @@ class StatsService:
             rows=rows,
         )
 
-    def player_season(self, player_id: int, season_id: int) -> PlayerStatsRow | None:
-        rows, _ = self._rows(season_id, None)
+    def player_season(self, player_id: int, team_season_id: int) -> PlayerStatsRow | None:
+        rows, _ = self._rows(team_season_id, None)
         return next((r for r in rows if r.player.id == player_id), None)
 
+    def cohort_overview(self, cohort_id: int, season_id: int) -> CohortOverview:
+        """The age-group coach's view: every team's record, and every player's game time
+        across the whole cohort."""
+        if self.access is not None:
+            self.access.require_cohort(cohort_id)
+        team_ids = {t.id for t in ClubTeamRepository(self.db).list_all(cohort_id=cohort_id)}
+        team_seasons = [ts for ts in self.team_seasons.list_for_season(season_id, team_ids)]
+        teams: list[CohortTeamRecord] = []
+        by_player: dict[int, CohortPlayerRow] = {}
+        for ts in sorted(team_seasons, key=lambda t: (t.club_team.sort_order, t.club_team.name)):
+            played = self.fixtures.list_played(ts.id)
+            league = [f for f in played if f.competition.type == CompetitionType.LEAGUE]
+            rows, _ = self._rows(ts.id, None)
+            teams.append(
+                CohortTeamRecord(
+                    team_season_id=ts.id,
+                    club_team_id=ts.club_team_id,
+                    team_name=ts.club_team.name,
+                    overall=team_record(played),
+                    league=team_record(league),
+                    form=form(played),
+                    squad_size=len(self.squad.list_for_team_season(ts.id)),
+                )
+            )
+            for r in rows:
+                agg = by_player.get(r.player.id)
+                if agg is None:
+                    agg = by_player[r.player.id] = CohortPlayerRow(
+                        player=r.player,
+                        teams=[],
+                        appearances=0,
+                        starts=0,
+                        goals=0,
+                        assists=0,
+                        minutes=None,
+                    )
+                agg.teams.append(ts.club_team.name)
+                agg.appearances += r.appearances
+                agg.starts += r.starts
+                agg.goals += r.goals
+                agg.assists += r.assists
+                if r.minutes is not None:
+                    agg.minutes = (agg.minutes or 0) + r.minutes
+        players = sorted(
+            by_player.values(), key=lambda p: (-p.appearances, p.player.display_name.lower())
+        )
+        return CohortOverview(
+            cohort_id=cohort_id, season_id=season_id, teams=teams, players=players
+        )
+
     def _rows(
-        self, season_id: int, competition_type: str | None
+        self, team_season_id: int, competition_type: str | None
     ) -> tuple[list[PlayerStatsRow], list[AwardType]]:
-        season = self.seasons.get_or_404(season_id)
-        fixture_ids = self.fixtures.played_fixture_ids(season_id, competition_type)
-        members = self.squad.list_for_season(season_id)
-        award_types = self.award_types.list_all(active_only=True)
+        ts = self._team_season(team_season_id)
+        fixture_ids = self.fixtures.played_fixture_ids(team_season_id, competition_type)
+        members = self.squad.list_for_team_season(team_season_id)
+        award_types = self.award_types.list_all(active_only=True, club_team_id=ts.club_team_id)
         durations = {
-            f.id: f.duration_minutes or season.match_minutes
-            for f in self.fixtures.list_played(season_id)
+            f.id: f.duration_minutes or ts.match_minutes
+            for f in self.fixtures.list_played(team_season_id)
         }
         rows = player_rows(
             players=[m.player for m in members],
