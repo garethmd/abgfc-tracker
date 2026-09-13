@@ -143,6 +143,18 @@ running server, then `openapi-typescript`). CI should run `make check-api`.
 `["get", "/api/v1/…"]` so `invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] })`
 covers every fixture query.
 
+## Reports
+
+`backend/app/services/reports.py` renders the **matchday sheet**: one A4 page for the
+next (or a given) fixture - fixture details and previous meetings, season record,
+last match with scorers and both POTMs, the squad with appearances-out-of-played
+(fewest shaded, the fairness nudge), Avail/Start/Sub tick boxes and a ruled plan box.
+`GET /team-seasons/{id}/reports/matchday.pdf?fixture_id=`; coaches only, since it
+names children. Pure Python (fpdf2, core Helvetica, so stick to Latin-1 text); the
+crest is `app/assets/crest.png`. Tests extract the text with pypdf and assert on it -
+no golden files. The UI links to it from the Fixtures "Next up" card and a fixture's
+page; same-origin, so it's a plain `<a download>`.
+
 ## Frontend notes
 
 - Mobile-first: bottom nav, 44px+ targets, sticky save button above the nav,

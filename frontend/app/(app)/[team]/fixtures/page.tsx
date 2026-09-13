@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarDays, Plus } from "lucide-react";
+import { CalendarDays, FileDown, Plus } from "lucide-react";
+import { matchdaySheetUrl } from "@/lib/reports";
 import { $api } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
 import { PageHeader, SectionTitle } from "@/components/page-header";
@@ -68,10 +69,15 @@ export default function FixturesPage() {
               <SectionTitle>Next up</SectionTitle>
               <Card className="overflow-hidden">
                 <FixtureRow fixture={nextUp} base={base} />
-                {canEdit && (
-                  <div className="border-t border-border/60 p-3">
+                {canEdit && teamSeason && (
+                  <div className="grid grid-cols-[1fr_auto] gap-2 border-t border-border/60 p-3">
                     <Button asChild className="h-11 w-full">
                       <Link href={`${base}/fixtures/${nextUp.id}/entry`}>Enter result</Link>
+                    </Button>
+                    <Button asChild variant="outline" className="h-11" title="Download the matchday sheet (PDF)">
+                      <a href={matchdaySheetUrl(teamSeason.id, nextUp.id)} download>
+                        <FileDown className="size-4" /> Sheet
+                      </a>
                     </Button>
                   </div>
                 )}

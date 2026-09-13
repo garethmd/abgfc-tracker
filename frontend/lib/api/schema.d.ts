@@ -528,6 +528,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/team-seasons/{team_season_id}/reports/matchday.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Matchday Pdf
+         * @description One-page printable sheet for the next (or given) fixture: fixture details, season
+         *     record, last match and awards, squad with appearances and tick boxes. Coaches only.
+         */
+        get: operations["matchday_pdf_api_v1_team_seasons__team_season_id__reports_matchday_pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/team-seasons/{team_season_id}/squad": {
         parameters: {
             query?: never;
@@ -3159,6 +3180,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TeamSeasonRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    matchday_pdf_api_v1_team_seasons__team_season_id__reports_matchday_pdf_get: {
+        parameters: {
+            query?: {
+                fixture_id?: number | null;
+            };
+            header?: never;
+            path: {
+                team_season_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The matchday sheet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
                 };
             };
             /** @description Validation Error */

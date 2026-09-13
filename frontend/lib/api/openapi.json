@@ -5978,6 +5978,77 @@
         ]
       }
     },
+    "/api/v1/team-seasons/{team_season_id}/reports/matchday.pdf": {
+      "get": {
+        "description": "One-page printable sheet for the next (or given) fixture: fixture details, season\nrecord, last match and awards, squad with appearances and tick boxes. Coaches only.",
+        "operationId": "matchday_pdf_api_v1_team_seasons__team_season_id__reports_matchday_pdf_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "team_season_id",
+            "required": true,
+            "schema": {
+              "title": "Team Season Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fixture_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fixture Id"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/pdf": {}
+            },
+            "description": "The matchday sheet"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Matchday Pdf",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
     "/api/v1/team-seasons/{team_season_id}/squad": {
       "get": {
         "operationId": "list_squad_api_v1_team_seasons__team_season_id__squad_get",

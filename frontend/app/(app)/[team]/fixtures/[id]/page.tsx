@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Award, MapPin, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { AlertTriangle, Award, FileDown, MapPin, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { matchdaySheetUrl } from "@/lib/reports";
 import { toast } from "sonner";
 import { $api, errorMessage, type Schema } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
@@ -91,6 +92,9 @@ export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixture
                   <Link href={`${base}/fixtures/${f.id}/entry`}><Award className="size-4" /> Edit result</Link>
                 </DropdownMenuItem>
               )}
+              <DropdownMenuItem asChild>
+                <a href={matchdaySheetUrl(f.team_season_id, f.id)} download><FileDown className="size-4" /> Matchday sheet (PDF)</a>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onSelect={onDelete}>
                 <Trash2 className="size-4" /> Delete
@@ -124,9 +128,16 @@ export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixture
           <span className="flex items-center gap-1"><MapPin className="size-3" />{VENUE_LABEL[f.venue]}{f.venue_notes ? ` · ${f.venue_notes}` : ""}</span>
         </div>
         {!played && f.status === "scheduled" && canEdit && (
-          <Button asChild className="mt-6 h-12 w-full">
-            <Link href={`${base}/fixtures/${f.id}/entry`}>Enter result</Link>
-          </Button>
+          <div className="mt-6 grid grid-cols-[1fr_auto] gap-2">
+            <Button asChild className="h-12 w-full">
+              <Link href={`${base}/fixtures/${f.id}/entry`}>Enter result</Link>
+            </Button>
+            <Button asChild variant="outline" className="h-12" title="Download the matchday sheet (PDF)">
+              <a href={matchdaySheetUrl(f.team_season_id, f.id)} download>
+                <FileDown className="size-4" /> Sheet
+              </a>
+            </Button>
+          </div>
         )}
       </Card>
 
