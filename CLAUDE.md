@@ -148,7 +148,7 @@ covers every fixture query.
 `backend/app/services/reports.py` renders the **matchday sheet**: one A4 page for the
 next (or a given) fixture - fixture details and previous meetings, season record,
 last match with scorers and both POTMs, the squad with appearances-out-of-played
-(fewest shaded, the fairness nudge), Avail/Start/Sub tick boxes and a ruled plan box.
+(fewest shaded, the fairness nudge), an "available" tick box per player and a ruled plan box.
 `GET /team-seasons/{id}/reports/matchday.pdf?fixture_id=`; coaches only, since it
 names children. Pure Python (fpdf2, core Helvetica, so stick to Latin-1 text); the
 crest is `app/assets/crest.png`. Tests extract the text with pypdf and assert on it -

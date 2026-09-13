@@ -269,8 +269,8 @@ def render(data: MatchdayData) -> bytes:
     pdf.label(f"Squad  ·  {len(rows)} players")
     award_codes = [a.award_type_code for a in rows[0].awards] if rows else []
     # columns: #, Player, Pos, Apps, Goals, Assists, awards..., Avail, Start, Sub
-    fixed = {"#": 8, "Apps": 13, "Goals": 11, "Assists": 13, "Avail": 12, "Start": 12, "Sub": 12}
-    award_w = 22  # wide enough for "COACHES' POTM"
+    fixed = {"#": 8, "Apps": 13, "Goals": 11, "Assists": 13, "Avail": 14}
+    award_w = 26  # wide enough for "COACHES' POTM" with breathing room
     name_w = W - sum(fixed.values()) - award_w * len(award_codes) - 14  # 14 = Pos
     headers = (
         ["#", "Player", "Pos", "Apps", "Goals", "Assists"]
@@ -280,14 +280,14 @@ def render(data: MatchdayData) -> bytes:
             )
             for c in award_codes
         ]
-        + ["Avail", "Start", "Sub"]
+        + ["Avail"]
     )
     widths = (
         [fixed["#"], name_w, 14, fixed["Apps"], fixed["Goals"], fixed["Assists"]]
         + [award_w] * len(award_codes)
-        + [12, 12, 12]
+        + [fixed["Avail"]]
     )
-    aligns = ["C", "L", "C", "C", "C", "C"] + ["C"] * len(award_codes) + ["C", "C", "C"]
+    aligns = ["C", "L", "C", "C", "C", "C"] + ["C"] * len(award_codes) + ["C"]
 
     pdf.set_font("Helvetica", "B", 7.5)
     pdf.set_text_color(*MUTED)
@@ -317,19 +317,17 @@ def render(data: MatchdayData) -> bytes:
                 str(r.assists),
             ]
             + [str(a.count) for a in r.awards]
-            + ["", "", ""]
+            + [""]
         )
         for i, (c, w, a) in enumerate(zip(cells, widths, aligns, strict=True)):
             style = "B" if i == 1 else ""
             pdf.set_font("Helvetica", style, 9)
             pdf.cell(w, row_h, c, align=a)
-        # tick boxes for Avail / Start / Sub
-        x = pdf.l_margin + sum(widths[:-3])
+        # one tick box: available this week
+        x = pdf.l_margin + sum(widths[:-1])
         pdf.set_draw_color(150, 150, 150)
         pdf.set_line_width(0.25)
-        for _ in range(3):
-            pdf.rect(x + 6 - 1.8, y + row_h / 2 - 1.8, 3.6, 3.6)
-            x += 12
+        pdf.rect(x + fixed["Avail"] / 2 - 1.8, y + row_h / 2 - 1.8, 3.6, 3.6)
         pdf.ln(row_h)
         pdf.rule()
     if played_n and any(r.appearances == min_apps and r.appearances < played_n for r in rows):
