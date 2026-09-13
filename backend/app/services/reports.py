@@ -270,12 +270,14 @@ def render(data: MatchdayData) -> bytes:
     award_codes = [a.award_type_code for a in rows[0].awards] if rows else []
     # columns: #, Player, Pos, Apps, Goals, Assists, awards..., Avail, Start, Sub
     fixed = {"#": 8, "Apps": 13, "Goals": 11, "Assists": 13, "Avail": 12, "Start": 12, "Sub": 12}
-    award_w = 15
+    award_w = 22  # wide enough for "COACHES' POTM"
     name_w = W - sum(fixed.values()) - award_w * len(award_codes) - 14  # 14 = Pos
     headers = (
         ["#", "Player", "Pos", "Apps", "Goals", "Assists"]
         + [
-            {"coaches_potm": "Coaches'", "parents_potm": "Parents'"}.get(c, c.split("_", 1)[-1][:8])
+            {"coaches_potm": "Coaches' POTM", "parents_potm": "Parents' POTM"}.get(
+                c, c.split("_", 1)[-1][:8]
+            )
             for c in award_codes
         ]
         + ["Avail", "Start", "Sub"]

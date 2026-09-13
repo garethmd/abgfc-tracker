@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/empty-state";
 import { Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const AWARD_SHORT: Record<string, string> = { coaches_potm: "Coaches'", parents_potm: "Parents'" };
+const AWARD_SHORT: Record<string, string> = { coaches_potm: "Coaches' POTM", parents_potm: "Parents' POTM" };
 
 function awardLabel(code: string) {
   return AWARD_SHORT[code] ?? code.replace(/^[a-z0-9-]+_/, "").replace(/_/g, " ");
