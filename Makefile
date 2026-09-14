@@ -58,9 +58,11 @@ up: ## docker compose up --build
 
 # --- production (DigitalOcean droplet) --------------------------------------------------
 
+SSH_PUBLIC_KEY ?= ~/.ssh/abgfc_deploy.pub
+
 droplet: ## One-off: create the $6 London droplet from deploy/cloud-init.yaml
 	@test -n "$(SSH_KEY_ID)" || (echo "SSH_KEY_ID=<id from 'doctl compute ssh-key list'> required"; exit 1)
-	sed "s|__SSH_PUBLIC_KEY__|$$(cat ~/.ssh/id_rsa.pub)|" deploy/cloud-init.yaml > /tmp/abgfc-cloud-init.yaml
+	sed "s|__SSH_PUBLIC_KEY__|$$(cat $(SSH_PUBLIC_KEY))|" deploy/cloud-init.yaml > /tmp/abgfc-cloud-init.yaml
 	doctl compute droplet create abgfc --region lon1 --size s-1vcpu-1gb --image ubuntu-24-04-x64 \
 		--ssh-keys $(SSH_KEY_ID) --user-data-file /tmp/abgfc-cloud-init.yaml --tag-name abgfc \
 		--wait --format ID,Name,PublicIPv4,Status

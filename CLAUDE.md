@@ -155,6 +155,28 @@ crest is `app/assets/crest.png`. Tests extract the text with pypdf and assert on
 no golden files. The UI links to it from the Fixtures "Next up" card and a fixture's
 page; same-origin, so it's a plain `<a download>`.
 
+## Deploying (DigitalOcean droplet)
+
+Production is one $6 droplet in London (`abgfc`, 1GB, Ubuntu 24.04), running
+`docker-compose.prod.yml`: Caddy (automatic Let's Encrypt) → Next → API. **The API has
+no public port**; Next proxies `/api/*` to it over the compose network. SQLite and
+media live on the droplet at `/data`. Images are built by `.github/workflows/images.yml`
+on every push to `main` and pushed to GHCR (`ghcr.io/garethmd/abgfc-tracker-{api,web}`,
+tagged `latest` + commit SHA) - the 1GB box runs the app but can't build it.
+
+- **First time**: `doctl auth init`; register a key with `doctl compute ssh-key create`;
+  `SSH_KEY_ID=… make droplet` (uses `deploy/cloud-init.yaml`: key-only SSH for the
+  `deploy` user, ufw 22/80/443, unattended upgrades, fail2ban, Docker, 2GB swap, repo at
+  `/opt/abgfc`). Then write `/opt/abgfc/.env` (mode 600) from `.env.production.example`
+  and run `make deploy`.
+- **Secrets** live only in `/opt/abgfc/.env` on the box. `ABGFC_ENV=production` makes the
+  API refuse the dev secret key / coach password, hides `/api/docs`, and sets `Secure`
+  cookies. Locally, the gitignored `.env.production` holds `DEPLOY_HOST=deploy@<ip>` and
+  the initial admin password.
+- **Deploy**: `make deploy` = ssh, `git pull`, pull images, `up -d`. Also `make prod-logs`,
+  `make prod-shell`. Roll back with `IMAGE_TAG=<sha>` in the box's `.env` + `make deploy`.
+- Hostname for now is `<ip>.sslip.io`; the custom domain is issue #4, backups #2, CI deploy #3.
+
 ## Frontend notes
 
 - Mobile-first: bottom nav, 44px+ targets, sticky save button above the nav,
