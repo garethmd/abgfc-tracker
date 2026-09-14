@@ -1,6 +1,9 @@
 .DEFAULT_GOAL := help
 BACKEND := backend
 FRONTEND := frontend
+# Production host details live in the gitignored .env.production (DEPLOY_HOST=deploy@1.2.3.4).
+-include .env.production
+export
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
@@ -53,4 +56,27 @@ check-api: api-client ## Fail if the committed API client is out of date with th
 up: ## docker compose up --build
 	docker compose up --build
 
-.PHONY: help install dev backend frontend migrate migration seed seed-demo test lint format api-client check-api up
+# --- production (DigitalOcean droplet) --------------------------------------------------
+
+droplet: ## One-off: create the $6 London droplet from deploy/cloud-init.yaml
+	@test -n "$(SSH_KEY_ID)" || (echo "SSH_KEY_ID=<id from 'doctl compute ssh-key list'> required"; exit 1)
+	sed "s|__SSH_PUBLIC_KEY__|$$(cat ~/.ssh/id_rsa.pub)|" deploy/cloud-init.yaml > /tmp/abgfc-cloud-init.yaml
+	doctl compute droplet create abgfc --region lon1 --size s-1vcpu-1gb --image ubuntu-24-04-x64 \
+		--ssh-keys $(SSH_KEY_ID) --user-data-file /tmp/abgfc-cloud-init.yaml --tag-name abgfc \
+		--wait --format ID,Name,PublicIPv4,Status
+
+deploy: ## Update the production stack from main (pulls images built by CI)
+	@test -n "$(DEPLOY_HOST)" || (echo "DEPLOY_HOST=deploy@<ip> required in .env.production"; exit 1)
+	ssh $(DEPLOY_HOST) 'set -e; cd /opt/abgfc && git pull --ff-only \
+		&& docker compose -f docker-compose.prod.yml pull -q \
+		&& docker compose -f docker-compose.prod.yml up -d --remove-orphans \
+		&& docker image prune -f >/dev/null \
+		&& docker compose -f docker-compose.prod.yml ps'
+
+prod-logs: ## Tail production logs
+	ssh $(DEPLOY_HOST) 'cd /opt/abgfc && docker compose -f docker-compose.prod.yml logs -f --tail 100'
+
+prod-shell: ## SSH to the droplet
+	ssh $(DEPLOY_HOST)
+
+.PHONY: help install dev backend frontend migrate migration seed seed-demo test lint format api-client check-api up droplet deploy prod-logs prod-shell

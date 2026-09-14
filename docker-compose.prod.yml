@@ -1,0 +1,65 @@
+# Production stack for the droplet. Images are built by GitHub Actions and pulled
+# from GHCR (a 1GB droplet can run the app but not build it).
+#
+#   docker compose -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Secrets and the public hostname come from /opt/abgfc/.env (see .env.production.example).
+
+services:
+  backend:
+    image: ghcr.io/garethmd/abgfc-tracker-api:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      ABGFC_ENV: production
+      ABGFC_DATABASE_URL: sqlite:////data/abgfc.db
+      ABGFC_MEDIA_DIR: /data/media
+      ABGFC_SECRET_KEY: ${ABGFC_SECRET_KEY:?set in .env}
+      ABGFC_COACH_USERNAME: ${ABGFC_COACH_USERNAME:-coach}
+      ABGFC_COACH_PASSWORD: ${ABGFC_COACH_PASSWORD:?set in .env}
+      ABGFC_CORS_ORIGINS: '["https://${SITE_ADDRESS:?set in .env}"]'
+    volumes:
+      - /data:/data
+    # No `ports:` - only reachable from the frontend over the compose network.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  frontend:
+    image: ghcr.io/garethmd/abgfc-tracker-web:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    # No `ports:` - Caddy is the only thing on the internet.
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?set in .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - frontend
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+volumes:
+  caddy-data:
+  caddy-config:

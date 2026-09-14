@@ -1,0 +1,14 @@
+# Caddy terminates TLS (automatic Let's Encrypt) and hands everything to Next.js.
+# Next proxies /api/* to the API over the compose network; the API has no public port.
+{$SITE_ADDRESS} {
+	encode zstd gzip
+	reverse_proxy frontend:3000
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}

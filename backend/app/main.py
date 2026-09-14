@@ -12,10 +12,12 @@ API_PREFIX = "/api/v1"
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(
-        title="ABGFC Blues",
+        title="ABGFC",
         version="0.1.0",
-        docs_url="/api/docs",
-        openapi_url="/api/openapi.json",
+        # No interactive docs in production: they'd enumerate every endpoint to the internet.
+        docs_url=None if settings.is_production else "/api/docs",
+        redoc_url=None if settings.is_production else "/redoc",
+        openapi_url=None if settings.is_production else "/api/openapi.json",
     )
     app.add_middleware(
         CORSMiddleware,

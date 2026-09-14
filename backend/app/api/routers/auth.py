@@ -19,7 +19,7 @@ def login(data: LoginRequest, response: Response, db: DB, settings: Config):
         max_age=settings.session_max_age_seconds,
         httponly=True,
         samesite="lax",
-        secure=settings.cookie_secure,
+        secure=settings.secure_cookies,
         path="/",
     )
     from app.services.access import Access as AccessModel
