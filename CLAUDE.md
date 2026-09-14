@@ -175,7 +175,16 @@ tagged `latest` + commit SHA) - the 1GB box runs the app but can't build it.
   the initial admin password.
 - **Deploy**: `make deploy` = ssh, `git pull`, pull images, `up -d`. Also `make prod-logs`,
   `make prod-shell`. Roll back with `IMAGE_TAG=<sha>` in the box's `.env` + `make deploy`.
-- Hostname for now is `<ip>.sslip.io`; the custom domain is issue #4, backups #2, CI deploy #3.
+- **Backups** (free, no DO add-on): `deploy/backup.sh` runs nightly at 02:00 via the
+  deploy user's crontab (installed by `make deploy`), using SQLite's online backup +
+  integrity check into `/data/backups`, keeping 14 days; `/data/backups/backup.log` says
+  whether it ran. `make backup` takes a fresh copy and pulls it to the gitignored
+  `data/backups/` on your Mac - do this now and then, it's the off-box copy.
+  `make restore FILE=data/backups/abgfc-….db` stops the API, keeps the current DB as
+  `pre-restore-…`, swaps the file in and waits for health. If a coach thinks they've
+  broken something: stop entering results and tell Gareth; the nightly copy is at most
+  a day old.
+- Hostname for now is `<ip>.sslip.io`; the custom domain is issue #4, CI deploy #3.
 
 ## Frontend notes
 
