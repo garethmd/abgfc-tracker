@@ -12,3 +12,9 @@
 		-Server
 	}
 }
+
+# The pre-domain hostname (<ip>.sslip.io) keeps working as a redirect so old links
+# and bookmarks land on the canonical address. Set LEGACY_ADDRESS="" to drop it.
+{$LEGACY_ADDRESS:http://legacy.invalid} {
+	redir https://{$SITE_ADDRESS}{uri} permanent
+}

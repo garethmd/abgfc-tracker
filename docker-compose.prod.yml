@@ -50,6 +50,7 @@ services:
       - "443:443/udp"
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:?set in .env}
+      LEGACY_ADDRESS: ${LEGACY_ADDRESS:-http://legacy.invalid}  # http:// so Caddy never tries a cert for the placeholder
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
