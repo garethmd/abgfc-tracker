@@ -191,7 +191,11 @@ tagged `latest` + commit SHA) - the 1GB box runs the app but can't build it.
   `pre-restore-…`, swaps the file in and waits for health. If a coach thinks they've
   broken something: stop entering results and tell Gareth; the nightly copy is at most
   a day old.
-- Hostname for now is `<ip>.sslip.io`; the custom domain is issue #4, CI deploy #3.
+- **Domain**: `https://abgfc.neuralaspect.com` (A record `abgfc` → the droplet IP at IONOS,
+  where neuralaspect.com's DNS lives). Caddy issues and renews the certificate itself;
+  nothing to do at renewal time. The pre-domain `<ip>.sslip.io` address 301-redirects
+  to it (`LEGACY_ADDRESS` in the box's `.env`). If the droplet IP ever changes: update the
+  A record, `DEPLOY_HOST`/`DEPLOY_KNOWN_HOSTS` secrets, and `.env.production`.
 
 ## Frontend notes
 
