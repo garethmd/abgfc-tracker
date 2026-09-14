@@ -173,8 +173,15 @@ tagged `latest` + commit SHA) - the 1GB box runs the app but can't build it.
   API refuse the dev secret key / coach password, hides `/api/docs`, and sets `Secure`
   cookies. Locally, the gitignored `.env.production` holds `DEPLOY_HOST=deploy@<ip>` and
   the initial admin password.
-- **Deploy**: `make deploy` = ssh, `git pull`, pull images, `up -d`. Also `make prod-logs`,
-  `make prod-shell`. Roll back with `IMAGE_TAG=<sha>` in the box's `.env` + `make deploy`.
+- **Deploy**: **`main` auto-deploys.** `.github/workflows/ci.yml` runs lint/typecheck/tests/
+  `check-api` on every PR and push; on `main` it then builds the images, pushes them to
+  GHCR, SSHes to the droplet (secrets `DEPLOY_SSH_KEY`, `DEPLOY_HOST`, `DEPLOY_KNOWN_HOSTS`,
+  `SITE_ADDRESS`), pulls, swaps containers and checks `/api/health` through Caddy. Pull
+  happens before swap, so a failed pull leaves the old version running; deploys are
+  serialised by a concurrency group. `make deploy` does the same by hand; `make prod-logs`,
+  `make prod-shell`. **Roll back**: set `IMAGE_TAG=<commit sha>` in the box's `.env` and
+  run `make deploy` (every main commit's images are tagged with its SHA), or restore a
+  backup. Branch protection requires the checks on PRs; admins can still push to `main`.
 - **Backups** (free, no DO add-on): `deploy/backup.sh` runs nightly at 02:00 via the
   deploy user's crontab (installed by `make deploy`), using SQLite's online backup +
   integrity check into `/data/backups`, keeping 14 days; `/data/backups/backup.log` says

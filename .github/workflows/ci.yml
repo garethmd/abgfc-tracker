@@ -1,0 +1,118 @@
+# Pull requests: lint, typecheck, tests, API-client drift.
+# Push to main: the same checks, then build + push images to GHCR, then deploy to the
+# droplet over SSH and verify /api/health through Caddy. Deploys never overlap.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  backend:
+    name: backend (ruff + pytest)
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: backend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: { enable-cache: true, cache-dependency-glob: backend/uv.lock }
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pytest -q
+
+  frontend:
+    name: frontend (eslint + tsc)
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: frontend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - run: npm ci
+      - run: npx next typegen
+      - run: npm run lint
+      - run: npm run typecheck
+
+  api-client:
+    name: api client in sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: { enable-cache: true, cache-dependency-glob: backend/uv.lock }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - run: cd backend && uv sync --frozen
+      - run: cd frontend && npm ci
+      - run: make check-api
+
+  images:
+    name: build ${{ matrix.name }} image
+    if: github.event_name != 'pull_request'
+    needs: [backend, frontend, api-client]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - { name: api, context: backend }
+          - { name: web, context: frontend }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}-${{ matrix.name }}:latest
+            ghcr.io/${{ github.repository }}-${{ matrix.name }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  deploy:
+    name: deploy to droplet
+    if: github.event_name != 'pull_request'
+    needs: images
+    runs-on: ubuntu-latest
+    concurrency: { group: deploy, cancel-in-progress: false }
+    steps:
+      - name: SSH setup
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          echo "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+      - name: Pull images, swap containers, install cron
+        run: |
+          ssh -i ~/.ssh/deploy -o BatchMode=yes deploy@${{ secrets.DEPLOY_HOST }} 'set -e
+            cd /opt/abgfc
+            git fetch -q origin main && git reset -q --hard origin/main
+            # Pull first: if this fails the old containers keep running untouched.
+            docker compose -f docker-compose.prod.yml pull -q
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            docker image prune -f >/dev/null
+            crontab -l 2>/dev/null | grep -q deploy/backup.sh || (crontab -l 2>/dev/null; echo "0 2 * * * /opt/abgfc/deploy/backup.sh >> /data/backups/backup.log 2>&1") | crontab -
+            docker compose -f docker-compose.prod.yml ps --format "table {{.Service}}\t{{.Status}}"'
+      - name: Health check through Caddy
+        run: |
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "https://${{ secrets.SITE_ADDRESS }}/api/health" || true)
+            [ "$code" = "200" ] && echo "healthy ($i)" && exit 0
+            sleep 5
+          done
+          echo "API not healthy after deploy" >&2; exit 1
