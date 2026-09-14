@@ -73,7 +73,22 @@ deploy: ## Update the production stack from main (pulls images built by CI)
 		&& docker compose -f docker-compose.prod.yml pull -q \
 		&& docker compose -f docker-compose.prod.yml up -d --remove-orphans \
 		&& docker image prune -f >/dev/null \
+		&& (crontab -l 2>/dev/null | grep -q deploy/backup.sh || (crontab -l 2>/dev/null; echo "0 2 * * * /opt/abgfc/deploy/backup.sh >> /data/backups/backup.log 2>&1") | crontab -) \
 		&& docker compose -f docker-compose.prod.yml ps'
+
+backup: ## Take a fresh consistent backup on the droplet and copy it to data/backups/
+	@test -n "$(DEPLOY_HOST)" || (echo "DEPLOY_HOST required in .env.production"; exit 1)
+	@mkdir -p data/backups
+	@ssh $(DEPLOY_HOST) '/opt/abgfc/deploy/backup.sh'
+	@f=$$(ssh $(DEPLOY_HOST) 'ls -t /data/backups/abgfc-*.db | head -1'); \
+		scp -q $(DEPLOY_HOST):$$f data/backups/ && echo "saved data/backups/$$(basename $$f)"
+
+restore: ## Restore a backup to production: make restore FILE=data/backups/abgfc-....db
+	@test -n "$(FILE)" || (echo "FILE=data/backups/abgfc-....db required"; exit 1)
+	@test -f "$(FILE)" || (echo "$(FILE) not found"; exit 1)
+	@echo "This replaces the production database with $(FILE). Ctrl-C within 5s to abort."; sleep 5
+	@scp -q "$(FILE)" $(DEPLOY_HOST):/tmp/restore.db
+	@ssh $(DEPLOY_HOST) '/opt/abgfc/deploy/restore.sh /tmp/restore.db && rm -f /tmp/restore.db'
 
 prod-logs: ## Tail production logs
 	ssh $(DEPLOY_HOST) 'cd /opt/abgfc && docker compose -f docker-compose.prod.yml logs -f --tail 100'
@@ -81,4 +96,4 @@ prod-logs: ## Tail production logs
 prod-shell: ## SSH to the droplet
 	ssh $(DEPLOY_HOST)
 
-.PHONY: help install dev backend frontend migrate migration seed seed-demo test lint format api-client check-api up droplet deploy prod-logs prod-shell
+.PHONY: help install dev backend frontend migrate migration seed seed-demo test lint format api-client check-api up droplet deploy prod-logs prod-shell backup restore

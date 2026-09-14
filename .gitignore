@@ -2,6 +2,7 @@
 .env
 .env.production
 data/
+data/backups/
 *.db
 
 # python
