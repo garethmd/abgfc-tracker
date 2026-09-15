@@ -1,4 +1,6 @@
-from fastapi import APIRouter
+from typing import Annotated
+
+from fastapi import APIRouter, File, Response, UploadFile
 
 from app.api.deps import DB, Access
 from app.core.errors import NotFoundError
@@ -11,6 +13,7 @@ from app.schemas.player import (
     SquadMemberRead,
 )
 from app.schemas.stats import PlayerStatsRow
+from app.services.media import PlayerPhotoService
 from app.services.players import PlayerService
 from app.services.stats import StatsService
 
@@ -69,3 +72,36 @@ def player_stats(player_id: int, team_season_id: int, db: DB, access: Access):
 @router.post("/{player_id}/move", response_model=SquadMemberRead)
 def move_player(player_id: int, data: PlayerMove, db: DB, access: Access):
     return PlayerService(db, access).move(player_id, data)
+
+
+# --- profile photo ---------------------------------------------------------------
+
+
+@router.put("/{player_id}/photo", response_model=PlayerRead)
+async def set_photo(player_id: int, db: DB, access: Access, file: Annotated[UploadFile, File()]):
+    """Upload (or replace) the profile photo. Re-encoded server-side: metadata stripped,
+    resized, stored on the private media volume. Coaches only."""
+    data = await file.read()
+    PlayerPhotoService(db, access).set_photo(player_id, data, file.filename)
+    return PlayerService(db, access).get(player_id)
+
+
+@router.get(
+    "/{player_id}/photo",
+    response_class=Response,
+    responses={200: {"content": {"image/jpeg": {}}, "description": "The photo"}},
+)
+def get_photo(player_id: int, db: DB, access: Access, size: str = "full"):
+    """The player's photo (`size=thumb` for a 256px square). Access-checked like the player;
+    cacheable per user because the URL carries the media id."""
+    data, key = PlayerPhotoService(db, access).get_photo(player_id, size)
+    return Response(
+        content=data,
+        media_type="image/jpeg",
+        headers={"Cache-Control": "private, max-age=86400", "ETag": f'"{key}-{size}"'},
+    )
+
+
+@router.delete("/{player_id}/photo", status_code=204)
+def delete_photo(player_id: int, db: DB, access: Access):
+    PlayerPhotoService(db, access).remove_photo(player_id)

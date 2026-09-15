@@ -33,6 +33,7 @@ class PlayerUpdate(InputModel):
 class PlayerRead(ORMModel):
     id: int
     cohort_id: int | None
+    photo_key: str | None = None
     first_name: str
     last_name: str | None
     display_name: str
@@ -47,6 +48,7 @@ class PlayerSummary(ORMModel):
 
     id: int
     display_name: str
+    photo_key: str | None = None
 
 
 class SquadMemberUpsert(InputModel):

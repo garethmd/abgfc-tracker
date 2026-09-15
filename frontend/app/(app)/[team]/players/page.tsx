@@ -7,6 +7,7 @@ import { $api } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
 import { PageHeader, SectionTitle } from "@/components/page-header";
 import { PlayerForm } from "@/components/features/players/player-form";
+import { PlayerAvatar } from "@/components/player-avatar";
 import { Card } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -56,7 +57,8 @@ export default function PlayersPage() {
             const s = statsFor(m.player.id);
             return (
               <Link key={m.id} href={`${base}/players/${m.player.id}`} className="flex min-h-16 items-center gap-3 px-4 py-3 hover:bg-accent/50 active:bg-accent">
-                <span className="tnum flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-sm font-semibold text-muted-foreground">
+                <PlayerAvatar playerId={m.player.id} name={m.player.display_name} photoKey={m.player.photo_key} size={40} />
+                <span className="tnum w-6 shrink-0 text-center text-sm font-semibold text-muted-foreground">
                   {m.squad_number ?? "–"}
                 </span>
                 <div className="min-w-0 flex-1">

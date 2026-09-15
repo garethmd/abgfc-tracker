@@ -458,6 +458,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/players/{player_id}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Photo
+         * @description The player's photo (`size=thumb` for a 256px square). Access-checked like the player;
+         *     cacheable per user because the URL carries the media id.
+         */
+        get: operations["get_photo_api_v1_players__player_id__photo_get"];
+        /**
+         * Set Photo
+         * @description Upload (or replace) the profile photo. Re-encoded server-side: metadata stripped,
+         *     resized, stored on the private media volume. Coaches only.
+         */
+        put: operations["set_photo_api_v1_players__player_id__photo_put"];
+        post?: never;
+        /** Delete Photo */
+        delete: operations["delete_photo_api_v1_players__player_id__photo_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/players/{player_id}/stats": {
         parameters: {
             query?: never;
@@ -892,6 +919,11 @@ export interface components {
             is_active?: boolean | null;
             /** Name */
             name?: string | null;
+        };
+        /** Body_set_photo_api_v1_players__player_id__photo_put */
+        Body_set_photo_api_v1_players__player_id__photo_put: {
+            /** File */
+            file: string;
         };
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
@@ -1411,6 +1443,8 @@ export interface components {
             left_date: string | null;
             /** Notes */
             notes: string | null;
+            /** Photo Key */
+            photo_key?: string | null;
         };
         /** PlayerStatsRow */
         PlayerStatsRow: {
@@ -1443,6 +1477,8 @@ export interface components {
             display_name: string;
             /** Id */
             id: number;
+            /** Photo Key */
+            photo_key?: string | null;
         };
         /** PlayerUpdate */
         PlayerUpdate: {
@@ -3083,6 +3119,109 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SquadMemberRead"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_photo_api_v1_players__player_id__photo_get: {
+        parameters: {
+            query?: {
+                size?: string;
+            };
+            header?: never;
+            path: {
+                player_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The photo */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_photo_api_v1_players__player_id__photo_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                player_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_set_photo_api_v1_players__player_id__photo_put"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayerRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_photo_api_v1_players__player_id__photo_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                player_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

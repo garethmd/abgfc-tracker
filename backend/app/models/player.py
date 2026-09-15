@@ -9,6 +9,7 @@ from app.db.base import Base, TimestampMixin
 if TYPE_CHECKING:
     from app.models.club import Cohort, TeamSeason
     from app.models.lookup import Position
+    from app.models.media import MediaLink
 
 
 class Player(TimestampMixin, Base):
@@ -31,6 +32,18 @@ class Player(TimestampMixin, Base):
 
     cohort: Mapped["Cohort | None"] = relationship()
     squad_memberships: Mapped[list["SquadMember"]] = relationship(back_populates="player")
+    profile_photo_link: Mapped["MediaLink | None"] = relationship(
+        primaryjoin="and_(MediaLink.player_id == Player.id, MediaLink.role == 'profile_photo')",
+        viewonly=True,
+        uselist=False,
+        lazy="selectin",
+    )
+
+    @property
+    def photo_key(self) -> str | None:
+        """Random token that changes with every upload; the client cache-busts with it."""
+        link = self.profile_photo_link
+        return link.media.storage_key.rsplit("/", 1)[-1] if link and link.media else None
 
 
 class SquadMember(TimestampMixin, Base):

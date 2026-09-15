@@ -6,6 +6,8 @@ import { $api } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
 import { PageHeader, SectionTitle } from "@/components/page-header";
 import { PlayerForm } from "@/components/features/players/player-form";
+import { PhotoPicker } from "@/components/features/players/photo-picker";
+import { PlayerAvatar } from "@/components/player-avatar";
 import { Card, Stat } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -40,8 +42,9 @@ export default function PlayerPage({ params }: PageProps<"/[team]/players/[id]">
       <PageHeader
         title={
           <span className="flex items-center gap-3">
+            <PlayerAvatar playerId={p.id} name={p.display_name} photoKey={p.photo_key} size={48} />
             {member?.squad_number != null && (
-              <span className="tnum flex size-10 items-center justify-center rounded-xl bg-primary/10 text-base font-bold text-primary">{member.squad_number}</span>
+              <span className="tnum flex size-9 items-center justify-center rounded-xl bg-primary/10 text-sm font-bold text-primary">{member.squad_number}</span>
             )}
             {p.display_name}
           </span>
@@ -59,6 +62,12 @@ export default function PlayerPage({ params }: PageProps<"/[team]/players/[id]">
           ) : undefined
         }
       />
+
+      {canEdit && (
+        <div className="mb-8">
+          <PhotoPicker player={p} onChanged={() => player.refetch()} />
+        </div>
+      )}
 
       <SectionTitle>{teamSeason ? `${team.name} · ${teamSeason.season.name}` : "Season"}</SectionTitle>
       {stats.isPending && teamSeason ? (
@@ -95,7 +104,7 @@ export default function PlayerPage({ params }: PageProps<"/[team]/players/[id]">
       {s?.own_goals ? <p className="mt-2 text-xs text-muted-foreground">{s.own_goals} own goal{s.own_goals > 1 ? "s" : ""}</p> : null}
 
       <p className="mt-8 text-xs text-muted-foreground">
-        Player cards — photo, positions per match, minutes played and season-by-season history — are coming; the data model already supports them.
+        Positions per match and minutes played are coming; the data model already supports them.
       </p>
 
       <Sheet open={editing} onOpenChange={setEditing}>

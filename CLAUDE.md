@@ -82,7 +82,7 @@ not spreadsheet columns. Full DDL is in `backend/alembic/versions/`; rationale h
 | `match_events` | `goal` / `assist` / `own_goal` / `opp_own_goal` with `player_id` (NULL only for `opp_own_goal`), `minute`, `sequence`. **An assist is its own row pointing at its goal via `related_event_id`.** Goals and assists are `COUNT(*)`s. A goal is therefore an addressable thing a YouTube clip can attach to. |
 | `award_types` / `awards` | Two club-wide rows today (`coaches_potm`, `parents_potm`, `club_team_id NULL`). A team's own award ("Blues most improved") is a row with `club_team_id` set - only that team sees it. `scope` (match/month/season) + nullable `fixture_id` + `period_label` cover "goal of the month". Awards are keyed by `team_season_id`. Joint winners allowed. |
 | `match_notes` | Free-text match reports on a fixture - typically WhatsApp messages pasted in after the game. Several per fixture; `author`/`sent_at` describe the original message, `created_by` the coach who pasted it. Read with the fixture's access, write needs coach. `GET/POST /fixtures/{id}/notes`, `PATCH/DELETE …/notes/{note_id}`. Shown as "Match report" on a played fixture's page. (The fixture's own `notes` column is one-line admin: pitch, kit.) |
-| `media` / `media_links` | Designed, unused. `media(kind: youtube/photo/file, url | storage_key, …)`. `media_links` has **three nullable FKs** (`fixture_id`, `player_id`, `match_event_id`) with a CHECK that exactly one is set — real FKs and cascades, unlike `target_type/target_id`. A player photo is a link with `role='profile_photo'`. |
+| `media` / `media_links` | `media(kind: youtube/photo/file, url | storage_key, …)`. `media_links` has **three nullable FKs** (`fixture_id`, `player_id`, `match_event_id`) with a CHECK that exactly one is set — real FKs and cascades, unlike `target_type/target_id`. **In use for player profile photos**: a `photo` media row + a link with `role='profile_photo'` (`services/media.py`). Files live under `settings.media_dir` (`/data/media` in production, mode 600), never a public bucket; uploads are re-encoded with EXIF/GPS stripped into `-full.jpg` (1200px) and `-thumb.jpg` (256px square). Served only via `GET /players/{id}/photo?size=` with the player's access rules; `PlayerRead.photo_key` is a random token that changes per upload for cache-busting (media ids get reused by SQLite). Fixture and goal-clip media reuse the same table; only the routes are missing. |
 
 Conventions: integer PKs, `created_at`/`updated_at` on mutable tables, enums as
 `String` + `CHECK` (values in `models/enums.py`, mirrored by Pydantic), FK
@@ -103,11 +103,10 @@ deterministic constraint names (`db/base.py`).
 
 ### How the four future features land
 
-1. **Player cards** — `squad_members` per team-season + `media_links(role=profile_photo)` +
+1. **Player cards** — photos done; `squad_members` per team-season +
    `GET /players/{id}/stats?team_season_id=` + `GET /players/{id}/memberships` (history).
-2. **Media** — write `media` + `media_links`; add `/media` routes and an authenticated
-   file endpoint reading from `settings.media_dir`. The goal-clip case is
-   `media_links.match_event_id`.
+2. **Media** — profile photos are done (see `media` above); fixture photos and goal
+   clips reuse `services/media.py` with `media_links.fixture_id` / `match_event_id`.
 3. **Positions per appearance** — `appearances.position_id` exists; expose it in the
    entry flow (currently sent as `null`).
 4. **Time on pitch** — write `player_stints`; `PlayerStatsRow.minutes` already flips from
