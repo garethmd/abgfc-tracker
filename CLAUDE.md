@@ -197,6 +197,17 @@ tagged `latest` + commit SHA) - the 1GB box runs the app but can't build it.
   to it (`LEGACY_ADDRESS` in the box's `.env`). If the droplet IP ever changes: update the
   A record, `DEPLOY_HOST`/`DEPLOY_KNOWN_HOSTS` secrets, and `.env.production`.
 
+`backend/app/services/exports.py` builds the **season spreadsheet** (`GET
+/team-seasons/{id}/reports/season.xlsx`, coaches only): the five tabs of the coaches'
+original Google Sheet - Summary, Fixtures, Match Stats, Appearances, Squad - with the
+same headers, colours, validations and conditional formats. Records, squad totals and
+lookups are **live formulas** (Excel-2007-era functions only, so they evaluate in Excel,
+Numbers, Google Sheets and LibreOffice); the text the original computed with Google-only
+functions (scorers, last 5, highlight names) is written by the app with a cell comment
+saying so. `tests/test_exports.py` recalculates the file in LibreOffice when it's installed
+(`brew install --cask libreoffice`) and asserts the Summary equals the stats service -
+run it after touching a formula. Buttons: dashboard header and Settings → Seasons.
+
 ## Frontend notes
 
 - Mobile-first: bottom nav, 44px+ targets, sticky save button above the nav,

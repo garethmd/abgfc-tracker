@@ -549,6 +549,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/team-seasons/{team_season_id}/reports/season.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Season Xlsx
+         * @description The season in the coaches' original spreadsheet layout (Summary, Fixtures, Match
+         *     Stats, Appearances, Squad) with live formulas. Coaches only.
+         */
+        get: operations["season_xlsx_api_v1_team_seasons__team_season_id__reports_season_xlsx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/team-seasons/{team_season_id}/squad": {
         parameters: {
             query?: never;
@@ -3215,6 +3236,39 @@ export interface operations {
                 };
                 content: {
                     "application/pdf": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    season_xlsx_api_v1_team_seasons__team_season_id__reports_season_xlsx_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_season_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The season as a spreadsheet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": unknown;
                 };
             };
             /** @description Validation Error */

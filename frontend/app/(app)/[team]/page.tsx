@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { CalendarPlus } from "lucide-react";
+import { CalendarPlus, FileSpreadsheet } from "lucide-react";
+import { seasonSpreadsheetUrl } from "@/lib/reports";
 import { $api } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
 import { PageHeader, SectionTitle } from "@/components/page-header";
@@ -58,12 +59,19 @@ export default function DashboardPage() {
         title={teamSeason ? `${teamSeason.season.name} season` : <Skeleton className="h-8 w-40" />}
         description={`ABGFC ${team.name}${teamSeason?.age_group ? ` · ${teamSeason.age_group}` : ""}${teamSeasons.length > 1 && !teamSeason?.is_current ? " · past season" : ""}`}
         action={
-          canEdit ? (
-            <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
-              <Link href={`${base}/fixtures/new`}>
-                <CalendarPlus className="size-4" /> Add fixture
-              </Link>
-            </Button>
+          canEdit && teamSeason ? (
+            <div className="flex gap-2">
+              <Button asChild variant="outline" size="sm" title="Download the season as a spreadsheet">
+                <a href={seasonSpreadsheetUrl(teamSeason.id)} download>
+                  <FileSpreadsheet className="size-4" /> <span className="hidden sm:inline">Spreadsheet</span>
+                </a>
+              </Button>
+              <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
+                <Link href={`${base}/fixtures/new`}>
+                  <CalendarPlus className="size-4" /> Add fixture
+                </Link>
+              </Button>
+            </div>
           ) : undefined
         }
       />

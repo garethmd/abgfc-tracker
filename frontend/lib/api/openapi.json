@@ -6049,6 +6049,61 @@
         ]
       }
     },
+    "/api/v1/team-seasons/{team_season_id}/reports/season.xlsx": {
+      "get": {
+        "description": "The season in the coaches' original spreadsheet layout (Summary, Fixtures, Match\nStats, Appearances, Squad) with live formulas. Coaches only.",
+        "operationId": "season_xlsx_api_v1_team_seasons__team_season_id__reports_season_xlsx_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "team_season_id",
+            "required": true,
+            "schema": {
+              "title": "Team Season Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}
+            },
+            "description": "The season as a spreadsheet"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Season Xlsx",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
     "/api/v1/team-seasons/{team_season_id}/squad": {
       "get": {
         "operationId": "list_squad_api_v1_team_seasons__team_season_id__squad_get",

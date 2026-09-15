@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Plus } from "lucide-react";
+import { Check, FileSpreadsheet, Plus } from "lucide-react";
+import { seasonSpreadsheetUrl } from "@/lib/reports";
 import { toast } from "sonner";
 import { $api, errorMessage } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
@@ -113,6 +114,11 @@ export function SeasonsManager() {
               </label>
             ) : (
               <span className="text-xs text-muted-foreground">{s.match_minutes} min</span>
+            )}
+            {canEdit && (
+              <a href={seasonSpreadsheetUrl(s.id)} download title="Download this season as a spreadsheet" className="flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground">
+                <FileSpreadsheet className="size-4" />
+              </a>
             )}
             {s.is_current ? (
               <Badge variant="secondary"><Check className="size-3" /> Current</Badge>
