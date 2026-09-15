@@ -8,35 +8,35 @@ document explains the shape and the reasoning.
 
 ```mermaid
 erDiagram
-    cohorts ||--o{ club_teams : has
+    cohorts ||--o{ club_teams : "has"
     cohorts ||--o{ players : "children of"
-    club_teams ||--o{ team_seasons : plays
+    club_teams ||--o{ team_seasons : "plays"
     seasons ||--o{ team_seasons : "in"
-    team_seasons ||--o{ squad_members : squad
-    team_seasons ||--o{ fixtures : plays
-    team_seasons ||--o{ awards : gives
+    team_seasons ||--o{ squad_members : "squad"
+    team_seasons ||--o{ fixtures : "plays"
+    team_seasons ||--o{ awards : "gives"
     players ||--o{ squad_members : "member of"
-    players ||--o{ appearances : plays
+    players ||--o{ appearances : "plays"
     players ||--o{ match_events : "scores/assists"
-    players ||--o{ awards : wins
+    players ||--o{ awards : "wins"
     positions ||--o{ squad_members : "primary"
     positions ||--o{ appearances : "in match"
     competitions ||--o{ fixtures : "part of"
-    teams ||--o{ fixtures : opposition
+    teams ||--o{ fixtures : "opposition"
     club_teams ||--o| teams : "is also (derby)"
-    fixtures ||--o{ appearances : has
-    fixtures ||--o{ match_events : has
-    fixtures ||--o{ awards : has
-    fixtures ||--o{ match_notes : has
+    fixtures ||--o{ appearances : "has"
+    fixtures ||--o{ match_events : "has"
+    fixtures ||--o{ awards : "has"
+    fixtures ||--o{ match_notes : "has"
     appearances ||--o{ player_stints : "on pitch"
     match_events ||--o| match_events : "assist → goal"
-    award_types ||--o{ awards : typed
+    award_types ||--o{ awards : "typed"
     club_teams ||--o{ award_types : "own awards"
     media ||--o{ media_links : "attached via"
-    media_links }o--o| fixtures : to
-    media_links }o--o| players : to
-    media_links }o--o| match_events : to
-    users ||--o{ user_roles : has
+    media_links }o--o| fixtures : "attached to"
+    media_links }o--o| players : "attached to"
+    media_links }o--o| match_events : "attached to"
+    users ||--o{ user_roles : "has"
     users ||--o{ match_notes : "pasted by"
 ```
 
