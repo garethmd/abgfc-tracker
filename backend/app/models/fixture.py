@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from app.models.club import TeamSeason
     from app.models.lookup import Competition
     from app.models.match import Appearance, MatchEvent
+    from app.models.note import MatchNote
     from app.models.team import Team
 
 
@@ -66,6 +67,9 @@ class Fixture(TimestampMixin, Base):
     )
     awards: Mapped[list["Award"]] = relationship(
         back_populates="fixture", cascade="all, delete-orphan"
+    )
+    match_notes: Mapped[list["MatchNote"]] = relationship(
+        back_populates="fixture", cascade="all, delete-orphan", order_by="MatchNote.sent_at"
     )
 
     @property

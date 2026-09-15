@@ -329,6 +329,42 @@ export interface paths {
         patch: operations["update_fixture_api_v1_fixtures__fixture_id__patch"];
         trace?: never;
     };
+    "/api/v1/fixtures/{fixture_id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Notes */
+        get: operations["list_notes_api_v1_fixtures__fixture_id__notes_get"];
+        put?: never;
+        /** Add Note */
+        post: operations["add_note_api_v1_fixtures__fixture_id__notes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fixtures/{fixture_id}/notes/{note_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Note */
+        delete: operations["delete_note_api_v1_fixtures__fixture_id__notes__note_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Note */
+        patch: operations["update_note_api_v1_fixtures__fixture_id__notes__note_id__patch"];
+        trace?: never;
+    };
     "/api/v1/fixtures/{fixture_id}/result": {
         parameters: {
             query?: never;
@@ -1236,6 +1272,47 @@ export interface components {
             password: string;
             /** Username */
             username: string;
+        };
+        /** MatchNoteCreate */
+        MatchNoteCreate: {
+            /**
+             * Author
+             * @example Stuart
+             */
+            author?: string | null;
+            /** Body */
+            body: string;
+            /** Sent At */
+            sent_at?: string | null;
+        };
+        /** MatchNoteRead */
+        MatchNoteRead: {
+            /** Added By */
+            added_by: string | null;
+            /** Author */
+            author: string | null;
+            /** Body */
+            body: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Fixture Id */
+            fixture_id: number;
+            /** Id */
+            id: number;
+            /** Sent At */
+            sent_at: string | null;
+        };
+        /** MatchNoteUpdate */
+        MatchNoteUpdate: {
+            /** Author */
+            author?: string | null;
+            /** Body */
+            body?: string | null;
+            /** Sent At */
+            sent_at?: string | null;
         };
         /** MeRead */
         MeRead: {
@@ -2619,6 +2696,146 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FixtureDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_notes_api_v1_fixtures__fixture_id__notes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchNoteRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_note_api_v1_fixtures__fixture_id__notes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchNoteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchNoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_note_api_v1_fixtures__fixture_id__notes__note_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
+                note_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_note_api_v1_fixtures__fixture_id__notes__note_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
+                note_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchNoteUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchNoteRead"];
                 };
             };
             /** @description Validation Error */

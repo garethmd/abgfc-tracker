@@ -17,6 +17,7 @@ from app.models.fixture import Fixture
 from app.models.lookup import AwardType, Competition, Position
 from app.models.match import Appearance, MatchEvent, PlayerStint
 from app.models.media import Media, MediaLink
+from app.models.note import MatchNote
 from app.models.player import Player, SquadMember
 from app.models.season import Season
 from app.models.team import Team
@@ -25,6 +26,7 @@ from app.models.user import UserRole as UserRoleAssignment
 
 __all__ = [
     "ClubTeam",
+    "MatchNote",
     "Cohort",
     "RoleScope",
     "TeamSeason",

@@ -9,7 +9,9 @@ from app.schemas.fixture import (
     FixtureUpdate,
     ResultSubmit,
 )
+from app.schemas.note import MatchNoteCreate, MatchNoteRead, MatchNoteUpdate
 from app.services.fixtures import FixtureService
+from app.services.notes import MatchNoteService
 
 router = APIRouter(prefix="/fixtures", tags=["fixtures"])
 
@@ -54,3 +56,26 @@ def delete_fixture(fixture_id: int, db: DB, access: Access):
 def submit_result(fixture_id: int, data: ResultSubmit, db: DB, access: Access):
     """Post-match entry: appearances, goals/assists, awards and score in one write."""
     return FixtureService(db, access).submit_result(fixture_id, data)
+
+
+# --- match notes (reports pasted from WhatsApp) -------------------------------------
+
+
+@router.get("/{fixture_id}/notes", response_model=list[MatchNoteRead])
+def list_notes(fixture_id: int, db: DB, access: Access):
+    return MatchNoteService(db, access).list_for(fixture_id)
+
+
+@router.post("/{fixture_id}/notes", response_model=MatchNoteRead, status_code=201)
+def add_note(fixture_id: int, data: MatchNoteCreate, db: DB, access: Access):
+    return MatchNoteService(db, access).add(fixture_id, data)
+
+
+@router.patch("/{fixture_id}/notes/{note_id}", response_model=MatchNoteRead)
+def update_note(fixture_id: int, note_id: int, data: MatchNoteUpdate, db: DB, access: Access):
+    return MatchNoteService(db, access).update(fixture_id, note_id, data)
+
+
+@router.delete("/{fixture_id}/notes/{note_id}", status_code=204)
+def delete_note(fixture_id: int, note_id: int, db: DB, access: Access):
+    MatchNoteService(db, access).delete(fixture_id, note_id)

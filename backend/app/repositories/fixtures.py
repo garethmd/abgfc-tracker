@@ -8,6 +8,7 @@ from app.models import (
     Fixture,
     FixtureStatus,
     MatchEvent,
+    MatchNote,
     TeamSeason,
 )
 from app.repositories.base import BaseRepository
@@ -52,6 +53,7 @@ class FixtureRepository(BaseRepository[Fixture]):
                 selectinload(Fixture.events).selectinload(MatchEvent.player),
                 selectinload(Fixture.awards).selectinload(Award.player),
                 selectinload(Fixture.awards).selectinload(Award.award_type),
+                selectinload(Fixture.match_notes).selectinload(MatchNote.created_by),
             )
         )
         return self.db.scalar(stmt)

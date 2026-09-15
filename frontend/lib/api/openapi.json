@@ -1646,6 +1646,159 @@
         "title": "LoginRequest",
         "type": "object"
       },
+      "MatchNoteCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "author": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "examples": [
+              "Stuart"
+            ],
+            "title": "Author"
+          },
+          "body": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          },
+          "sent_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sent At"
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "title": "MatchNoteCreate",
+        "type": "object"
+      },
+      "MatchNoteRead": {
+        "properties": {
+          "added_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Added By"
+          },
+          "author": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "fixture_id": {
+            "title": "Fixture Id",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "sent_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sent At"
+          }
+        },
+        "required": [
+          "id",
+          "fixture_id",
+          "body",
+          "author",
+          "sent_at",
+          "created_at",
+          "added_by"
+        ],
+        "title": "MatchNoteRead",
+        "type": "object"
+      },
+      "MatchNoteUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "author": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author"
+          },
+          "body": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          },
+          "sent_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sent At"
+          }
+        },
+        "title": "MatchNoteUpdate",
+        "type": "object"
+      },
       "MeRead": {
         "properties": {
           "club_role": {
@@ -4928,6 +5081,269 @@
           }
         },
         "summary": "Update Fixture",
+        "tags": [
+          "fixtures"
+        ]
+      }
+    },
+    "/api/v1/fixtures/{fixture_id}/notes": {
+      "get": {
+        "operationId": "list_notes_api_v1_fixtures__fixture_id__notes_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fixture_id",
+            "required": true,
+            "schema": {
+              "title": "Fixture Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MatchNoteRead"
+                  },
+                  "title": "Response List Notes Api V1 Fixtures  Fixture Id  Notes Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Notes",
+        "tags": [
+          "fixtures"
+        ]
+      },
+      "post": {
+        "operationId": "add_note_api_v1_fixtures__fixture_id__notes_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fixture_id",
+            "required": true,
+            "schema": {
+              "title": "Fixture Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchNoteCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchNoteRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Note",
+        "tags": [
+          "fixtures"
+        ]
+      }
+    },
+    "/api/v1/fixtures/{fixture_id}/notes/{note_id}": {
+      "delete": {
+        "operationId": "delete_note_api_v1_fixtures__fixture_id__notes__note_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fixture_id",
+            "required": true,
+            "schema": {
+              "title": "Fixture Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "note_id",
+            "required": true,
+            "schema": {
+              "title": "Note Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Note",
+        "tags": [
+          "fixtures"
+        ]
+      },
+      "patch": {
+        "operationId": "update_note_api_v1_fixtures__fixture_id__notes__note_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fixture_id",
+            "required": true,
+            "schema": {
+              "title": "Fixture Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "note_id",
+            "required": true,
+            "schema": {
+              "title": "Note Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchNoteUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchNoteRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Note",
         "tags": [
           "fixtures"
         ]

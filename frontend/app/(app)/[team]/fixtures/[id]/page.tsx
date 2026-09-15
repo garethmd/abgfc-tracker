@@ -24,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { MatchNotes } from "@/components/features/fixtures/match-notes";
 
 export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixtures/[id]">) {
   const { id } = use(params);
@@ -194,6 +195,8 @@ export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixture
           </section>
         </div>
       )}
+
+      {played && <MatchNotes fixtureId={f.id} canEdit={canEdit} />}
 
       {f.notes && (
         <section className="mt-8">
