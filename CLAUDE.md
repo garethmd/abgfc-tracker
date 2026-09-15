@@ -1,5 +1,8 @@
 # ABGFC Blues — team stats
 
+> Condensed notes. The full developer documentation is in [`docs/`](docs/README.md) —
+> keep both in step when behaviour changes.
+
 Stats app for Aldershot Boys & Girls FC (started with the U10 Blues; now built for
 the whole age group - Blues, Blacks, Reds, Whites - and future seasons). Coaches enter
 results on a phone at the side of the pitch; the app derives everything else (record,
