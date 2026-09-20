@@ -62,7 +62,7 @@ backend/
 | `match.py` | `Appearance`, `PlayerStint`, `MatchEvent` (self-referential `related_event`) |
 | `award.py` | `Award` |
 | `note.py` | `MatchNote` |
-| `selection.py` | `FixtureSelection`, `SelectionPlayer` (pre-match availability) |
+| `selection.py` | `FixtureSelection`, `UnavailablePlayer` (pre-match availability) |
 | `media.py` | `Media`, `MediaLink` |
 | `user.py` | `User`, `UserRole` (exported as `UserRoleAssignment` to avoid clashing with the enum) |
 
@@ -110,7 +110,7 @@ Every service takes `(db, access)`; the access object is how scoping happens.
 | `fixtures.py` | CRUD with match-number uniqueness; `submit_result` — the transactional post-match write; `_to_detail` folds assists into goals and attaches `score_warnings`. |
 | `live.py` | `LiveMatchService`: the same result written one tap at a time (start/squad/goals/against/finish/abandon) while `status=live`. |
 | `notes.py` | Match notes CRUD. |
-| `selections.py` | `SelectionService`: pre-match availability (get/put/delete, replaced whole) and `message()` for the parents' text. Editable while `scheduled`/`postponed`; 409 once played. |
+| `selections.py` | `SelectionService`: pre-match availability - stores who's out, computes who's in from the squad (get/put/delete, replaced whole) - and `message()` for the parents' text. Editable while `scheduled`/`postponed`; 409 once played. |
 | `messages.py` | Pure functions: `parents_message()` renders the house-style text from plain values; `arrival_time()` does kick-off minus lead in Europe/London; `format_kickoff` ("11am", "10.30am"), `kickoff_article` ("a"/"an"). No DB, so the exact text is unit-tested and a scheduled reminder can reuse it. |
 | `media.py` | `PlayerPhotoService`: re-encode (EXIF stripped, orientation applied), two sizes, private storage, replace/remove. |
 | `stats.py` | Pure functions + `StatsService` (summary, leaderboard, player row, cohort overview). See [Stats](07-stats.md). |

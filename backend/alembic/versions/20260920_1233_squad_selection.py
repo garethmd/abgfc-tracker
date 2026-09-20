@@ -1,7 +1,8 @@
 """squad selection
 
 Pre-match availability: one fixture_selections row per fixture (coaching on the day,
-notes for parents) with fixture_selection_players rows (available / unavailable),
+notes for parents) with one fixture_unavailable_players row per player marked out -
+everyone else in the squad is available -
 and team_seasons.arrival_lead_minutes for "Please arrive at ...".
 
 Revision ID: 47fa311d91b1
@@ -58,37 +59,32 @@ def upgrade() -> None:
         sa.UniqueConstraint("fixture_id", name=op.f("uq_fixture_selections_fixture_id")),
     )
     op.create_table(
-        "fixture_selection_players",
+        "fixture_unavailable_players",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("selection_id", sa.Integer(), nullable=False),
         sa.Column("player_id", sa.Integer(), nullable=False),
-        sa.Column("status", sa.String(length=20), nullable=False),
-        sa.CheckConstraint(
-            "status IN ('available', 'unavailable')",
-            name=op.f("ck_fixture_selection_players_status"),
-        ),
         sa.ForeignKeyConstraint(
             ["player_id"],
             ["players.id"],
-            name=op.f("fk_fixture_selection_players_player_id_players"),
+            name=op.f("fk_fixture_unavailable_players_player_id_players"),
             ondelete="RESTRICT",
         ),
         sa.ForeignKeyConstraint(
             ["selection_id"],
             ["fixture_selections.id"],
-            name=op.f("fk_fixture_selection_players_selection_id_fixture_selections"),
+            name=op.f("fk_fixture_unavailable_players_selection_id_fixture_selections"),
             ondelete="CASCADE",
         ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_fixture_selection_players")),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_fixture_unavailable_players")),
         sa.UniqueConstraint(
             "selection_id",
             "player_id",
-            name=op.f("uq_fixture_selection_players_selection_id_player_id"),
+            name=op.f("uq_fixture_unavailable_players_selection_id_player_id"),
         ),
     )
-    with op.batch_alter_table("fixture_selection_players", schema=None) as batch_op:
+    with op.batch_alter_table("fixture_unavailable_players", schema=None) as batch_op:
         batch_op.create_index(
-            batch_op.f("ix_fixture_selection_players_selection_id"), ["selection_id"], unique=False
+            batch_op.f("ix_fixture_unavailable_players_selection_id"), ["selection_id"], unique=False
         )
 
     with op.batch_alter_table("team_seasons", schema=None) as batch_op:
@@ -104,9 +100,9 @@ def downgrade() -> None:
     with op.batch_alter_table("team_seasons", schema=None) as batch_op:
         batch_op.drop_column("arrival_lead_minutes")
 
-    with op.batch_alter_table("fixture_selection_players", schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f("ix_fixture_selection_players_selection_id"))
+    with op.batch_alter_table("fixture_unavailable_players", schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f("ix_fixture_unavailable_players_selection_id"))
 
-    op.drop_table("fixture_selection_players")
+    op.drop_table("fixture_unavailable_players")
     op.drop_table("fixture_selections")
     # ### end Alembic commands ###

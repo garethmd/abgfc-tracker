@@ -28,9 +28,9 @@ erDiagram
     fixtures ||--o{ match_events : "has"
     fixtures ||--o{ awards : "has"
     fixtures ||--o{ match_notes : "has"
-    fixtures ||--o| fixture_selections : "plan for"
-    fixture_selections ||--o{ fixture_selection_players : "picks"
-    players ||--o{ fixture_selection_players : "picked"
+    fixtures ||--o| fixture_selections : "availability for"
+    fixture_selections ||--o{ fixture_unavailable_players : "out"
+    players ||--o{ fixture_unavailable_players : "marked out"
     appearances ||--o{ player_stints : "on pitch"
     match_events ||--o| match_events : "assist → goal"
     award_types ||--o{ awards : "typed"
@@ -155,18 +155,19 @@ pasted it). Several per fixture; cascade with the fixture.
 
 ### Pre-match availability
 
-**`fixture_selections`** — who can play in an upcoming fixture, one per fixture
+**`fixture_selections`** — availability for an upcoming fixture, one per fixture
 (`fixture_id` unique, cascades). `coaching` ("Adam & Dan"), `notes` (free text for
-parents), `created_by_user_id`. A plan, not a record: `appearances` (who played) are
-only ever written by the result flows, and the stats engine never reads this table.
+parents), `created_by_user_id`. Its existence means "the coach has confirmed
+availability". A plan, not a record: `appearances` (who played) are only ever written by
+the result flows, and the stats engine never reads this table.
 
-**`fixture_selection_players`** — one row per player asked: `selection_id` (cascade),
-`player_id` (RESTRICT), `status` (`available` | `unavailable`). Unique per (selection,
-player). Deliberately no reason: in or out is all the coach needs. The available players are the squad the parents'
-message lists and the default line-up for result entry and the live screen. A player
-must be in the team's cohort (which includes its squad). Replaced whole on every `PUT` —
-a header row with children rather than JSON so player ids are FK-enforced and "how often
-has X been unavailable" is a query later.
+**`fixture_unavailable_players`** — one row per player marked **out**: `selection_id`
+(cascade), `player_id` (RESTRICT), unique together. Everyone else in the squad is
+available — that is computed at read time from `squad_members`, so a child added to the
+squad after the coach confirmed is in without re-saving. No status, no reason: in or out
+is all the coach needs. The available players are the squad the parents' message lists
+and the default line-up for result entry and the live screen. Replaced whole on every
+`PUT`.
 
 ### Awards
 
@@ -199,7 +200,7 @@ media row + a link with `role='profile_photo'`.
                                   existing rows into a Blues team season; users → club admin
 20260915_2143_match_notes.py      match_notes
 20260920_1127_live_fixture_status.py  adds 'live' to the fixtures.status CHECK
-20260920_1233_squad_selection.py  fixture_selections, fixture_selection_players,
+20260920_1233_squad_selection.py  fixture_selections, fixture_unavailable_players,
                                   team_seasons.arrival_lead_minutes
 ```
 

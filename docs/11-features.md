@@ -104,14 +104,15 @@ No clock and no minutes: that's the *time on pitch* item on the [roadmap](12-roa
 
 ## Availability and the parents' message
 
-Who can play in an upcoming match, recorded on the phone during the week, and the message
-that goes to the parents' group. `services/selections.py`, `services/messages.py`, routes
+Who can't play in an upcoming match (everyone else can), recorded on the phone during the
+week, and the message that goes to the parents' group. `services/selections.py`, `services/messages.py`, routes
 under `/fixtures/{id}/selection`, UI at `/[team]/fixtures/[id]/selection`
 (`SquadSelection`), `SelectionCard` on the fixture page, `MessageSheet`.
 
 - **Availability** (fixture page and the *Next up* card; coaches only, viewers see the
-  result). Tap a player's chip once for *available*, again for *not available*, again to
-  clear. No reasons - in or out is all that's needed. Below the chips: the arrival time (kick-off minus the team-season's lead time,
+  result). Everyone in the squad starts as available; tap a player to mark them out, tap
+  again to put them back. No reasons - in or out is all that's needed. *Save* confirms
+  it even when nobody is out (that's what unlocks the message). Below the chips: the arrival time (kick-off minus the team-season's lead time,
   changed once in Settings → Seasons), *Coaching on the day* and *Notes for parents*.
   Saved as one `PUT`, editable until the match is played, then frozen (409). Nothing here
   touches `appearances`: knowing who *can* play is not a record of who *did*.

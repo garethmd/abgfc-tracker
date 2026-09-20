@@ -20,7 +20,6 @@ from app.models import (
     CompetitionType,
     Fixture,
     FixtureStatus,
-    SelectionStatus,
     TeamSeason,
     UserRole,
 )
@@ -75,8 +74,9 @@ class MatchdayData:
     last_match: FixtureDetail | None
     rows: list[PlayerStatsRow]
     generated_at: datetime
-    # Pre-match availability, if recorded: player id -> available/unavailable
-    selection: dict[int, SelectionStatus]
+    # Pre-match availability, if recorded: the player ids marked unavailable (None = not
+    # recorded, so the boxes are left blank)
+    unavailable: set[int] | None
 
 
 def gather(
@@ -111,12 +111,12 @@ def gather(
     )
     last = FixtureService(db, access).detail(played[-1].id) if played else None
     rows = StatsService(db, access).leaderboard(ts.id).rows
-    selection = (
-        {p.player_id: SelectionStatus(p.status) for p in fixture.selection.players}
+    unavailable = (
+        {u.player_id for u in fixture.selection.unavailable}
         if fixture and fixture.selection
-        else {}
+        else None
     )
-    return MatchdayData(ts, fixture, previous, played, last, rows, datetime.now(), selection)
+    return MatchdayData(ts, fixture, previous, played, last, rows, datetime.now(), unavailable)
 
 
 # --- layout ------------------------------------------------------------------------
@@ -227,9 +227,9 @@ def render(data: MatchdayData) -> bytes:
             pdf.text_line("Already played them: " + "; ".join(parts), 9, colour=INK, h=5)
         if f.notes:
             pdf.text_line(f.notes.replace("\n", " "), 9, "I", colour=MUTED, h=5)
-        if f.selection is not None:
-            n_avail = sum(1 for v in data.selection.values() if v == SelectionStatus.AVAILABLE)
-            n_out = sum(1 for v in data.selection.values() if v == SelectionStatus.UNAVAILABLE)
+        if data.unavailable is not None:
+            n_out = len(data.unavailable)
+            n_avail = len(data.rows) - n_out
             arrive = format_arrival(arrival_time(f.kickoff_at, ts.arrival_lead_minutes))
             bits = [
                 f"Available: {n_avail}" + (f" ({n_out} not available)" if n_out else ""),
@@ -352,13 +352,16 @@ def render(data: MatchdayData) -> bytes:
             pdf.cell(w, row_h, c, align=a)
         # one tick box: available this week - pre-filled from the selection if there is one
         x = pdf.l_margin + sum(widths[:-1])
-        _avail_box(pdf, x + fixed["Avail"] / 2, y + row_h / 2, data.selection.get(r.player.id))
+        state = (
+            None if data.unavailable is None else "out" if r.player.id in data.unavailable else "in"
+        )
+        _avail_box(pdf, x + fixed["Avail"] / 2, y + row_h / 2, state)
         pdf.ln(row_h)
         pdf.rule()
     footnotes = []
     if played_n and any(r.appearances == min_apps and r.appearances < played_n for r in rows):
         footnotes.append("Shaded = fewest appearances so far")
-    if data.selection:
+    if data.unavailable is not None:
         footnotes.append("Ticked = available, crossed = not available")
     if footnotes:
         pdf.set_font("Helvetica", "I", 7.5)
@@ -380,19 +383,19 @@ def render(data: MatchdayData) -> bytes:
     return bytes(pdf.output())
 
 
-def _avail_box(pdf: Sheet, cx: float, cy: float, status: SelectionStatus | None) -> None:
+def _avail_box(pdf: Sheet, cx: float, cy: float, state: str | None) -> None:
     """A 3.6mm box centred on (cx, cy): empty, ticked (available) or crossed (not
     available). Drawn, not a glyph - core Helvetica has no tick."""
     half = 1.8
     pdf.set_line_width(0.25)
     pdf.set_draw_color(150, 150, 150)
     pdf.rect(cx - half, cy - half, 2 * half, 2 * half)
-    if status == SelectionStatus.AVAILABLE:
+    if state == "in":
         pdf.set_draw_color(*pdf.accent)
         pdf.set_line_width(0.4)
         pdf.line(cx - 1.2, cy, cx - 0.3, cy + 1.0)
         pdf.line(cx - 0.3, cy + 1.0, cx + 1.3, cy - 1.1)
-    elif status == SelectionStatus.UNAVAILABLE:
+    elif state == "out":
         pdf.set_draw_color(150, 150, 150)
         pdf.set_line_width(0.4)
         pdf.line(cx - 1.1, cy - 1.1, cx + 1.1, cy + 1.1)

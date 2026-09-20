@@ -1,10 +1,9 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
-from app.models.enums import SelectionStatus, check_in
 
 if TYPE_CHECKING:
     from app.models.fixture import Fixture
@@ -13,9 +12,10 @@ if TYPE_CHECKING:
 
 
 class FixtureSelection(TimestampMixin, Base):
-    """Who is available for an upcoming match and who isn't, plus the bits parents need
-    to know. A plan, not a record - appearances (who actually played) are only ever
-    written by the result flows. One per fixture; goes with it."""
+    """Availability for an upcoming match: everyone in the squad is assumed available
+    unless listed in `unavailable`, plus the bits parents need to know. A plan, not a
+    record - appearances (who actually played) are only ever written by the result
+    flows. One per fixture; goes with it."""
 
     __tablename__ = "fixture_selections"
 
@@ -31,28 +31,23 @@ class FixtureSelection(TimestampMixin, Base):
 
     fixture: Mapped["Fixture"] = relationship(back_populates="selection")
     created_by: Mapped["User | None"] = relationship()
-    players: Mapped[list["SelectionPlayer"]] = relationship(
-        back_populates="selection", cascade="all, delete-orphan", order_by="SelectionPlayer.id"
+    unavailable: Mapped[list["UnavailablePlayer"]] = relationship(
+        back_populates="selection", cascade="all, delete-orphan", order_by="UnavailablePlayer.id"
     )
 
 
-class SelectionPlayer(Base):
-    """One player's availability - in or out, nothing more. The available players are
-    the squad the parents' message lists and the default line-up for result entry and the
-    live screen."""
+class UnavailablePlayer(Base):
+    """A player the coach has marked as not available for this match. Everyone else in
+    the squad is available - that is the squad the parents' message lists."""
 
-    __tablename__ = "fixture_selection_players"
-    __table_args__ = (
-        UniqueConstraint("selection_id", "player_id"),
-        CheckConstraint(check_in("status", SelectionStatus), name="status"),
-    )
+    __tablename__ = "fixture_unavailable_players"
+    __table_args__ = (UniqueConstraint("selection_id", "player_id"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     selection_id: Mapped[int] = mapped_column(
         ForeignKey("fixture_selections.id", ondelete="CASCADE"), index=True
     )
     player_id: Mapped[int] = mapped_column(ForeignKey("players.id", ondelete="RESTRICT"))
-    status: Mapped[SelectionStatus] = mapped_column(String(20))
 
-    selection: Mapped[FixtureSelection] = relationship(back_populates="players")
+    selection: Mapped[FixtureSelection] = relationship(back_populates="unavailable")
     player: Mapped["Player"] = relationship()

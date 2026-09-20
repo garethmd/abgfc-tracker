@@ -23,13 +23,6 @@ class FixtureStatus(StrEnum):
     ABANDONED = "abandoned"
 
 
-class SelectionStatus(StrEnum):
-    """A player's availability for an upcoming match (a plan, not who played)."""
-
-    AVAILABLE = "available"
-    UNAVAILABLE = "unavailable"
-
-
 class EventType(StrEnum):
     """Match events. Goals are the addressable thing (media attaches to them);
     an ASSIST row points at its GOAL via related_event_id."""

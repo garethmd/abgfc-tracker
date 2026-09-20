@@ -528,7 +528,7 @@ export interface paths {
         get: operations["get_selection_api_v1_fixtures__fixture_id__selection_get"];
         /**
          * Put Selection
-         * @description Replace the whole selection: available, unavailable, coaching, notes.
+         * @description Replace availability: who's out (everyone else is in), coaching, notes.
          */
         put: operations["put_selection_api_v1_fixtures__fixture_id__selection_put"];
         post?: never;
@@ -1807,22 +1807,16 @@ export interface components {
             /** Start Date */
             start_date?: string | null;
         };
-        /** SelectionPlayerInput */
-        SelectionPlayerInput: {
-            /** Player Id */
-            player_id: number;
-            status: components["schemas"]["SelectionStatus"];
-        };
         /** SelectionPlayerRead */
         SelectionPlayerRead: {
             player: components["schemas"]["PlayerSummary"];
             /** Squad Number */
             squad_number: number | null;
-            status: components["schemas"]["SelectionStatus"];
         };
         /**
          * SelectionRead
-         * @description Available and unavailable players as two lists (squad-number then name order).
+         * @description Who can play (the squad minus those marked unavailable) and who can't, both in
+         *     squad-number then name order.
          */
         SelectionRead: {
             /**
@@ -1849,14 +1843,9 @@ export interface components {
             updated_at: string;
         };
         /**
-         * SelectionStatus
-         * @description A player's availability for an upcoming match (a plan, not who played).
-         * @enum {string}
-         */
-        SelectionStatus: "available" | "unavailable";
-        /**
          * SelectionSubmit
          * @description Availability for a match in one write - replaces what was there, like PUT /result.
+         *     Everyone in the squad is available unless listed here.
          */
         SelectionSubmit: {
             /**
@@ -1867,10 +1856,10 @@ export interface components {
             /** Notes */
             notes?: string | null;
             /**
-             * Players
+             * Unavailable Player Ids
              * @default []
              */
-            players?: components["schemas"]["SelectionPlayerInput"][];
+            unavailable_player_ids?: number[];
         };
         /** SetPasswordRequest */
         SetPasswordRequest: {

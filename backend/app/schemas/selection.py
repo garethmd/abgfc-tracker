@@ -1,40 +1,28 @@
 from datetime import datetime
 
-from pydantic import Field, model_validator
+from pydantic import Field
 
-from app.models.enums import SelectionStatus
 from app.schemas.common import InputModel, ORMModel
 from app.schemas.player import PlayerSummary
 
 
-class SelectionPlayerInput(InputModel):
-    player_id: int
-    status: SelectionStatus
-
-
 class SelectionSubmit(InputModel):
-    """Availability for a match in one write - replaces what was there, like PUT /result."""
+    """Availability for a match in one write - replaces what was there, like PUT /result.
+    Everyone in the squad is available unless listed here."""
 
-    players: list[SelectionPlayerInput] = []
+    unavailable_player_ids: list[int] = []
     coaching: str | None = Field(default=None, max_length=200, examples=["Adam & Dan"])
     notes: str | None = Field(default=None, max_length=5000)
-
-    @model_validator(mode="after")
-    def _no_duplicate_players(self):
-        ids = [p.player_id for p in self.players]
-        if len(ids) != len(set(ids)):
-            raise ValueError("a player can only be selected once")
-        return self
 
 
 class SelectionPlayerRead(ORMModel):
     player: PlayerSummary
     squad_number: int | None
-    status: SelectionStatus
 
 
 class SelectionRead(ORMModel):
-    """Available and unavailable players as two lists (squad-number then name order)."""
+    """Who can play (the squad minus those marked unavailable) and who can't, both in
+    squad-number then name order."""
 
     fixture_id: int
     available: list[SelectionPlayerRead]

@@ -104,7 +104,7 @@ qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });   // prefix mat
 | Dashboard | `RecordCard`, `HighlightTiles`, `Leaderboard`, `FormPips` | All/League toggle; spreadsheet button in header |
 | Fixtures | `FixtureRow`, `MessageSheet` | "Next up" card with *Start match* + *Enter result* + *Sheet* (PDF), the availability line, *Availability* and *Message parents*; becomes "Live now" with *Continue live match* while a fixture is live; rows show a red *Live* badge and the running score |
 | Fixture detail | `SelectionCard`, `MatchNotes`, `GoalLine` | *Start match* / *Enter result* when scheduled, *Continue live match* when live; Availability card on scheduled fixtures; ⋯ menu: edit, edit result, PDF, delete; warnings banner |
-| Availability | `SquadSelection` | tap a chip once for available, again for not available, again to clear; arrival card; coaching + notes; sticky save |
+| Availability | `SquadSelection` | everyone in by default; tap a chip to mark out (tap again to put back); arrival card; coaching + notes; sticky save |
 | Message parents | `MessageSheet` | bottom sheet: server-rendered text (editable), *Add the date* toggle, `navigator.share` on phones, copy fallback |
 | Result entry | `ResultEntry`, `GoalSheet`, `Chip`, `ScoreStepper` | squad preselected (the players marked available, when recorded); bottom sheet scorer→assist; sticky save |
 | Live match | `LineUp`, `LiveMatch` (+ `GoalSheet`/`Chip` from result entry) | line-up → sticky score card, Goal/Against/Undo bar, Full time → entry screen for awards |

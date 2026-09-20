@@ -112,7 +112,7 @@ Full rules in [Security](08-security.md).
 | POST | `/fixtures/{id}/live/finish` | coach | `status=played`; the fixture is now exactly what `PUT /result` produces |
 | DELETE | `/fixtures/{id}/live` | coach | started by mistake: clears everything, back to `scheduled` |
 | GET | `/fixtures/{id}/selection` | viewer | `SelectionRead` or `null` — pre-match availability (below) |
-| PUT | `/fixtures/{id}/selection` | coach | `SelectionSubmit`; replaces the whole thing; 409 unless `scheduled`/`postponed`; 422 for a player outside the team's cohort or listed twice |
+| PUT | `/fixtures/{id}/selection` | coach | `SelectionSubmit` = who's out (+ coaching, notes); replaces the whole thing; 409 unless `scheduled`/`postponed`; 422 for a player outside the team's cohort |
 | DELETE | `/fixtures/{id}/selection` | coach | 404 if there isn't one |
 | GET | `/fixtures/{id}/selection/message?date_line=` | coach | `{text}` — the parents' message in the house style listing the available players; 404 until availability is recorded |
 
@@ -142,17 +142,16 @@ tap at a time. Every call returns the full `FixtureDetail`. While a fixture is `
 `finish` moves it to `played`, after which the post-match screen is used as normal for
 the awards and any corrections. Viewers see the running score through `GET /fixtures/{id}`.
 
-**Pre-match availability** (`services/selections.py`) is who can play in an upcoming
-match — separate from `appearances`, which only the result flows write.
+**Pre-match availability** (`services/selections.py`): everyone in the squad can play
+unless the coach marks them out — separate from `appearances`, which only the result
+flows write.
 
 ```json
-PUT {"players": [{"player_id": 3, "status": "available"},
-                 {"player_id": 9, "status": "unavailable"}],
-     "coaching": "Adam & Dan", "notes": "Bring both kits"}
+PUT {"unavailable_player_ids": [9], "coaching": "Adam & Dan", "notes": "Bring both kits"}
 
 GET → {"fixture_id": 12,
-       "available": [{"player": {...}, "squad_number": 1, "status": "available"}, ...],
-       "unavailable": [...],
+       "available": [{"player": {...}, "squad_number": 1}, ...],   // the squad minus those out
+       "unavailable": [{"player": {...}, "squad_number": 9}],
        "arrival_at": "2026-09-26T10:30:00", "arrival_lead_minutes": 30,
        "coaching": "Adam & Dan", "notes": "Bring both kits", "updated_at": "..."}
 ```

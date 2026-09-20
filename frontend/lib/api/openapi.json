@@ -2848,24 +2848,6 @@
         "title": "SeasonUpdate",
         "type": "object"
       },
-      "SelectionPlayerInput": {
-        "additionalProperties": false,
-        "properties": {
-          "player_id": {
-            "title": "Player Id",
-            "type": "integer"
-          },
-          "status": {
-            "$ref": "#/components/schemas/SelectionStatus"
-          }
-        },
-        "required": [
-          "player_id",
-          "status"
-        ],
-        "title": "SelectionPlayerInput",
-        "type": "object"
-      },
       "SelectionPlayerRead": {
         "properties": {
           "player": {
@@ -2881,21 +2863,17 @@
               }
             ],
             "title": "Squad Number"
-          },
-          "status": {
-            "$ref": "#/components/schemas/SelectionStatus"
           }
         },
         "required": [
           "player",
-          "squad_number",
-          "status"
+          "squad_number"
         ],
         "title": "SelectionPlayerRead",
         "type": "object"
       },
       "SelectionRead": {
-        "description": "Available and unavailable players as two lists (squad-number then name order).",
+        "description": "Who can play (the squad minus those marked unavailable) and who can't, both in\nsquad-number then name order.",
         "properties": {
           "arrival_at": {
             "format": "date-time",
@@ -2965,18 +2943,9 @@
         "title": "SelectionRead",
         "type": "object"
       },
-      "SelectionStatus": {
-        "description": "A player's availability for an upcoming match (a plan, not who played).",
-        "enum": [
-          "available",
-          "unavailable"
-        ],
-        "title": "SelectionStatus",
-        "type": "string"
-      },
       "SelectionSubmit": {
         "additionalProperties": false,
-        "description": "Availability for a match in one write - replaces what was there, like PUT /result.",
+        "description": "Availability for a match in one write - replaces what was there, like PUT /result.\nEveryone in the squad is available unless listed here.",
         "properties": {
           "coaching": {
             "anyOf": [
@@ -3005,12 +2974,12 @@
             ],
             "title": "Notes"
           },
-          "players": {
+          "unavailable_player_ids": {
             "default": [],
             "items": {
-              "$ref": "#/components/schemas/SelectionPlayerInput"
+              "type": "integer"
             },
-            "title": "Players",
+            "title": "Unavailable Player Ids",
             "type": "array"
           }
         },
@@ -6355,7 +6324,7 @@
         ]
       },
       "put": {
-        "description": "Replace the whole selection: available, unavailable, coaching, notes.",
+        "description": "Replace availability: who's out (everyone else is in), coaching, notes.",
         "operationId": "put_selection_api_v1_fixtures__fixture_id__selection_put",
         "parameters": [
           {

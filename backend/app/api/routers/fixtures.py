@@ -94,7 +94,7 @@ def get_selection(fixture_id: int, db: DB, access: Access):
 
 @router.put("/{fixture_id}/selection", response_model=SelectionRead)
 def put_selection(fixture_id: int, data: SelectionSubmit, db: DB, access: Access):
-    """Replace the whole selection: available, unavailable, coaching, notes."""
+    """Replace availability: who's out (everyone else is in), coaching, notes."""
     return SelectionService(db, access).put(fixture_id, data)
 
 

@@ -1,22 +1,16 @@
-"""Pre-match availability: who can play in an upcoming fixture and who can't.
+"""Pre-match availability: who can't play in an upcoming fixture. Everyone else in the
+squad can.
 
 A plan, not a record. `appearances` (who played) are only ever written by the result
 flows; this never touches them. The selection is one aggregate - a header row with the
-coaching/notes text and one row per player - replaced whole on every save, so a retried
-PUT is harmless.
+coaching/notes text and one row per unavailable player - replaced whole on every save,
+so a retried PUT is harmless.
 """
 
 from sqlalchemy.orm import Session
 
 from app.core.errors import ConflictError, NotFoundError, ValidationError
-from app.models import (
-    Fixture,
-    FixtureSelection,
-    FixtureStatus,
-    SelectionPlayer,
-    SelectionStatus,
-    UserRole,
-)
+from app.models import Fixture, FixtureSelection, FixtureStatus, UnavailablePlayer, UserRole
 from app.repositories.players import PlayerRepository, SquadRepository
 from app.schemas.player import PlayerSummary
 from app.schemas.selection import (
@@ -48,7 +42,8 @@ class SelectionService:
         fixture = self.fixtures.get(fixture_id, UserRole.COACH)
         if fixture.status not in EDITABLE:
             raise ConflictError("Availability can only be set before the match is played")
-        self._check_players(fixture, [p.player_id for p in data.players])
+        ids = list(dict.fromkeys(data.unavailable_player_ids))  # de-duplicated, order kept
+        self._check_players(fixture, ids)
 
         selection = fixture.selection
         if selection is None:
@@ -56,12 +51,10 @@ class SelectionService:
             fixture.selection = selection
         selection.coaching = _clean(data.coaching)
         selection.notes = _clean(data.notes)
-        selection.players.clear()
+        selection.unavailable.clear()
         self.db.flush()
-        for p in data.players:
-            selection.players.append(
-                SelectionPlayer(player_id=p.player_id, status=SelectionStatus(p.status))
-            )
+        for pid in ids:
+            selection.unavailable.append(UnavailablePlayer(player_id=pid))
         self.db.commit()
         self.db.refresh(fixture)
         return self._read(fixture)
@@ -77,7 +70,7 @@ class SelectionService:
         """The parents' message listing the available players (coaches - it names children)."""
         fixture = self.fixtures.get(fixture_id, UserRole.COACH)
         if fixture.selection is None:
-            raise NotFoundError("Record who's available first")
+            raise NotFoundError("Confirm availability first")
         sel = self._read(fixture)
         text = parents_message(
             MessageInput(
@@ -98,7 +91,7 @@ class SelectionService:
     # --- helpers ---------------------------------------------------------------
 
     def _check_players(self, fixture: Fixture, player_ids: list[int]) -> None:
-        """Only children in this team's cohort (which includes its squad) can be picked."""
+        """Only children in this team's cohort (which includes its squad) can be marked."""
         players = PlayerRepository(self.db)
         cohort_id = fixture.team_season.club_team.cohort_id
         for pid in player_ids:
@@ -109,35 +102,36 @@ class SelectionService:
     def _read(self, fixture: Fixture) -> SelectionRead:
         sel = fixture.selection
         assert sel is not None
-        numbers = {
-            m.player_id: m.squad_number
+        # The squad in its usual order; available = everyone still in it who isn't out.
+        squad = [
+            m
             for m in SquadRepository(self.db).list_for_team_season(fixture.team_season_id)
-        }
-        rows = sorted(
-            sel.players,
-            key=lambda r: (
-                numbers.get(r.player_id) is None,
-                numbers.get(r.player_id) or 0,
-                r.player.display_name,
-            ),
-        )
-
-        def group(status: SelectionStatus) -> list[SelectionPlayerRead]:
-            return [
+            if m.left_at is None and m.player.left_date is None
+        ]
+        numbers = {m.player_id: m.squad_number for m in squad}
+        out_ids = {u.player_id for u in sel.unavailable}
+        available = [
+            SelectionPlayerRead(
+                player=PlayerSummary.model_validate(m.player), squad_number=m.squad_number
+            )
+            for m in squad
+            if m.player_id not in out_ids
+        ]
+        unavailable = sorted(
+            (
                 SelectionPlayerRead(
-                    player=PlayerSummary.model_validate(r.player),
-                    squad_number=numbers.get(r.player_id),
-                    status=r.status,
+                    player=PlayerSummary.model_validate(u.player),
+                    squad_number=numbers.get(u.player_id),
                 )
-                for r in rows
-                if r.status == status
-            ]
-
+                for u in sel.unavailable
+            ),
+            key=lambda r: (r.squad_number is None, r.squad_number or 0, r.player.display_name),
+        )
         lead = fixture.team_season.arrival_lead_minutes
         return SelectionRead(
             fixture_id=fixture.id,
-            available=group(SelectionStatus.AVAILABLE),
-            unavailable=group(SelectionStatus.UNAVAILABLE),
+            available=available,
+            unavailable=unavailable,
             arrival_at=arrival_time(fixture.kickoff_at, lead),
             arrival_lead_minutes=lead,
             coaching=sel.coaching,
