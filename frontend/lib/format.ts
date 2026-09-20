@@ -33,6 +33,7 @@ export function joinNames(names: string[]): string {
 
 export const STATUS_LABEL: Record<string, string> = {
   scheduled: "Scheduled",
+  live: "Live",
   played: "Played",
   postponed: "Postponed",
   cancelled: "Cancelled",

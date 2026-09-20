@@ -43,16 +43,18 @@ export function FixtureRow({ fixture: f, base = "" }: { fixture: Schema["Fixture
           <span>{formatDate(f.kickoff_at)}</span>
           <span aria-hidden>·</span>
           <span>{f.competition.name}</span>
-          {f.status !== "played" && f.status !== "scheduled" && (
+          {f.status === "live" ? (
+            <Badge className="ml-1 h-5 bg-rose-600 px-1.5 text-[10px] uppercase tracking-wider text-white">Live</Badge>
+          ) : f.status !== "played" && f.status !== "scheduled" && (
             <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">
               {STATUS_LABEL[f.status]}
             </Badge>
           )}
         </p>
       </div>
-      {result ? (
+      {result || f.status === "live" ? (
         <span className="tnum text-lg font-semibold tracking-tight">
-          {f.our_score}<span className="mx-0.5 text-muted-foreground">–</span>{f.their_score}
+          {f.our_score ?? 0}<span className="mx-0.5 text-muted-foreground">–</span>{f.their_score ?? 0}
         </span>
       ) : (
         <ChevronRight className="size-4 text-muted-foreground" />

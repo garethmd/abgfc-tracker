@@ -16,7 +16,7 @@ type Fixture = Schema["FixtureDetail"];
 type Member = Schema["SquadMemberRead"];
 type AwardType = Schema["AwardTypeRead"];
 
-interface Goal {
+export interface Goal {
   key: number;
   event_type: "goal" | "own_goal" | "opp_own_goal";
   scorer_id: number | null;
@@ -96,7 +96,12 @@ export function ResultEntry({ fixture, squad, awardTypes, base }: { fixture: Fix
         body: {
           our_score: ourScore,
           their_score: theirScore,
-          appearances: playingPlayers.map((p) => ({ player_id: p.id, started: true })),
+          // Keep a captain recorded by the live screen; this screen doesn't pick one.
+          appearances: playingPlayers.map((p) => ({
+            player_id: p.id,
+            started: true,
+            captain: fixture.appearances.some((a) => a.player.id === p.id && a.captain),
+          })),
           goals: goals.map((g) => ({ event_type: g.event_type, scorer_id: g.scorer_id, assisted_by_id: g.assisted_by_id })),
           awards: Object.entries(awards).flatMap(([typeId, set]) => [...set].map((player_id) => ({ award_type_id: Number(typeId), player_id }))),
         },
@@ -232,7 +237,7 @@ function StepButton(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   );
 }
 
-function Chip({ selected, onClick, children, accent }: { selected: boolean; onClick: () => void; children: React.ReactNode; accent?: boolean }) {
+export function Chip({ selected, onClick, children, accent }: { selected: boolean; onClick: () => void; children: React.ReactNode; accent?: boolean }) {
   return (
     <button
       type="button"
@@ -252,7 +257,7 @@ function Chip({ selected, onClick, children, accent }: { selected: boolean; onCl
   );
 }
 
-function GoalSheet({
+export function GoalSheet({
   open,
   onOpenChange,
   players,

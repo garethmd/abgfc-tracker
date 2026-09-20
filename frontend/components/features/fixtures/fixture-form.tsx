@@ -71,7 +71,7 @@ export function FixtureForm({ fixture }: { fixture?: Fixture }) {
       if (fixture) {
         saved = await update.mutateAsync({
           params: { path: { fixture_id: fixture.id } },
-          body: { ...common, status: fixture.status === "played" ? undefined : status },
+          body: { ...common, status: fixture.status === "played" || fixture.status === "live" ? undefined : status },
         });
       } else {
         saved = await create.mutateAsync({ body: { ...common, team_season_id: teamSeason.id, status } });
@@ -149,7 +149,7 @@ export function FixtureForm({ fixture }: { fixture?: Fixture }) {
           <Field label="Match no.">
             <Input type="number" inputMode="numeric" min={1} className="h-11" placeholder="Auto" value={matchNumber} onChange={(e) => setMatchNumber(e.target.value)} />
           </Field>
-          {fixture?.status !== "played" && (
+          {fixture?.status !== "played" && fixture?.status !== "live" && (
             <Field label="Status">
               <Select value={status} onValueChange={(v) => setStatus(v as Schema["FixtureStatus"])}>
                 <SelectTrigger className="h-11 w-full">

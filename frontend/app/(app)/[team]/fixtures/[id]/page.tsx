@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Award, FileDown, MapPin, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { AlertTriangle, Award, FileDown, MapPin, MoreHorizontal, Pencil, Radio, Trash2 } from "lucide-react";
 import { matchdaySheetUrl } from "@/lib/reports";
 import { toast } from "sonner";
 import { $api, errorMessage, type Schema } from "@/lib/api/client";
@@ -109,7 +109,7 @@ export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixture
       <Card className="p-6">
         <div className="flex items-center justify-between gap-4">
           <TeamName name="Blues" align="left" />
-          {played ? (
+          {played || f.status === "live" ? (
             <div className="flex items-center gap-3 tnum">
               <span className="text-5xl font-semibold tracking-tighter">{f.our_score}</span>
               <span className="text-2xl text-muted-foreground">–</span>
@@ -121,6 +121,7 @@ export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixture
           <TeamName name={f.opposition.short_name ?? f.opposition.name} align="right" />
         </div>
         <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          {f.status === "live" && <span className="font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400">Live</span>}
           {result && (
             <span className={cn("font-semibold", result === "W" && "text-emerald-600 dark:text-emerald-400", result === "L" && "text-rose-600 dark:text-rose-400")}>
               {result === "W" ? "Win" : result === "L" ? "Loss" : "Draw"}
@@ -129,14 +130,24 @@ export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixture
           <span className="flex items-center gap-1"><MapPin className="size-3" />{VENUE_LABEL[f.venue]}{f.venue_notes ? ` · ${f.venue_notes}` : ""}</span>
         </div>
         {!played && f.status === "scheduled" && canEdit && (
-          <div className="mt-6 grid grid-cols-[1fr_auto] gap-2">
+          <div className="mt-6 grid grid-cols-[1fr_1fr_auto] gap-2">
             <Button asChild className="h-12 w-full">
+              <Link href={`${base}/fixtures/${f.id}/live`}><Radio className="size-4" /> Start match</Link>
+            </Button>
+            <Button asChild variant="outline" className="h-12 w-full">
               <Link href={`${base}/fixtures/${f.id}/entry`}>Enter result</Link>
             </Button>
             <Button asChild variant="outline" className="h-12" title="Download the matchday sheet (PDF)">
               <a href={matchdaySheetUrl(f.team_season_id, f.id)} download>
                 <FileDown className="size-4" /> Sheet
               </a>
+            </Button>
+          </div>
+        )}
+        {f.status === "live" && canEdit && (
+          <div className="mt-6">
+            <Button asChild className="h-12 w-full">
+              <Link href={`${base}/fixtures/${f.id}/live`}><Radio className="size-4" /> Continue live match</Link>
             </Button>
           </div>
         )}

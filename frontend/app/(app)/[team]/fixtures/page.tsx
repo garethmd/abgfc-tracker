@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarDays, FileDown, Plus } from "lucide-react";
+import { CalendarDays, FileDown, Plus, Radio } from "lucide-react";
 import { matchdaySheetUrl } from "@/lib/reports";
 import { $api } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
@@ -22,9 +22,10 @@ export default function FixturesPage() {
     { enabled: !!teamSeason },
   );
 
+  const live = (fixtures.data ?? []).find((f) => f.status === "live");
   const upcoming = (fixtures.data ?? []).filter((f) => f.status === "scheduled");
-  const others = (fixtures.data ?? []).filter((f) => f.status !== "scheduled").slice().reverse();
-  const nextUp = upcoming[0];
+  const others = (fixtures.data ?? []).filter((f) => f.status !== "scheduled" && f.status !== "live").slice().reverse();
+  const nextUp = live ?? upcoming[0];
 
   return (
     <>
@@ -66,12 +67,22 @@ export default function FixturesPage() {
         <div className="space-y-8">
           {nextUp && (
             <section>
-              <SectionTitle>Next up</SectionTitle>
+              <SectionTitle>{nextUp.status === "live" ? "Live now" : "Next up"}</SectionTitle>
               <Card className="overflow-hidden">
                 <FixtureRow fixture={nextUp} base={base} />
-                {canEdit && teamSeason && (
-                  <div className="grid grid-cols-[1fr_auto] gap-2 border-t border-border/60 p-3">
+                {canEdit && teamSeason && nextUp.status === "live" && (
+                  <div className="border-t border-border/60 p-3">
                     <Button asChild className="h-11 w-full">
+                      <Link href={`${base}/fixtures/${nextUp.id}/live`}><Radio className="size-4" /> Continue live match</Link>
+                    </Button>
+                  </div>
+                )}
+                {canEdit && teamSeason && nextUp.status === "scheduled" && (
+                  <div className="grid grid-cols-[1fr_1fr_auto] gap-2 border-t border-border/60 p-3">
+                    <Button asChild className="h-11 w-full">
+                      <Link href={`${base}/fixtures/${nextUp.id}/live`}><Radio className="size-4" /> Start match</Link>
+                    </Button>
+                    <Button asChild variant="outline" className="h-11 w-full">
                       <Link href={`${base}/fixtures/${nextUp.id}/entry`}>Enter result</Link>
                     </Button>
                     <Button asChild variant="outline" className="h-11" title="Download the matchday sheet (PDF)">
@@ -82,9 +93,9 @@ export default function FixturesPage() {
                   </div>
                 )}
               </Card>
-              {upcoming.length > 1 && (
+              {upcoming.filter((f) => f.id !== nextUp.id).length > 0 && (
                 <Card className="mt-3 divide-y divide-border/40 overflow-hidden">
-                  {upcoming.slice(1).map((f) => (
+                  {upcoming.filter((f) => f.id !== nextUp.id).map((f) => (
                     <FixtureRow key={f.id} fixture={f} base={base} />
                   ))}
                 </Card>
