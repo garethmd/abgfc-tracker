@@ -1811,19 +1811,11 @@ export interface components {
         SelectionPlayerInput: {
             /** Player Id */
             player_id: number;
-            /**
-             * Reason
-             * @example injured
-             * @example away
-             */
-            reason?: string | null;
             status: components["schemas"]["SelectionStatus"];
         };
         /** SelectionPlayerRead */
         SelectionPlayerRead: {
             player: components["schemas"]["PlayerSummary"];
-            /** Reason */
-            reason: string | null;
             /** Squad Number */
             squad_number: number | null;
             status: components["schemas"]["SelectionStatus"];

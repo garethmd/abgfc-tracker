@@ -161,8 +161,8 @@ parents), `created_by_user_id`. A plan, not a record: `appearances` (who played)
 only ever written by the result flows, and the stats engine never reads this table.
 
 **`fixture_selection_players`** — one row per player asked: `selection_id` (cascade),
-`player_id` (RESTRICT), `status` (`available` | `unavailable`), `reason` ("injured").
-Unique per (selection, player). The available players are the squad the parents'
+`player_id` (RESTRICT), `status` (`available` | `unavailable`). Unique per (selection,
+player). Deliberately no reason: in or out is all the coach needs. The available players are the squad the parents'
 message lists and the default line-up for result entry and the live screen. A player
 must be in the team's cohort (which includes its squad). Replaced whole on every `PUT` —
 a header row with children rather than JSON so player ids are FK-enforced and "how often

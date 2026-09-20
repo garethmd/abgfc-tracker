@@ -2855,22 +2855,6 @@
             "title": "Player Id",
             "type": "integer"
           },
-          "reason": {
-            "anyOf": [
-              {
-                "maxLength": 100,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "examples": [
-              "injured",
-              "away"
-            ],
-            "title": "Reason"
-          },
           "status": {
             "$ref": "#/components/schemas/SelectionStatus"
           }
@@ -2886,17 +2870,6 @@
         "properties": {
           "player": {
             "$ref": "#/components/schemas/PlayerSummary"
-          },
-          "reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reason"
           },
           "squad_number": {
             "anyOf": [
@@ -2916,8 +2889,7 @@
         "required": [
           "player",
           "squad_number",
-          "status",
-          "reason"
+          "status"
         ],
         "title": "SelectionPlayerRead",
         "type": "object"

@@ -110,9 +110,8 @@ under `/fixtures/{id}/selection`, UI at `/[team]/fixtures/[id]/selection`
 (`SquadSelection`), `SelectionCard` on the fixture page, `MessageSheet`.
 
 - **Availability** (fixture page and the *Next up* card; coaches only, viewers see the
-  result). Tap a player's chip once for *available*, again for *not available* (a reason
-  sheet: Injured / Ill / Away / Holiday / Unavailable or free text, optional), again to
-  clear. Below the chips: the arrival time (kick-off minus the team-season's lead time,
+  result). Tap a player's chip once for *available*, again for *not available*, again to
+  clear. No reasons - in or out is all that's needed. Below the chips: the arrival time (kick-off minus the team-season's lead time,
   changed once in Settings → Seasons), *Coaching on the day* and *Notes for parents*.
   Saved as one `PUT`, editable until the match is played, then frozen (409). Nothing here
   touches `appearances`: knowing who *can* play is not a record of who *did*.

@@ -11,7 +11,6 @@ import { formatTime } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card } from "@/components/stat-card";
 import { SectionTitle } from "@/components/page-header";
@@ -26,9 +25,7 @@ type Player = Schema["PlayerSummary"];
 
 /** Tap order: not asked → available → not available → not asked. */
 const NEXT: Record<Status | "none", Status | "none"> = { none: "available", available: "unavailable", unavailable: "none" };
-const QUICK_REASONS = ["Injured", "Ill", "Away", "Holiday", "Unavailable"];
-
-type Pick = { status: Status; reason: string | null };
+type Pick = { status: Status };
 
 export function selectionKey(fixtureId: number) {
   return $api.queryOptions("get", "/api/v1/fixtures/{fixture_id}/selection", { params: { path: { fixture_id: fixtureId } } }).queryKey;
@@ -81,14 +78,13 @@ export function SquadSelection({
     const init: Record<number, Pick> = {};
     if (selection) {
       for (const p of [...selection.available, ...selection.unavailable]) {
-        init[p.player.id] = { status: p.status, reason: p.reason };
+        init[p.player.id] = { status: p.status };
       }
     }
     return init;
   });
   const [coaching, setCoaching] = useState(selection?.coaching ?? "");
   const [notes, setNotes] = useState(selection?.notes ?? "");
-  const [reasonFor, setReasonFor] = useState<Player | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
 
   const save = $api.useMutation("put", "/api/v1/fixtures/{fixture_id}/selection");
@@ -104,15 +100,9 @@ export function SquadSelection({
     setPicks((prev) => {
       const copy = { ...prev };
       if (next === "none") delete copy[p.id];
-      else copy[p.id] = { status: next, reason: next === "unavailable" ? (prev[p.id]?.reason ?? null) : null };
+      else copy[p.id] = { status: next };
       return copy;
     });
-    if (next === "unavailable") setReasonFor(p);
-  }
-
-  function setReason(playerId: number, reason: string | null) {
-    setPicks((prev) => (prev[playerId] ? { ...prev, [playerId]: { ...prev[playerId], reason } } : prev));
-    setReasonFor(null);
   }
 
   function invalidate() {
@@ -125,7 +115,7 @@ export function SquadSelection({
       const d = await save.mutateAsync({
         params: { path: { fixture_id: fixture.id } },
         body: {
-          players: Object.entries(picks).map(([id, p]) => ({ player_id: Number(id), status: p.status, reason: p.reason })),
+          players: Object.entries(picks).map(([id, p]) => ({ player_id: Number(id), status: p.status })),
           coaching: coaching.trim() || null,
           notes: notes.trim() || null,
         },
@@ -220,13 +210,6 @@ export function SquadSelection({
         </div>
       </div>
 
-      <ReasonSheet
-        player={reasonFor}
-        initial={reasonFor ? (picks[reasonFor.id]?.reason ?? "") : ""}
-        onDone={(reason) => reasonFor && setReason(reasonFor.id, reason)}
-        onClose={() => setReasonFor(null)}
-      />
-
       <Dialog open={confirmRemove} onOpenChange={setConfirmRemove}>
         <DialogContent>
           <DialogHeader>
@@ -260,57 +243,7 @@ function SelectionChip({ name, pick, onClick }: { name: string; pick: Pick | und
       )}
     >
       <span className={cn("max-w-full truncate", status === "unavailable" && "line-through decoration-muted-foreground/60")}>{name}</span>
-      {status === "unavailable" && (
-        <span className="max-w-full truncate text-[10px] uppercase tracking-wider">{pick?.reason ?? "Out"}</span>
-      )}
+      {status === "unavailable" && <span className="text-[10px] uppercase tracking-wider">Out</span>}
     </button>
-  );
-}
-
-function ReasonSheet({
-  player,
-  initial,
-  onDone,
-  onClose,
-}: {
-  player: Player | null;
-  initial: string;
-  onDone: (reason: string | null) => void;
-  onClose: () => void;
-}) {
-  const [other, setOther] = useState("");
-  const open = player !== null;
-  return (
-    <Sheet open={open} onOpenChange={(o) => { if (!o) { onClose(); setOther(""); } }}>
-      <SheetContent side="bottom" className="rounded-t-2xl pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:max-w-none">
-        <SheetHeader className="text-left">
-          <SheetTitle>Why is {player?.display_name} out?</SheetTitle>
-        </SheetHeader>
-        <div className="mx-auto w-full max-w-lg space-y-4 px-4">
-          <div className="grid grid-cols-3 gap-2">
-            {QUICK_REASONS.map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => { onDone(r); setOther(""); }}
-                className={cn(
-                  "h-12 rounded-xl px-2 text-sm font-medium ring-1 transition-all active:scale-[0.97]",
-                  initial === r ? "bg-foreground text-background ring-foreground" : "bg-card text-muted-foreground ring-border/60 hover:text-foreground",
-                )}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
-          <form
-            className="flex gap-2"
-            onSubmit={(e) => { e.preventDefault(); onDone(other.trim() || null); setOther(""); }}
-          >
-            <Input className="h-11 flex-1" value={other} onChange={(e) => setOther(e.target.value)} placeholder="Other reason (optional)" maxLength={100} />
-            <Button type="submit" variant="outline" className="h-11">{other.trim() ? "Done" : "Skip"}</Button>
-          </form>
-        </div>
-      </SheetContent>
-    </Sheet>
   );
 }

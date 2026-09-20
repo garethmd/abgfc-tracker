@@ -40,7 +40,7 @@ export function SelectionCard({ fixture, base, canEdit }: { fixture: Fixture; ba
             </div>
             <dl className="mt-4 space-y-2 text-sm">
               <Group label="Can play" people={sel.available} />
-              <Group label="Can't" people={sel.unavailable} withReason />
+              <Group label="Can't" people={sel.unavailable} />
             </dl>
             {sel.notes && <p className="mt-4 whitespace-pre-wrap text-sm text-muted-foreground">{sel.notes}</p>}
           </>
@@ -67,7 +67,7 @@ export function SelectionCard({ fixture, base, canEdit }: { fixture: Fixture; ba
   );
 }
 
-function Group({ label, people, withReason }: { label: string; people: Selection["available"]; withReason?: boolean }) {
+function Group({ label, people }: { label: string; people: Selection["available"] }) {
   if (people.length === 0) return null;
   return (
     <div className="flex gap-3">
@@ -77,7 +77,6 @@ function Group({ label, people, withReason }: { label: string; people: Selection
           <span key={p.player.id}>
             {i > 0 && ", "}
             {p.player.display_name}
-            {withReason && p.reason && <span className="text-muted-foreground"> ({p.reason.toLowerCase()})</span>}
           </span>
         ))}
       </dd>

@@ -10,7 +10,6 @@ from app.schemas.player import PlayerSummary
 class SelectionPlayerInput(InputModel):
     player_id: int
     status: SelectionStatus
-    reason: str | None = Field(default=None, max_length=100, examples=["injured", "away"])
 
 
 class SelectionSubmit(InputModel):
@@ -32,7 +31,6 @@ class SelectionPlayerRead(ORMModel):
     player: PlayerSummary
     squad_number: int | None
     status: SelectionStatus
-    reason: str | None
 
 
 class SelectionRead(ORMModel):

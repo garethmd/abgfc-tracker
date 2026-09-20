@@ -147,11 +147,11 @@ match — separate from `appearances`, which only the result flows write.
 
 ```json
 PUT {"players": [{"player_id": 3, "status": "available"},
-                 {"player_id": 9, "status": "unavailable", "reason": "injured"}],
+                 {"player_id": 9, "status": "unavailable"}],
      "coaching": "Adam & Dan", "notes": "Bring both kits"}
 
 GET → {"fixture_id": 12,
-       "available": [{"player": {...}, "squad_number": 1, "status": "available", "reason": null}, ...],
+       "available": [{"player": {...}, "squad_number": 1, "status": "available"}, ...],
        "unavailable": [...],
        "arrival_at": "2026-09-26T10:30:00", "arrival_lead_minutes": 30,
        "coaching": "Adam & Dan", "notes": "Bring both kits", "updated_at": "..."}

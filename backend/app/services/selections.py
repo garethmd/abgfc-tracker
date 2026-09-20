@@ -60,11 +60,7 @@ class SelectionService:
         self.db.flush()
         for p in data.players:
             selection.players.append(
-                SelectionPlayer(
-                    player_id=p.player_id,
-                    status=SelectionStatus(p.status),
-                    reason=_clean(p.reason),
-                )
+                SelectionPlayer(player_id=p.player_id, status=SelectionStatus(p.status))
             )
         self.db.commit()
         self.db.refresh(fixture)
@@ -132,7 +128,6 @@ class SelectionService:
                     player=PlayerSummary.model_validate(r.player),
                     squad_number=numbers.get(r.player_id),
                     status=r.status,
-                    reason=r.reason,
                 )
                 for r in rows
                 if r.status == status

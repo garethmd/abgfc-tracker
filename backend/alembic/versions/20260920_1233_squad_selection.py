@@ -1,7 +1,7 @@
 """squad selection
 
 Pre-match availability: one fixture_selections row per fixture (coaching on the day,
-notes for parents) with fixture_selection_players rows (available / unavailable + reason),
+notes for parents) with fixture_selection_players rows (available / unavailable),
 and team_seasons.arrival_lead_minutes for "Please arrive at ...".
 
 Revision ID: 47fa311d91b1
@@ -63,7 +63,6 @@ def upgrade() -> None:
         sa.Column("selection_id", sa.Integer(), nullable=False),
         sa.Column("player_id", sa.Integer(), nullable=False),
         sa.Column("status", sa.String(length=20), nullable=False),
-        sa.Column("reason", sa.String(length=100), nullable=True),
         sa.CheckConstraint(
             "status IN ('available', 'unavailable')",
             name=op.f("ck_fixture_selection_players_status"),

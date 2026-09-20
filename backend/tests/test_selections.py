@@ -169,7 +169,7 @@ def _reds_fixture(client: TestClient, demo: DemoSeason, **over) -> tuple[int, di
 def _submit(players: dict[str, int], available=SQUAD, out=(), **extra):
     return {
         "players": [{"player_id": players[n], "status": "available"} for n in available]
-        + [{"player_id": players[n], "status": "unavailable", "reason": "injured"} for n in out],
+        + [{"player_id": players[n], "status": "unavailable"} for n in out],
         **extra,
     }
 
@@ -206,7 +206,6 @@ def test_selection_is_replaced_whole(auth_client: TestClient, demo: DemoSeason):
     sel = r.json()
     assert len(sel["available"]) == 9
     assert sel["unavailable"][0]["player"]["display_name"] == "Oscar"
-    assert sel["unavailable"][0]["reason"] == "injured"
     assert sel["coaching"] is None
     lines = auth_client.get(f"{url}/message").json()["text"].splitlines()
     assert lines[3] == "Squad" and "Oscar" not in lines and lines[-1] == "Bring both kits"

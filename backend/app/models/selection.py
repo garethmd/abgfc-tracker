@@ -37,8 +37,9 @@ class FixtureSelection(TimestampMixin, Base):
 
 
 class SelectionPlayer(Base):
-    """One player's availability. The available players are the squad the parents'
-    message lists and the default line-up for result entry and the live screen."""
+    """One player's availability - in or out, nothing more. The available players are
+    the squad the parents' message lists and the default line-up for result entry and the
+    live screen."""
 
     __tablename__ = "fixture_selection_players"
     __table_args__ = (
@@ -52,7 +53,6 @@ class SelectionPlayer(Base):
     )
     player_id: Mapped[int] = mapped_column(ForeignKey("players.id", ondelete="RESTRICT"))
     status: Mapped[SelectionStatus] = mapped_column(String(20))
-    reason: Mapped[str | None] = mapped_column(String(100))  # "injured", "away"
 
     selection: Mapped[FixtureSelection] = relationship(back_populates="players")
     player: Mapped["Player"] = relationship()
