@@ -15,8 +15,8 @@ export function formatLongDate(iso: string): string {
   return longDateFmt.format(new Date(iso));
 }
 
-export function formatTime(iso: string): string {
-  return timeFmt.format(new Date(iso));
+export function formatTime(when: string | Date): string {
+  return timeFmt.format(typeof when === "string" ? new Date(when) : when);
 }
 
 /** "2026-10-17T10:00" for <input type="datetime-local">. Kick-off is a naive wall-clock

@@ -23,7 +23,20 @@ export interface Goal {
   assisted_by_id: number | null;
 }
 
-export function ResultEntry({ fixture, squad, awardTypes, base }: { fixture: Fixture; squad: Member[]; awardTypes: AwardType[]; base: string }) {
+export function ResultEntry({
+  fixture,
+  squad,
+  awardTypes,
+  base,
+  preselect,
+}: {
+  fixture: Fixture;
+  squad: Member[];
+  awardTypes: AwardType[];
+  base: string;
+  /** Player ids to start with ticked (the pre-match selection); default is the whole squad. */
+  preselect?: number[];
+}) {
   const router = useRouter();
   const qc = useQueryClient();
   const players = useMemo(() => {
@@ -34,9 +47,10 @@ export function ResultEntry({ fixture, squad, awardTypes, base }: { fixture: Fix
   }, [squad, fixture.appearances]);
 
   const isEdit = fixture.status === "played";
-  // Fresh entry: preselect the whole squad — most kids play every week, so deselecting is fewer taps.
+  // Fresh entry: preselect the whole squad — most kids play every week, so deselecting is fewer
+  // taps — unless the coach picked a squad beforehand, in which case start from that.
   const [playing, setPlaying] = useState<Set<number>>(
-    () => new Set(isEdit ? fixture.appearances.map((a) => a.player.id) : players.map((p) => p.id)),
+    () => new Set(isEdit ? fixture.appearances.map((a) => a.player.id) : (preselect ?? players.map((p) => p.id))),
   );
   const [ourScore, setOurScore] = useState(fixture.our_score ?? 0);
   const [theirScore, setTheirScore] = useState(fixture.their_score ?? 0);

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { use } from "react";
 import { $api } from "@/lib/api/client";
+import { pickedIds } from "@/components/features/fixtures/squad-selection";
 import { useTeam } from "@/lib/team-context";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
@@ -31,9 +32,18 @@ export default function LiveMatchPage({ params }: PageProps<"/[team]/fixtures/[i
     { enabled: !!fixture.data },
   );
 
+  // A pre-match selection, if there is one, is the default line-up.
+  const selection = $api.useQuery(
+    "get",
+    "/api/v1/fixtures/{fixture_id}/selection",
+    { params: { path: { fixture_id: fixtureId } } },
+    { enabled: fixture.data?.status === "scheduled" },
+  );
+
   const error = fixture.error ?? squad.error;
   if (error) return <ErrorState error={error} onRetry={() => { fixture.refetch(); squad.refetch(); }} />;
-  if (!fixture.data || !squad.data) {
+  const needSelection = fixture.data?.status === "scheduled" && selection.data === undefined && !selection.error;
+  if (!fixture.data || !squad.data || needSelection) {
     return (
       <div className="mx-auto max-w-lg space-y-4">
         <Skeleton className="h-8 w-48" />
@@ -63,7 +73,11 @@ export default function LiveMatchPage({ params }: PageProps<"/[team]/fixtures/[i
       {f.status === "scheduled" ? (
         <>
           <PageHeader title="Start match" description={description} />
-          <LineUp fixture={f} squad={squad.data} />
+          <LineUp
+            fixture={f}
+            squad={squad.data}
+            preselect={pickedIds(selection.data)}
+          />
         </>
       ) : (
         <>

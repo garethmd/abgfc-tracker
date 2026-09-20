@@ -39,10 +39,11 @@ function availablePlayers(squad: Member[], fixture: Fixture): Player[] {
 
 // --- Before kick-off: who's playing ---------------------------------------------------
 
-export function LineUp({ fixture, squad }: { fixture: Fixture; squad: Member[] }) {
+export function LineUp({ fixture, squad, preselect }: { fixture: Fixture; squad: Member[]; preselect?: number[] }) {
   const qc = useQueryClient();
   const players = useMemo(() => availablePlayers(squad, fixture), [squad, fixture]);
-  const [picked, setPicked] = useState<number[]>([]);
+  // Starts from the pre-match selection (starters + subs) when there is one.
+  const [picked, setPicked] = useState<number[]>(() => (preselect ?? []).filter((id) => players.some((p) => p.id === id)));
   const start = $api.useMutation("post", "/api/v1/fixtures/{fixture_id}/live/start");
 
   function toggle(id: number) {

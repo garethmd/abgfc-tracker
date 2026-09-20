@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { MatchNotes } from "@/components/features/fixtures/match-notes";
+import { SelectionCard } from "@/components/features/fixtures/selection-card";
 
 export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixtures/[id]">) {
   const { id } = use(params);
@@ -152,6 +153,10 @@ export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixture
           </div>
         )}
       </Card>
+
+      {(f.status === "scheduled" || f.status === "postponed") && (
+        <SelectionCard fixture={f} base={base} canEdit={canEdit} />
+      )}
 
       {f.warnings.length > 0 && (
         <div className="mt-4 flex gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm">

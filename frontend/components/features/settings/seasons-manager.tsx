@@ -86,6 +86,18 @@ export function SeasonsManager() {
     }
   }
 
+  async function onArrival(id: number, value: string) {
+    const n = Number(value);
+    if (!Number.isInteger(n) || n < 0 || n > 180) return;
+    try {
+      await update.mutateAsync({ params: { path: { team_season_id: id } }, body: { arrival_lead_minutes: n } });
+      invalidate();
+      toast.success(`Parents asked to arrive ${n} minutes before kick-off`);
+    } catch (err) {
+      toast.error(errorMessage(err));
+    }
+  }
+
   return (
     <>
       {canEdit && (
@@ -100,7 +112,7 @@ export function SeasonsManager() {
             <span className="text-xs text-muted-foreground">{[s.age_group, s.format].filter(Boolean).join(" · ")}</span>
             <span className="flex-1" />
             {canEdit ? (
-              <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <label className="flex items-center gap-1.5 text-xs text-muted-foreground" title="Match length">
                 <Input
                   type="number"
                   inputMode="numeric"
@@ -114,6 +126,24 @@ export function SeasonsManager() {
               </label>
             ) : (
               <span className="text-xs text-muted-foreground">{s.match_minutes} min</span>
+            )}
+            {canEdit ? (
+              <label className="flex items-center gap-1.5 text-xs text-muted-foreground" title="How early parents are asked to arrive">
+                arrive
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={180}
+                  step={5}
+                  defaultValue={s.arrival_lead_minutes}
+                  onBlur={(e) => Number(e.target.value) !== s.arrival_lead_minutes && onArrival(s.id, e.target.value)}
+                  className="h-8 w-16 text-right"
+                />
+                min before
+              </label>
+            ) : (
+              <span className="text-xs text-muted-foreground">arrive {s.arrival_lead_minutes} min before</span>
             )}
             {canEdit && (
               <a href={seasonSpreadsheetUrl(s.id)} download title="Download this season as a spreadsheet" className="flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground">
