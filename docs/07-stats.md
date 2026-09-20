@@ -7,9 +7,10 @@ at the bottom loads the rows via repositories. Change a rule here and in the ora
 
 ## Which fixtures count
 
-`_is_played(f)`: `status == 'played'` **and** both scores present. Scheduled, postponed,
-cancelled, abandoned, and "played but score not yet entered" are all excluded from
-records, form and per-player totals. Appearances/events on a non-played fixture don't
+`_is_played(f)`: `status == 'played'` **and** both scores present. Scheduled, live,
+postponed, cancelled, abandoned, and "played but score not yet entered" are all excluded
+from records, form and per-player totals — a match being recorded live has a score and
+goals on it but doesn't count until *Full time* makes it `played`. Appearances/events on a non-played fixture don't
 count either (they're keyed by played fixture ids).
 
 ## Team record — `team_record(fixtures) → TeamRecord`

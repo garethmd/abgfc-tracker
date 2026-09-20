@@ -99,8 +99,8 @@ qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });   // prefix mat
 | Page | Component(s) | Notes |
 |---|---|---|
 | Dashboard | `RecordCard`, `HighlightTiles`, `Leaderboard`, `FormPips` | All/League toggle; spreadsheet button in header |
-| Fixtures | `FixtureRow` | "Next up" card with *Enter result* + *Sheet* (PDF) |
-| Fixture detail | `MatchNotes`, `GoalLine` | ⋯ menu: edit, edit result, PDF, delete; warnings banner |
+| Fixtures | `FixtureRow` | "Next up" card with *Start match* + *Enter result* + *Sheet* (PDF); becomes "Live now" with *Continue live match* while a fixture is live; rows show a red *Live* badge and the running score |
+| Fixture detail | `MatchNotes`, `GoalLine` | *Start match* / *Enter result* when scheduled, *Continue live match* when live; ⋯ menu: edit, edit result, PDF, delete; warnings banner |
 | Result entry | `ResultEntry`, `GoalSheet`, `Chip`, `ScoreStepper` | squad preselected; bottom sheet scorer→assist; sticky save |
 | Live match | `LineUp`, `LiveMatch` (+ `GoalSheet`/`Chip` from result entry) | line-up → sticky score card, Goal/Against/Undo bar, Full time → entry screen for awards |
 | Fixture new/edit | `FixtureForm` | inline "+ New team…" creates opposition |
@@ -114,6 +114,10 @@ qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });   // prefix mat
 
 - Mobile-first: bottom nav (`h-16`), touch targets ≥44px (`h-11`/`h-12` buttons), sticky
   primary action above the nav on entry screens, bottom `Sheet`s for pick-lists.
+- Confirmations use the shadcn `Dialog`, not the browser's `confirm()` — native dialogs
+  never return true inside the desktop app's web view (the live screen's *Full time* and
+  *Discard* were silently dead until switched). The fixture page's *Delete* still uses
+  `confirm()` and should move over.
 - One accent: `--primary`. `globals.css` sets club blue; inside `TeamProvider` the wrapper
   sets `--team-accent` from `club_teams.colour` and `.team-accent` maps it to `--primary`
   (dark mode lifts the lightness with `oklch(from …)`).

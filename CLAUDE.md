@@ -218,7 +218,8 @@ run it after touching a formula. Buttons: dashboard header and Settings → Seas
 ## Frontend notes
 
 - Mobile-first: bottom nav, 44px+ targets, sticky save button above the nav,
-  bottom sheets for pick-lists. Desktop gets a sidebar at `md`.
+  bottom sheets for pick-lists. Desktop gets a sidebar at `md`. Confirm with the shadcn
+  `Dialog`, never `confirm()` (dead inside the desktop app's web view).
 - Dark mode via `next-themes` (class strategy); one accent (`--primary`, club blue)
   used for CTAs and active states only.
 - Auth: `proxy.ts` only checks the cookie exists; the API validates it, and
@@ -236,4 +237,6 @@ run it after touching a formula. Buttons: dashboard header and Settings → Seas
 
 ## Out of scope (deliberately)
 
-CSV import from the sheet, media upload/routes, league tables.
+CSV import from the sheet, media upload/routes, league tables. Captain is recorded as a
+team award (the Blues' "Captain"), not `appearances.captain` - see the roadmap before
+writing that column from any path.

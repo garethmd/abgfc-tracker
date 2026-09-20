@@ -24,7 +24,8 @@ The database is `data/abgfc.db`; media under `data/media/`; both gitignored.
 
 If port 3000 is taken, `cd frontend && npm run dev -- -p 3001` — the API is reached via
 Next's rewrite so the frontend port doesn't matter. `.claude/launch.json` has
-`autoPort: true` for the same reason.
+`autoPort: true` for the same reason, plus a `backend` entry (uvicorn on :8000) so an
+AI assistant's browser preview can start both.
 
 ## Make targets
 

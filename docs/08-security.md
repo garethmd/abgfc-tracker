@@ -33,7 +33,7 @@ has no public port; only Next.js reaches it over the Docker network.
 | Role | May |
 |---|---|
 | `viewer` | read everything in scope |
-| `coach` | viewer + enter results, manage squad and fixtures, award types for their team, match notes, photos, reports, start a season |
+| `coach` | viewer + enter results (post-match or live), manage squad and fixtures, award types for their team, match notes, photos, reports, start a season |
 | `admin` | coach + manage users/roles within scope; club admins also manage cohorts, teams, club-wide award types and seasons |
 
 | Scope | Covers |

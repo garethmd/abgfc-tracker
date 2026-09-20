@@ -46,7 +46,7 @@ Use these words in code, commits and conversation — they map one-to-one to tab
 | **Team season** | A club team's participation in a season. **Everything a coach looks at hangs off this**: squad, fixtures, awards, stats. Carries age group, format (7v7), default match length. |
 | **Player** | A child. Belongs to a cohort, never hard-deleted (`left_date`). |
 | **Squad member** | A player in a team season, with squad number, primary position, `left_at`. Moving a child between teams mid-season = `left_at` on one row, a new row on the other. |
-| **Fixture** | A match for one team season against an **opposition team** (`teams` table). Scores are stored *and* derivable from events. |
+| **Fixture** | A match for one team season against an **opposition team** (`teams` table). Scores are stored *and* derivable from events. Status runs scheduled → (live →) played; `live` is a match being recorded from the pitch. |
 | **Appearance** | A player played in a fixture. One row per player per fixture. |
 | **Stint** | A continuous spell on the pitch within an appearance (rolling subs). Designed, not yet written by the UI. |
 | **Match event** | A goal, assist, own goal or opposition own goal. An assist is its own row pointing at its goal. |
@@ -63,6 +63,11 @@ Use these words in code, commits and conversation — they map one-to-one to tab
 2. **Saturday, full time** — coach opens the fixture, taps *Enter result*: score steppers,
    the whole squad preselected (tap to deselect absentees), *Add goal* → scorer → assist,
    POTM chips, *Save*. One request; the dashboard updates.
+   **Or, Saturday, kick-off** — the coach taps *Start match* instead: tick who's playing,
+   *Kick off*, then *Goal* (scorer → assist) and *Against* as they happen, *Undo* for the
+   wrong scorer. Every tap is saved straight away, so a locked phone or a lost signal
+   loses nothing. *Full time* lands on the same result screen for the POTM chips. Either
+   way the fixture ends up identical.
 3. **Saturday evening** — someone posts a match report on the WhatsApp group; the coach
    pastes it into *Match report* on the fixture.
 4. **Any time** — the dashboard shows record, form, leaderboard; the spreadsheet export

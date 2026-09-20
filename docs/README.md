@@ -18,7 +18,7 @@ Read in order the first time; afterwards each document stands alone.
 | 8 | [Security & access](08-security.md) | Login, sessions, roles/scopes, children's data, production hardening, known gaps |
 | 9 | [Deployment & operations](09-deployment.md) | The droplet, CI/CD, secrets, backups, restore, rollback, runbooks |
 | 10 | [Development guide](10-development.md) | Local setup, Make targets, tests, migrations, adding features, troubleshooting |
-| 11 | [Reports, exports & media](11-features.md) | Matchday PDF, spreadsheet export, match notes, profile photos |
+| 11 | [Reports, exports, media & live entry](11-features.md) | Matchday PDF, spreadsheet export, match notes, profile photos, live match entry |
 | 12 | [Roadmap & design seams](12-roadmap.md) | Features designed but not built, and how they land |
 
 `CLAUDE.md` in the repository root is the condensed version of the same material,
