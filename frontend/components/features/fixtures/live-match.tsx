@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { $api, errorMessage, type Schema } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -124,6 +125,8 @@ export function LiveMatch({ fixture, squad, teamName, base }: { fixture: Fixture
   const playing = fixture.appearances.map((a) => a.player);
   const [goalSheet, setGoalSheet] = useState(false);
   const [squadSheet, setSquadSheet] = useState(false);
+  // Native confirm() is unreliable inside web views and the desktop app, so these are dialogs.
+  const [confirming, setConfirming] = useState<"finish" | "abandon" | null>(null);
   const [last, setLast] = useState<LastAction>(null);
 
   const path = { params: { path: { fixture_id: fixture.id } } };
@@ -193,7 +196,7 @@ export function LiveMatch({ fixture, squad, teamName, base }: { fixture: Fixture
   }
 
   function onFinish() {
-    if (!confirm(`Full time? ${teamName} ${fixture.our_score} – ${fixture.their_score} ${fixture.opposition.name}`)) return;
+    setConfirming(null);
     run(() => finish.mutateAsync(path), (d) => {
       apply(d);
       qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });
@@ -205,7 +208,7 @@ export function LiveMatch({ fixture, squad, teamName, base }: { fixture: Fixture
   }
 
   function onAbandon() {
-    if (!confirm("Discard everything recorded and put the fixture back to scheduled?")) return;
+    setConfirming(null);
     run(() => abandon.mutateAsync(path), () => {
       qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });
       toast.success("Live match discarded");
@@ -248,7 +251,7 @@ export function LiveMatch({ fixture, squad, teamName, base }: { fixture: Fixture
                 <DropdownMenuItem onSelect={() => setSquadSheet(true)}><Users className="size-4" /> Change squad</DropdownMenuItem>
                 <DropdownMenuItem onSelect={onRemoveAgainst} disabled={oppGoals === 0}><X className="size-4" /> Remove opposition goal</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive" onSelect={onAbandon}><Trash2 className="size-4" /> Discard live match</DropdownMenuItem>
+                <DropdownMenuItem variant="destructive" onSelect={() => setConfirming("abandon")}><Trash2 className="size-4" /> Discard live match</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -321,11 +324,43 @@ export function LiveMatch({ fixture, squad, teamName, base }: { fixture: Fixture
           <Button type="button" variant="outline" className="h-14 px-3" onClick={onUndo} disabled={busy || !last} aria-label="Undo last">
             <Undo2 className="size-5" />
           </Button>
-          <Button type="button" variant="secondary" className="col-span-3 h-11" onClick={onFinish} disabled={busy}>
+          <Button type="button" variant="secondary" className="col-span-3 h-11" onClick={() => setConfirming("finish")} disabled={busy}>
             <Flag className="size-4" /> Full time
           </Button>
         </div>
       </div>
+
+      <Dialog open={confirming !== null} onOpenChange={(o) => { if (!o) setConfirming(null); }}>
+        <DialogContent>
+          {confirming === "abandon" ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Discard this live match?</DialogTitle>
+                <DialogDescription>Everything recorded so far is removed and the fixture goes back to scheduled.</DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="gap-2">
+                <Button variant="outline" className="h-11" onClick={() => setConfirming(null)}>Keep going</Button>
+                <Button variant="destructive" className="h-11" onClick={onAbandon} disabled={busy}>Discard</Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>Full time?</DialogTitle>
+                <DialogDescription className="tnum text-base text-foreground">
+                  {teamName} {fixture.our_score ?? 0} – {fixture.their_score ?? 0} {fixture.opposition.name}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="gap-2">
+                <Button variant="outline" className="h-11" onClick={() => setConfirming(null)}>Not yet</Button>
+                <Button className="h-11" onClick={onFinish} disabled={busy}>
+                  <Flag className="size-4" /> Full time
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <GoalSheet open={goalSheet} onOpenChange={setGoalSheet} players={playing} onAdd={onGoal} />
       <SquadSheet
