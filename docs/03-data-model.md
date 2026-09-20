@@ -153,21 +153,20 @@ player's record; `opp_own_goal` counts for us with no player.
 `author` (who wrote the message), `sent_at` (when), `created_by_user_id` (the coach who
 pasted it). Several per fixture; cascade with the fixture.
 
-### Pre-match selection
+### Pre-match availability
 
-**`fixture_selections`** — the coach's **plan** for an upcoming fixture, one per fixture
+**`fixture_selections`** — who can play in an upcoming fixture, one per fixture
 (`fixture_id` unique, cascades). `coaching` ("Adam & Dan"), `notes` (free text for
-parents), `created_by_user_id`. A plan is not a record: `appearances` (who played) are
+parents), `created_by_user_id`. A plan, not a record: `appearances` (who played) are
 only ever written by the result flows, and the stats engine never reads this table.
 
-**`fixture_selection_players`** — one row per player on the plan: `selection_id`
-(cascade), `player_id` (RESTRICT), `status` (`start` | `sub` | `unavailable`), `reason`
-("injured"). Unique per (selection, player). Starters + subs are the squad the parents'
-message lists and the default line-up for result entry and the live screen; `start` /
-`sub` is the split the time-on-pitch work will read. A player must be in the team's
-cohort (which includes its squad). Replaced whole on every `PUT` — a header row with
-children rather than JSON so player ids are FK-enforced and "how often has X been left
-out" is a query later.
+**`fixture_selection_players`** — one row per player asked: `selection_id` (cascade),
+`player_id` (RESTRICT), `status` (`available` | `unavailable`), `reason` ("injured").
+Unique per (selection, player). The available players are the squad the parents'
+message lists and the default line-up for result entry and the live screen. A player
+must be in the team's cohort (which includes its squad). Replaced whole on every `PUT` —
+a header row with children rather than JSON so player ids are FK-enforced and "how often
+has X been unavailable" is a query later.
 
 ### Awards
 

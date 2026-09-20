@@ -24,10 +24,9 @@ class FixtureStatus(StrEnum):
 
 
 class SelectionStatus(StrEnum):
-    """A player's place in a pre-match selection (the plan, not who played)."""
+    """A player's availability for an upcoming match (a plan, not who played)."""
 
-    START = "start"
-    SUB = "sub"
+    AVAILABLE = "available"
     UNAVAILABLE = "unavailable"
 
 

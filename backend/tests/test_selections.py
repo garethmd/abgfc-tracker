@@ -1,4 +1,4 @@
-"""Pre-match squad selection and the parents' message."""
+"""Pre-match availability and the parents' message."""
 
 from datetime import datetime
 
@@ -9,7 +9,6 @@ from app.models import RoleScope, UserRole, Venue
 from app.services.bootstrap import DemoSeason
 from app.services.messages import (
     MessageInput,
-    SquadLine,
     arrival_time,
     format_kickoff,
     kickoff_article,
@@ -62,7 +61,7 @@ def _example(**over) -> MessageInput:
         ground="Aldershot Park",
         arrival=datetime(2026, 9, 26, 10, 30),
         coaching="Adam & Dan",
-        squad=[SquadLine(n) for n in SQUAD[:7]] + [SquadLine(n, sub=True) for n in SQUAD[7:]],
+        squad=list(SQUAD),
         notes=None,
     )
     base.update(over)
@@ -99,9 +98,6 @@ def test_message_variants():
     assert text.count("\n\n") == 1
     # Date line first
     assert parents_message(_example(), date_line=True) == "Saturday 26 September\n" + EXAMPLE
-    # Subs marked
-    lines = parents_message(_example(), mark_subs=True).splitlines()
-    assert lines[5:12] == SQUAD[:7] and lines[12:] == ["Joe (sub)", "Logan (sub)", "Oscar (sub)"]
 
 
 @pytest.mark.parametrize(
@@ -170,10 +166,9 @@ def _reds_fixture(client: TestClient, demo: DemoSeason, **over) -> tuple[int, di
     return r.json()["id"], players
 
 
-def _submit(players: dict[str, int], starters=SQUAD[:7], subs=SQUAD[7:], out=(), **extra):
+def _submit(players: dict[str, int], available=SQUAD, out=(), **extra):
     return {
-        "players": [{"player_id": players[n], "status": "start"} for n in starters]
-        + [{"player_id": players[n], "status": "sub"} for n in subs]
+        "players": [{"player_id": players[n], "status": "available"} for n in available]
         + [{"player_id": players[n], "status": "unavailable", "reason": "injured"} for n in out],
         **extra,
     }
@@ -188,34 +183,28 @@ def test_select_squad_and_message(auth_client: TestClient, demo: DemoSeason):
     r = auth_client.put(url, json=_submit(P, coaching="Adam & Dan"))
     assert r.status_code == 200, r.text
     sel = r.json()
-    assert [p["player"]["display_name"] for p in sel["starters"]] == SQUAD[:7]
-    assert [p["player"]["display_name"] for p in sel["subs"]] == SQUAD[7:]
+    assert [p["player"]["display_name"] for p in sel["available"]] == SQUAD
     assert sel["unavailable"] == []
-    assert sel["starters"][0]["squad_number"] == 1 and sel["starters"][1]["squad_number"] is None
+    assert sel["available"][0]["squad_number"] == 1 and sel["available"][1]["squad_number"] is None
     assert sel["arrival_at"] == "2026-09-26T10:30:00" and sel["arrival_lead_minutes"] == 30
     assert sel["coaching"] == "Adam & Dan" and sel["notes"] is None
     assert auth_client.get(url).json() == sel
 
     assert auth_client.get(f"{url}/message").json()["text"] == EXAMPLE
-    text = auth_client.get(f"{url}/message", params={"mark_subs": True, "date_line": True}).json()
-    assert text["text"].startswith("Saturday 26 September\nREDS") and "Oscar (sub)" in text["text"]
+    text = auth_client.get(f"{url}/message", params={"date_line": True}).json()
+    assert text["text"] == "Saturday 26 September\n" + EXAMPLE
 
 
 def test_selection_is_replaced_whole(auth_client: TestClient, demo: DemoSeason):
     fx, P = _reds_fixture(auth_client, demo)
     url = f"{API}/fixtures/{fx}/selection"
     auth_client.put(url, json=_submit(P, coaching="Adam", notes="Bring both kits"))
-    # Second save: Oscar is out, Logan now starts, no coaching line, notes kept
+    # Second save: Oscar is out, no coaching line, notes kept
     r = auth_client.put(
-        url,
-        json=_submit(
-            P, starters=SQUAD[:6] + ["Logan"], subs=["Joe"], out=["Oscar"], notes="Bring both kits"
-        ),
+        url, json=_submit(P, available=SQUAD[:9], out=["Oscar"], notes="Bring both kits")
     )
     sel = r.json()
-    assert len(sel["starters"]) == 7 and [p["player"]["display_name"] for p in sel["subs"]] == [
-        "Joe"
-    ]
+    assert len(sel["available"]) == 9
     assert sel["unavailable"][0]["player"]["display_name"] == "Oscar"
     assert sel["unavailable"][0]["reason"] == "injured"
     assert sel["coaching"] is None
@@ -225,7 +214,7 @@ def test_selection_is_replaced_whole(auth_client: TestClient, demo: DemoSeason):
 
     # Empty save is allowed (coach cleared everyone but kept the notes)
     r = auth_client.put(url, json={"players": [], "notes": "TBC"})
-    assert r.status_code == 200 and r.json()["starters"] == []
+    assert r.status_code == 200 and r.json()["available"] == []
     assert auth_client.delete(url).status_code == 204
     assert auth_client.get(url).json() is None
     assert auth_client.delete(url).status_code == 404
@@ -236,14 +225,16 @@ def test_selection_validation(auth_client: TestClient, demo: DemoSeason):
     url = f"{API}/fixtures/{fx}/selection"
     # Duplicate player
     body = _submit(P)
-    body["players"].append({"player_id": P["Jackson"], "status": "sub"})
+    body["players"].append({"player_id": P["Jackson"], "status": "unavailable"})
     assert auth_client.put(url, json=body).status_code == 422
     # Bad status
-    r = auth_client.put(url, json={"players": [{"player_id": P["Jackson"], "status": "bench"}]})
+    r = auth_client.put(url, json={"players": [{"player_id": P["Jackson"], "status": "start"}]})
     assert r.status_code == 422
     # Unknown player
     assert (
-        auth_client.put(url, json={"players": [{"player_id": 9999, "status": "start"}]}).status_code
+        auth_client.put(
+            url, json={"players": [{"player_id": 9999, "status": "available"}]}
+        ).status_code
         == 404
     )
     # A child from another age group can't be picked
@@ -251,12 +242,14 @@ def test_selection_validation(auth_client: TestClient, demo: DemoSeason):
     stranger = auth_client.post(
         f"{API}/players", json={"first_name": "Zed", "cohort_id": other["id"]}
     ).json()
-    r = auth_client.put(url, json={"players": [{"player_id": stranger["id"], "status": "start"}]})
+    r = auth_client.put(
+        url, json={"players": [{"player_id": stranger["id"], "status": "available"}]}
+    )
     assert r.status_code == 422 and "age group" in r.json()["detail"]
     # Someone else in the cohort but not in the squad is fine (borrowed from another team)
     blues_kid = demo.players["Archie"].id
-    r = auth_client.put(url, json={"players": [{"player_id": blues_kid, "status": "sub"}]})
-    assert r.status_code == 200 and r.json()["subs"][0]["squad_number"] is None
+    r = auth_client.put(url, json={"players": [{"player_id": blues_kid, "status": "available"}]})
+    assert r.status_code == 200 and r.json()["available"][0]["squad_number"] is None
     # Once played, the plan is frozen
     played = demo.fixtures[0]
     r = auth_client.put(f"{API}/fixtures/{played.id}/selection", json={"players": []})
@@ -273,7 +266,7 @@ def test_selection_does_not_touch_the_result(auth_client: TestClient, demo: Demo
         json={
             "our_score": 1,
             "their_score": 0,
-            "appearances": [{"player_id": P["Oscar"]}],  # only the sub turned up
+            "appearances": [{"player_id": P["Oscar"]}],  # only one of them turned up
             "goals": [{"scorer_id": P["Oscar"]}],
         },
     )
@@ -281,7 +274,7 @@ def test_selection_does_not_touch_the_result(auth_client: TestClient, demo: Demo
     assert [a["player"]["display_name"] for a in r.json()["appearances"]] == ["Oscar"]
     # The plan is still there to look back on, but can't be edited any more
     sel = auth_client.get(f"{API}/fixtures/{fx}/selection").json()
-    assert len(sel["starters"]) == 7
+    assert len(sel["available"]) == 10
     assert auth_client.put(f"{API}/fixtures/{fx}/selection", json=_submit(P)).status_code == 409
 
 
@@ -329,7 +322,7 @@ def test_selection_scoping(client: TestClient, auth_client: TestClient, db, demo
 
     login_as(client, "reds_viewer")
     assert client.get(url).status_code == 200
-    assert len(client.get(url).json()["starters"]) == 7
+    assert len(client.get(url).json()["available"]) == 10
     assert client.put(url, json=_submit(P)).status_code == 403
     assert client.delete(url).status_code == 403
     assert client.get(f"{url}/message").status_code == 403  # names children; coaches only
@@ -341,7 +334,7 @@ def test_selection_scoping(client: TestClient, auth_client: TestClient, db, demo
 
 
 def test_matchday_sheet_shows_the_selection(auth_client: TestClient, demo: DemoSeason):
-    """Selected players are pre-ticked on the sheet; it stays one page."""
+    """Available players are pre-ticked on the sheet; it stays one page."""
     import io
 
     from pypdf import PdfReader
@@ -351,7 +344,7 @@ def test_matchday_sheet_shows_the_selection(auth_client: TestClient, demo: DemoS
     P = {n: p.id for n, p in demo.players.items()}
     r = auth_client.put(
         f"{API}/fixtures/{fixture.id}/selection",
-        json=_submit(P, starters=names[:7], subs=names[7:10], out=names[10:], coaching="Gareth"),
+        json=_submit(P, available=names[:10], out=names[10:], coaching="Gareth"),
     )
     assert r.status_code == 200, r.text
     r = auth_client.get(
@@ -362,6 +355,6 @@ def test_matchday_sheet_shows_the_selection(auth_client: TestClient, demo: DemoS
     reader = PdfReader(io.BytesIO(r.content))
     assert len(reader.pages) == 1
     text = "\n".join(p.extract_text() for p in reader.pages)
-    assert "Squad selected: 7 starting, 3 subs" in text
+    assert "Available: 10 (1 not available)" in text
     assert "arrive 9.30" in text and "Gareth coaching" in text
-    assert "Ticked = selected" in text
+    assert "Ticked = available, crossed = not available" in text

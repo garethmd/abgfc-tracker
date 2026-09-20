@@ -14,8 +14,8 @@ import { arrivalTime, selectionSummary } from "@/components/features/fixtures/sq
 type Fixture = Schema["FixtureRead"];
 type Selection = Schema["SelectionRead"];
 
-/** The pre-match plan on a scheduled fixture's page: who's picked, arrival, coaching,
- *  notes - and the two coach actions, Select/Edit squad and Message parents. */
+/** Availability on a scheduled fixture's page: who can play, arrival, coaching, notes -
+ *  and the two coach actions, Availability and Message parents. */
 export function SelectionCard({ fixture, base, canEdit }: { fixture: Fixture; base: string; canEdit: boolean }) {
   const q = $api.useQuery("get", "/api/v1/fixtures/{fixture_id}/selection", { params: { path: { fixture_id: fixture.id } } });
   const [message, setMessage] = useState(false);
@@ -27,7 +27,7 @@ export function SelectionCard({ fixture, base, canEdit }: { fixture: Fixture; ba
 
   return (
     <section className="mt-8">
-      <SectionTitle>Squad</SectionTitle>
+      <SectionTitle>Availability</SectionTitle>
       <Card className="p-4">
         {sel ? (
           <>
@@ -39,14 +39,13 @@ export function SelectionCard({ fixture, base, canEdit }: { fixture: Fixture; ba
               {sel.coaching && <> · {sel.coaching} coaching</>}
             </div>
             <dl className="mt-4 space-y-2 text-sm">
-              <Group label="Starting" people={sel.starters} />
-              <Group label="Subs" people={sel.subs} />
-              <Group label="Out" people={sel.unavailable} withReason />
+              <Group label="Can play" people={sel.available} />
+              <Group label="Can't" people={sel.unavailable} withReason />
             </dl>
             {sel.notes && <p className="mt-4 whitespace-pre-wrap text-sm text-muted-foreground">{sel.notes}</p>}
           </>
         ) : (
-          <p className="text-sm text-muted-foreground">No squad selected yet. Pick who&apos;s playing and send the parents the details.</p>
+          <p className="text-sm text-muted-foreground">Not recorded yet. Mark who can play and send the parents the details.</p>
         )}
         {canEdit && (
           <div className={sel ? "mt-4 grid grid-cols-2 gap-2" : "mt-4"}>
@@ -57,7 +56,7 @@ export function SelectionCard({ fixture, base, canEdit }: { fixture: Fixture; ba
             )}
             <Button asChild variant="outline" className="h-11 w-full">
               <Link href={`${base}/fixtures/${fixture.id}/selection`}>
-                {sel ? <><Pencil className="size-4" /> Edit squad</> : <><ClipboardList className="size-4" /> Select squad</>}
+                {sel ? <><Pencil className="size-4" /> Edit</> : <><ClipboardList className="size-4" /> Availability</>}
               </Link>
             </Button>
           </div>
@@ -68,7 +67,7 @@ export function SelectionCard({ fixture, base, canEdit }: { fixture: Fixture; ba
   );
 }
 
-function Group({ label, people, withReason }: { label: string; people: Selection["starters"]; withReason?: boolean }) {
+function Group({ label, people, withReason }: { label: string; people: Selection["available"]; withReason?: boolean }) {
   if (people.length === 0) return null;
   return (
     <div className="flex gap-3">

@@ -13,9 +13,9 @@ if TYPE_CHECKING:
 
 
 class FixtureSelection(TimestampMixin, Base):
-    """The coach's plan for an upcoming match: who starts, who's a sub, who's out, plus
-    the bits parents need to know. A plan, not a record - appearances (who actually
-    played) are only ever written by the result flows. One per fixture; goes with it."""
+    """Who is available for an upcoming match and who isn't, plus the bits parents need
+    to know. A plan, not a record - appearances (who actually played) are only ever
+    written by the result flows. One per fixture; goes with it."""
 
     __tablename__ = "fixture_selections"
 
@@ -37,8 +37,8 @@ class FixtureSelection(TimestampMixin, Base):
 
 
 class SelectionPlayer(Base):
-    """One player's place in the plan. `start` and `sub` together are the squad the
-    parents' message lists; the live-match line-up reads the same split."""
+    """One player's availability. The available players are the squad the parents'
+    message lists and the default line-up for result entry and the live screen."""
 
     __tablename__ = "fixture_selection_players"
     __table_args__ = (

@@ -50,10 +50,10 @@ export default function SquadSelectionPage({ params }: PageProps<"/[team]/fixtur
   if (!canEdit || !editable) {
     return (
       <div className="mx-auto max-w-lg">
-        <PageHeader title="Select squad" description={description} />
+        <PageHeader title="Availability" description={description} />
         <EmptyState
           title={!canEdit ? "Coaches only" : "This match has been played"}
-          description={!canEdit ? "Only coaches can pick the squad." : "The squad can only be selected before the match."}
+          description={!canEdit ? "Only coaches can record availability." : "Availability is only recorded before the match."}
           action={<Button asChild variant="outline"><Link href={`${base}/fixtures/${f.id}`}>Back to fixture</Link></Button>}
         />
       </div>
@@ -62,7 +62,7 @@ export default function SquadSelectionPage({ params }: PageProps<"/[team]/fixtur
 
   return (
     <div className="mx-auto max-w-lg">
-      <PageHeader title={selection.data ? "Edit squad" : "Select squad"} description={description} />
+      <PageHeader title="Availability" description={description} />
       <SquadSelection
         fixture={f}
         squad={squad.data}

@@ -14,7 +14,7 @@ class SelectionPlayerInput(InputModel):
 
 
 class SelectionSubmit(InputModel):
-    """The whole plan for a match in one write - replaces what was there, like PUT /result."""
+    """Availability for a match in one write - replaces what was there, like PUT /result."""
 
     players: list[SelectionPlayerInput] = []
     coaching: str | None = Field(default=None, max_length=200, examples=["Adam & Dan"])
@@ -36,12 +36,10 @@ class SelectionPlayerRead(ORMModel):
 
 
 class SelectionRead(ORMModel):
-    """Starters, subs and the unavailable as three lists (squad-number then name order),
-    so the message and the live line-up read the split straight off."""
+    """Available and unavailable players as two lists (squad-number then name order)."""
 
     fixture_id: int
-    starters: list[SelectionPlayerRead]
-    subs: list[SelectionPlayerRead]
+    available: list[SelectionPlayerRead]
     unavailable: list[SelectionPlayerRead]
     arrival_at: datetime  # kick-off minus the team-season's lead time
     arrival_lead_minutes: int

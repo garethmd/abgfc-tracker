@@ -75,7 +75,7 @@ class MatchdayData:
     last_match: FixtureDetail | None
     rows: list[PlayerStatsRow]
     generated_at: datetime
-    # The pre-match plan, if the coach has picked one: player id -> start/sub/unavailable
+    # Pre-match availability, if recorded: player id -> available/unavailable
     selection: dict[int, SelectionStatus]
 
 
@@ -228,11 +228,11 @@ def render(data: MatchdayData) -> bytes:
         if f.notes:
             pdf.text_line(f.notes.replace("\n", " "), 9, "I", colour=MUTED, h=5)
         if f.selection is not None:
-            n_start = sum(1 for v in data.selection.values() if v == SelectionStatus.START)
-            n_sub = sum(1 for v in data.selection.values() if v == SelectionStatus.SUB)
+            n_avail = sum(1 for v in data.selection.values() if v == SelectionStatus.AVAILABLE)
+            n_out = sum(1 for v in data.selection.values() if v == SelectionStatus.UNAVAILABLE)
             arrive = format_arrival(arrival_time(f.kickoff_at, ts.arrival_lead_minutes))
             bits = [
-                f"Squad selected: {n_start} starting, {n_sub} subs",
+                f"Available: {n_avail}" + (f" ({n_out} not available)" if n_out else ""),
                 f"arrive {arrive}",
                 f"{f.selection.coaching} coaching" if f.selection.coaching else None,
             ]
@@ -359,7 +359,7 @@ def render(data: MatchdayData) -> bytes:
     if played_n and any(r.appearances == min_apps and r.appearances < played_n for r in rows):
         footnotes.append("Shaded = fewest appearances so far")
     if data.selection:
-        footnotes.append("Ticked = selected, filled = starting, crossed = unavailable")
+        footnotes.append("Ticked = available, crossed = not available")
     if footnotes:
         pdf.set_font("Helvetica", "I", 7.5)
         pdf.set_text_color(*MUTED)
@@ -381,19 +381,14 @@ def render(data: MatchdayData) -> bytes:
 
 
 def _avail_box(pdf: Sheet, cx: float, cy: float, status: SelectionStatus | None) -> None:
-    """A 3.6mm box centred on (cx, cy): empty, ticked (sub), filled + ticked (starting)
-    or crossed (unavailable). Drawn, not a glyph - core Helvetica has no tick."""
+    """A 3.6mm box centred on (cx, cy): empty, ticked (available) or crossed (not
+    available). Drawn, not a glyph - core Helvetica has no tick."""
     half = 1.8
     pdf.set_line_width(0.25)
-    if status == SelectionStatus.START:
-        pdf.set_fill_color(*pdf.accent)
+    pdf.set_draw_color(150, 150, 150)
+    pdf.rect(cx - half, cy - half, 2 * half, 2 * half)
+    if status == SelectionStatus.AVAILABLE:
         pdf.set_draw_color(*pdf.accent)
-        pdf.rect(cx - half, cy - half, 2 * half, 2 * half, style="FD")
-        pdf.set_draw_color(255, 255, 255)
-    else:
-        pdf.set_draw_color(150, 150, 150)
-        pdf.rect(cx - half, cy - half, 2 * half, 2 * half)
-    if status in (SelectionStatus.START, SelectionStatus.SUB):
         pdf.set_line_width(0.4)
         pdf.line(cx - 1.2, cy, cx - 0.3, cy + 1.0)
         pdf.line(cx - 0.3, cy + 1.0, cx + 1.3, cy - 1.1)

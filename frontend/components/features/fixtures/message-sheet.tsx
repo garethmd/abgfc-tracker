@@ -11,11 +11,10 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 
-/** The parents' message for a selected squad. The text comes from the server (the
+/** The parents' message listing who's available. The text comes from the server (the
  *  template lives there); the coach can edit it, then share it through the phone's share
  *  sheet or copy it and pick the WhatsApp group themselves. */
 export function MessageSheet({ fixtureId, open, onOpenChange }: { fixtureId: number; open: boolean; onOpenChange: (o: boolean) => void }) {
-  const [markSubs, setMarkSubs] = useState(false);
   const [dateLine, setDateLine] = useState(false);
   // null = showing the server's text; a string = the coach has edited it. Changing a toggle
   // regenerates, so edits are dropped then (the toggles say so).
@@ -25,7 +24,7 @@ export function MessageSheet({ fixtureId, open, onOpenChange }: { fixtureId: num
   const q = $api.useQuery(
     "get",
     "/api/v1/fixtures/{fixture_id}/selection/message",
-    { params: { path: { fixture_id: fixtureId }, query: { mark_subs: markSubs, date_line: dateLine } } },
+    { params: { path: { fixture_id: fixtureId }, query: { date_line: dateLine } } },
     { enabled: open },
   );
   const text = edited ?? q.data?.text ?? "";
@@ -72,17 +71,11 @@ export function MessageSheet({ fixtureId, open, onOpenChange }: { fixtureId: num
               aria-label="Message"
             />
           )}
-          <div className="grid grid-cols-2 gap-3">
-            <label className="flex h-11 items-center justify-between gap-3 rounded-xl bg-muted/50 px-3 text-sm">
-              <Label htmlFor="mark-subs" className="font-normal">Mark subs</Label>
-              <Switch id="mark-subs" checked={markSubs} onCheckedChange={toggle(setMarkSubs)} />
-            </label>
-            <label className="flex h-11 items-center justify-between gap-3 rounded-xl bg-muted/50 px-3 text-sm">
-              <Label htmlFor="date-line" className="font-normal">Add the date</Label>
-              <Switch id="date-line" checked={dateLine} onCheckedChange={toggle(setDateLine)} />
-            </label>
-          </div>
-          {edited !== null && <p className="text-xs text-muted-foreground">Edited - changing a toggle regenerates the message.</p>}
+          <label className="flex h-11 items-center justify-between gap-3 rounded-xl bg-muted/50 px-3 text-sm">
+            <Label htmlFor="date-line" className="font-normal">Add the date as the first line</Label>
+            <Switch id="date-line" checked={dateLine} onCheckedChange={toggle(setDateLine)} />
+          </label>
+          {edited !== null && <p className="text-xs text-muted-foreground">Edited - the toggle regenerates the message.</p>}
           <div className={canShare ? "grid grid-cols-2 gap-2" : ""}>
             {canShare && (
               <Button type="button" className="h-12" onClick={share} disabled={!text}>

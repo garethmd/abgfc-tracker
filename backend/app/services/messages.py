@@ -57,12 +57,6 @@ def format_date_line(dt: datetime) -> str:
 
 
 @dataclass(frozen=True)
-class SquadLine:
-    name: str
-    sub: bool = False
-
-
-@dataclass(frozen=True)
 class MessageInput:
     team_name: str
     venue: Venue
@@ -71,11 +65,11 @@ class MessageInput:
     ground: str | None
     arrival: datetime
     coaching: str | None
-    squad: list[SquadLine]
+    squad: list[str]  # available players' names, in order
     notes: str | None
 
 
-def parents_message(m: MessageInput, *, mark_subs: bool = False, date_line: bool = False) -> str:
+def parents_message(m: MessageInput, *, date_line: bool = False) -> str:
     lines: list[str] = []
     if date_line:
         lines.append(format_date_line(m.kickoff))
@@ -98,8 +92,7 @@ def parents_message(m: MessageInput, *, mark_subs: bool = False, date_line: bool
         lines.append(f"{m.coaching.strip()} coaching")
 
     lines.append("Squad")
-    for p in m.squad:
-        lines.append(f"{p.name} (sub)" if mark_subs and p.sub else p.name)
+    lines.extend(m.squad)
 
     if m.notes and m.notes.strip():
         lines.append("")

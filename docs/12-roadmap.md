@@ -30,10 +30,9 @@ position_id)` exists; `stats.minutes_for_appearance` computes minutes and
 "subs" step on the result screen, or subs + a clock on the live screen
 (`services/live.py` - a sub would close the leaver's stint and open one for the player
 coming on; kick-off would give starters a stint from minute 0), writing stints per
-appearance. The cohort overview's *Mins* column then lights up. The pre-match selection
-already gives the live screen its split: `GET /fixtures/{id}/selection` returns
-`starters` (→ `appearances.started=true`, stint from 0) and `subs` (→ the bench); today
-the line-up only uses the union as its default.
+appearance. The cohort overview's *Mins* column then lights up. If a starters/bench
+split is ever wanted before kick-off, `fixture_selection_players.status` is the place
+(a `bench` value); today it only records available / unavailable.
 
 **Captain as a first-class field.** `appearances.captain` exists but nothing writes it;
 the Blues record the captain as a team award ("Captain", `club_team_id` set), which
@@ -63,7 +62,7 @@ text. Send note + squad + fixture to Claude, get `ResultSubmit` back, open the r
 screen pre-filled for the coach to confirm. Never write without confirmation. Needs an
 Anthropic API key as a server secret.
 
-**Share to WhatsApp.** Done as *Message parents* ([Features](11-features.md#squad-selection-and-the-parents-message)):
+**Share to WhatsApp.** Done as *Message parents* ([Features](11-features.md#availability-and-the-parents-message)):
 the text is built server-side and handed to `navigator.share` (or copied). Group posting
 via the official API is not viable; unofficial clients are ruled out for this app. Next
 steps if wanted: attach the matchday PDF to the share, and a **scheduled reminder** — a

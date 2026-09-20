@@ -2923,7 +2923,7 @@
         "type": "object"
       },
       "SelectionRead": {
-        "description": "Starters, subs and the unavailable as three lists (squad-number then name order),\nso the message and the live line-up read the split straight off.",
+        "description": "Available and unavailable players as two lists (squad-number then name order).",
         "properties": {
           "arrival_at": {
             "format": "date-time",
@@ -2933,6 +2933,13 @@
           "arrival_lead_minutes": {
             "title": "Arrival Lead Minutes",
             "type": "integer"
+          },
+          "available": {
+            "items": {
+              "$ref": "#/components/schemas/SelectionPlayerRead"
+            },
+            "title": "Available",
+            "type": "array"
           },
           "coaching": {
             "anyOf": [
@@ -2960,20 +2967,6 @@
             ],
             "title": "Notes"
           },
-          "starters": {
-            "items": {
-              "$ref": "#/components/schemas/SelectionPlayerRead"
-            },
-            "title": "Starters",
-            "type": "array"
-          },
-          "subs": {
-            "items": {
-              "$ref": "#/components/schemas/SelectionPlayerRead"
-            },
-            "title": "Subs",
-            "type": "array"
-          },
           "unavailable": {
             "items": {
               "$ref": "#/components/schemas/SelectionPlayerRead"
@@ -2989,8 +2982,7 @@
         },
         "required": [
           "fixture_id",
-          "starters",
-          "subs",
+          "available",
           "unavailable",
           "arrival_at",
           "arrival_lead_minutes",
@@ -3002,10 +2994,9 @@
         "type": "object"
       },
       "SelectionStatus": {
-        "description": "A player's place in a pre-match selection (the plan, not who played).",
+        "description": "A player's availability for an upcoming match (a plan, not who played).",
         "enum": [
-          "start",
-          "sub",
+          "available",
           "unavailable"
         ],
         "title": "SelectionStatus",
@@ -3013,7 +3004,7 @@
       },
       "SelectionSubmit": {
         "additionalProperties": false,
-        "description": "The whole plan for a match in one write - replaces what was there, like PUT /result.",
+        "description": "Availability for a match in one write - replaces what was there, like PUT /result.",
         "properties": {
           "coaching": {
             "anyOf": [
@@ -6327,7 +6318,7 @@
         ]
       },
       "get": {
-        "description": "None until a coach has picked a squad.",
+        "description": "None until a coach has recorded who's available.",
         "operationId": "get_selection_api_v1_fixtures__fixture_id__selection_get",
         "parameters": [
           {
@@ -6392,7 +6383,7 @@
         ]
       },
       "put": {
-        "description": "Replace the whole selection: starters, subs, unavailable, coaching, notes.",
+        "description": "Replace the whole selection: available, unavailable, coaching, notes.",
         "operationId": "put_selection_api_v1_fixtures__fixture_id__selection_put",
         "parameters": [
           {
@@ -6461,7 +6452,7 @@
     },
     "/api/v1/fixtures/{fixture_id}/selection/message": {
       "get": {
-        "description": "The parents' message in the club's house style, from the selection.",
+        "description": "The parents' message in the club's house style, listing the available players.",
         "operationId": "parents_message_api_v1_fixtures__fixture_id__selection_message_get",
         "parameters": [
           {
@@ -6471,16 +6462,6 @@
             "schema": {
               "title": "Fixture Id",
               "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "mark_subs",
-            "required": false,
-            "schema": {
-              "default": false,
-              "title": "Mark Subs",
-              "type": "boolean"
             }
           },
           {

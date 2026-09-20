@@ -523,12 +523,12 @@ export interface paths {
         };
         /**
          * Get Selection
-         * @description None until a coach has picked a squad.
+         * @description None until a coach has recorded who's available.
          */
         get: operations["get_selection_api_v1_fixtures__fixture_id__selection_get"];
         /**
          * Put Selection
-         * @description Replace the whole selection: starters, subs, unavailable, coaching, notes.
+         * @description Replace the whole selection: available, unavailable, coaching, notes.
          */
         put: operations["put_selection_api_v1_fixtures__fixture_id__selection_put"];
         post?: never;
@@ -548,7 +548,7 @@ export interface paths {
         };
         /**
          * Parents Message
-         * @description The parents' message in the club's house style, from the selection.
+         * @description The parents' message in the club's house style, listing the available players.
          */
         get: operations["parents_message_api_v1_fixtures__fixture_id__selection_message_get"];
         put?: never;
@@ -1830,8 +1830,7 @@ export interface components {
         };
         /**
          * SelectionRead
-         * @description Starters, subs and the unavailable as three lists (squad-number then name order),
-         *     so the message and the live line-up read the split straight off.
+         * @description Available and unavailable players as two lists (squad-number then name order).
          */
         SelectionRead: {
             /**
@@ -1841,16 +1840,14 @@ export interface components {
             arrival_at: string;
             /** Arrival Lead Minutes */
             arrival_lead_minutes: number;
+            /** Available */
+            available: components["schemas"]["SelectionPlayerRead"][];
             /** Coaching */
             coaching: string | null;
             /** Fixture Id */
             fixture_id: number;
             /** Notes */
             notes: string | null;
-            /** Starters */
-            starters: components["schemas"]["SelectionPlayerRead"][];
-            /** Subs */
-            subs: components["schemas"]["SelectionPlayerRead"][];
             /** Unavailable */
             unavailable: components["schemas"]["SelectionPlayerRead"][];
             /**
@@ -1861,13 +1858,13 @@ export interface components {
         };
         /**
          * SelectionStatus
-         * @description A player's place in a pre-match selection (the plan, not who played).
+         * @description A player's availability for an upcoming match (a plan, not who played).
          * @enum {string}
          */
-        SelectionStatus: "start" | "sub" | "unavailable";
+        SelectionStatus: "available" | "unavailable";
         /**
          * SelectionSubmit
-         * @description The whole plan for a match in one write - replaces what was there, like PUT /result.
+         * @description Availability for a match in one write - replaces what was there, like PUT /result.
          */
         SelectionSubmit: {
             /**
@@ -3590,7 +3587,6 @@ export interface operations {
     parents_message_api_v1_fixtures__fixture_id__selection_message_get: {
         parameters: {
             query?: {
-                mark_subs?: boolean;
                 date_line?: boolean;
             };
             header?: never;

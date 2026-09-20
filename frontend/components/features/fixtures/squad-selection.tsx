@@ -24,8 +24,8 @@ type Selection = Schema["SelectionRead"];
 type Status = Schema["SelectionStatus"];
 type Player = Schema["PlayerSummary"];
 
-/** Tap order: not picked → starting → sub → out → not picked. */
-const NEXT: Record<Status | "none", Status | "none"> = { none: "start", start: "sub", sub: "unavailable", unavailable: "none" };
+/** Tap order: not asked → available → not available → not asked. */
+const NEXT: Record<Status | "none", Status | "none"> = { none: "available", available: "unavailable", unavailable: "none" };
 const QUICK_REASONS = ["Injured", "Ill", "Away", "Holiday", "Unavailable"];
 
 type Pick = { status: Status; reason: string | null };
@@ -34,16 +34,16 @@ export function selectionKey(fixtureId: number) {
   return $api.queryOptions("get", "/api/v1/fixtures/{fixture_id}/selection", { params: { path: { fixture_id: fixtureId } } }).queryKey;
 }
 
-/** "Selected 10 · Starting 7 · Subs 3" */
+/** "Available 10 · Not available 2" */
 export function selectionSummary(sel: Selection): string {
-  return `Selected ${sel.starters.length + sel.subs.length} · Starting ${sel.starters.length} · Subs ${sel.subs.length}`;
+  return `Available ${sel.available.length}${sel.unavailable.length ? ` · Not available ${sel.unavailable.length}` : ""}`;
 }
 
-/** Starters + subs from a selection, as a default for "who played" / the live line-up.
- *  undefined when there's no selection (or nobody picked yet), so callers keep their default. */
+/** The available players, as a default for "who played" / the live line-up. undefined
+ *  when there's no selection (or nobody marked yet), so callers keep their own default. */
 export function pickedIds(sel: Selection | null | undefined): number[] | undefined {
   if (!sel) return undefined;
-  const ids = [...sel.starters, ...sel.subs].map((p) => p.player.id);
+  const ids = sel.available.map((p) => p.player.id);
   return ids.length ? ids : undefined;
 }
 
@@ -72,7 +72,7 @@ export function SquadSelection({
   const players = useMemo<Player[]>(() => {
     const fromSquad = squad.filter((m) => !m.left_at && !m.player.left_date).map((m) => m.player);
     // Anyone already on the plan but no longer in the squad still needs to be visible.
-    const onPlan = selection ? [...selection.starters, ...selection.subs, ...selection.unavailable].map((p) => p.player) : [];
+    const onPlan = selection ? [...selection.available, ...selection.unavailable].map((p) => p.player) : [];
     const extra = onPlan.filter((p) => !fromSquad.some((s) => s.id === p.id));
     return [...fromSquad, ...extra];
   }, [squad, selection]);
@@ -80,7 +80,7 @@ export function SquadSelection({
   const [picks, setPicks] = useState<Record<number, Pick>>(() => {
     const init: Record<number, Pick> = {};
     if (selection) {
-      for (const p of [...selection.starters, ...selection.subs, ...selection.unavailable]) {
+      for (const p of [...selection.available, ...selection.unavailable]) {
         init[p.player.id] = { status: p.status, reason: p.reason };
       }
     }
@@ -94,9 +94,9 @@ export function SquadSelection({
   const save = $api.useMutation("put", "/api/v1/fixtures/{fixture_id}/selection");
   const remove = $api.useMutation("delete", "/api/v1/fixtures/{fixture_id}/selection");
 
-  const counts = { start: 0, sub: 0, unavailable: 0 };
+  const counts = { available: 0, unavailable: 0 };
   for (const p of Object.values(picks)) counts[p.status] += 1;
-  const unpicked = players.length - counts.start - counts.sub - counts.unavailable;
+  const unpicked = players.length - counts.available - counts.unavailable;
 
   function tap(p: Player) {
     const current = picks[p.id]?.status ?? "none";
@@ -132,7 +132,7 @@ export function SquadSelection({
       });
       qc.setQueryData(selectionKey(fixture.id), d);
       invalidate();
-      toast.success("Squad saved");
+      toast.success("Availability saved");
       router.replace(`${base}/fixtures/${fixture.id}`);
     } catch (err) {
       toast.error(errorMessage(err));
@@ -144,7 +144,7 @@ export function SquadSelection({
       await remove.mutateAsync({ params: { path: { fixture_id: fixture.id } } });
       qc.setQueryData(selectionKey(fixture.id), null);
       invalidate();
-      toast.success("Selection removed");
+      toast.success("Availability cleared");
       router.replace(`${base}/fixtures/${fixture.id}`);
     } catch (err) {
       toast.error(errorMessage(err));
@@ -155,13 +155,13 @@ export function SquadSelection({
     <div className="space-y-8 pb-24">
       <section>
         <div className="mb-3 flex items-baseline justify-between gap-3">
-          <SectionTitle className="mb-0">Squad</SectionTitle>
+          <SectionTitle className="mb-0">Who can play</SectionTitle>
           <span className="tnum text-xs text-muted-foreground">
-            Starting {counts.start} · Subs {counts.sub} · Out {counts.unavailable}
-            {unpicked > 0 && <> · {unpicked} to pick</>}
+            Available {counts.available} · Not available {counts.unavailable}
+            {unpicked > 0 && <> · {unpicked} unknown</>}
           </span>
         </div>
-        <p className="mb-3 text-xs text-muted-foreground">Tap a player to cycle: starting → sub → out.</p>
+        <p className="mb-3 text-xs text-muted-foreground">Tap once for available, again for not available.</p>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
           {players.map((p) => (
             <SelectionChip key={p.id} name={p.display_name} pick={picks[p.id]} onClick={() => tap(p)} />
@@ -206,7 +206,7 @@ export function SquadSelection({
       {selection && (
         <div className="flex justify-center">
           <Button type="button" variant="ghost" className="h-11 text-destructive" onClick={() => setConfirmRemove(true)}>
-            <Trash2 className="size-4" /> Remove selection
+            <Trash2 className="size-4" /> Clear availability
           </Button>
         </div>
       )}
@@ -215,7 +215,7 @@ export function SquadSelection({
       <div className="fixed inset-x-0 bottom-16 z-20 border-t border-border/60 bg-background/90 p-3 backdrop-blur md:static md:border-0 md:bg-transparent md:p-0">
         <div className="mx-auto max-w-lg">
           <Button type="button" className="h-12 w-full text-base" onClick={onSave} disabled={save.isPending}>
-            {save.isPending ? "Saving…" : "Save selection"}
+            {save.isPending ? "Saving…" : "Save availability"}
           </Button>
         </div>
       </div>
@@ -230,12 +230,12 @@ export function SquadSelection({
       <Dialog open={confirmRemove} onOpenChange={setConfirmRemove}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Remove this selection?</DialogTitle>
-            <DialogDescription>The plan for this match is cleared. Nothing recorded against the match is affected.</DialogDescription>
+            <DialogTitle>Clear availability?</DialogTitle>
+            <DialogDescription>Who&apos;s available for this match is forgotten. Nothing recorded against the match is affected.</DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">
             <Button variant="outline" className="h-11" onClick={() => setConfirmRemove(false)}>Keep it</Button>
-            <Button variant="destructive" className="h-11" onClick={onRemove} disabled={remove.isPending}>Remove</Button>
+            <Button variant="destructive" className="h-11" onClick={onRemove} disabled={remove.isPending}>Clear</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -243,7 +243,7 @@ export function SquadSelection({
   );
 }
 
-/** Same footprint as the result-entry Chip, with three picked states. */
+/** Same footprint as the result-entry Chip: not asked, available, not available. */
 function SelectionChip({ name, pick, onClick }: { name: string; pick: Pick | undefined; onClick: () => void }) {
   const status = pick?.status ?? "none";
   return (
@@ -251,17 +251,15 @@ function SelectionChip({ name, pick, onClick }: { name: string; pick: Pick | und
       type="button"
       onClick={onClick}
       aria-pressed={status !== "none"}
-      aria-label={`${name}: ${status === "none" ? "not picked" : status === "start" ? "starting" : status === "sub" ? "sub" : "out"}`}
+      aria-label={`${name}: ${status === "none" ? "unknown" : status === "available" ? "available" : "not available"}`}
       className={cn(
         "flex h-12 flex-col items-center justify-center rounded-xl px-2 text-sm font-medium leading-tight ring-1 transition-all active:scale-[0.97]",
         status === "none" && "bg-card text-muted-foreground ring-border/60 hover:text-foreground",
-        status === "start" && "bg-foreground text-background ring-foreground",
-        status === "sub" && "bg-primary/10 text-foreground ring-primary",
+        status === "available" && "bg-foreground text-background ring-foreground",
         status === "unavailable" && "bg-card text-muted-foreground/70 ring-border/40",
       )}
     >
       <span className={cn("max-w-full truncate", status === "unavailable" && "line-through decoration-muted-foreground/60")}>{name}</span>
-      {status === "sub" && <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">Sub</span>}
       {status === "unavailable" && (
         <span className="max-w-full truncate text-[10px] uppercase tracking-wider">{pick?.reason ?? "Out"}</span>
       )}

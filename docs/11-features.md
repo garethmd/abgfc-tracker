@@ -1,4 +1,4 @@
-# 11. Reports, exports, media, live entry and squad selection
+# 11. Reports, exports, media, live entry and availability
 
 ## Matchday sheet (PDF)
 
@@ -16,10 +16,10 @@ One A4 page:
    (result, scorers with assists, Coaches' and Parents' POTM)
 4. **Squad table** — #, player, position, apps *out of matches played* (fewest shaded:
    the fairness nudge), goals, assists, one column per award type, an *Avail* tick box —
-   pre-filled from the [squad selection](#squad-selection-and-the-parents-message) when
-   there is one: ticked = selected, filled = starting, crossed = unavailable (drawn, not
-   glyphs — core Helvetica has no tick). The *Next match* block then also says "Squad
-   selected: 7 starting, 3 subs · arrive 10.30 · Adam & Dan coaching"
+   pre-filled from [availability](#availability-and-the-parents-message) when it has
+   been recorded: ticked = available, crossed = not available (drawn, not glyphs — core
+   Helvetica has no tick). The *Next match* block then also says "Available: 10 (1 not
+   available) · arrive 10.30 · Adam & Dan coaching"
 5. Ruled **Plan / team talk** box filling the rest of the page
 
 `gather()` collects the data (fixture, previous meetings, played fixtures, last match
@@ -102,21 +102,21 @@ A second way to record a match, alongside the post-match screen (which is unchan
 
 No clock and no minutes: that's the *time on pitch* item on the [roadmap](12-roadmap.md).
 
-## Squad selection and the parents' message
+## Availability and the parents' message
 
-The plan for an upcoming match, made on the phone during the week, and the message that
-goes to the parents' group. `services/selections.py`, `services/messages.py`, routes
+Who can play in an upcoming match, recorded on the phone during the week, and the message
+that goes to the parents' group. `services/selections.py`, `services/messages.py`, routes
 under `/fixtures/{id}/selection`, UI at `/[team]/fixtures/[id]/selection`
 (`SquadSelection`), `SelectionCard` on the fixture page, `MessageSheet`.
 
-- **Select squad** (fixture page and the *Next up* card; coaches only, viewers see the
-  result). Tap a player's chip to cycle *not picked → starting → sub → out*; *out* opens a
-  reason sheet (Injured / Ill / Away / Holiday / Unavailable or free text, optional).
-  Below the chips: the arrival time (kick-off minus the team-season's lead time, changed
-  once in Settings → Seasons), *Coaching on the day* and *Notes for parents*. Saved as one
-  `PUT`, editable until the match is played, then frozen (409). Nothing here touches
-  `appearances`: a plan is not a record of who played.
-- **Message parents** (once a selection exists) renders the club's house style server-side:
+- **Availability** (fixture page and the *Next up* card; coaches only, viewers see the
+  result). Tap a player's chip once for *available*, again for *not available* (a reason
+  sheet: Injured / Ill / Away / Holiday / Unavailable or free text, optional), again to
+  clear. Below the chips: the arrival time (kick-off minus the team-season's lead time,
+  changed once in Settings → Seasons), *Coaching on the day* and *Notes for parents*.
+  Saved as one `PUT`, editable until the match is played, then frozen (409). Nothing here
+  touches `appearances`: knowing who *can* play is not a record of who *did*.
+- **Message parents** (once availability is recorded) renders the club's house style server-side:
 
   ```
   REDS are home against Haslemere Town Panthers    TEAM in capitals; "are away against";
@@ -125,20 +125,20 @@ under `/fixtures/{id}/selection`, UI at `/[team]/fixtures/[id]/selection`
   Adam & Dan coaching                              is the fixture's venue_notes, dropped if empty.
   Squad                                            Arrival: "10.30" / "10", no am/pm.
   Jackson                                          Coaching line omitted if empty.
-  Adrian                                           Squad = starters + subs, one flat list in
-  ...                                              squad-number then name order.
+  Adrian                                           Squad = the available players, one per
+  ...                                              line in squad-number then name order.
                                                    Notes, if any, after one blank line, verbatim.
   ```
 
-  Toggles: *Mark subs* appends " (sub)"; *Add the date* puts "Saturday 26 September"
-  first. No emoji, no blank lines except before notes. The coach can edit the text, then
+  *Add the date* puts "Saturday 26 September" first. No emoji, no blank lines except
+  before notes. The coach can edit the text, then
   *Share…* (`navigator.share`, on phones) or *Copy message* and paste it into whichever
   group they choose — there is deliberately no WhatsApp integration (see the
   [roadmap](12-roadmap.md)). `tests/test_selections.py` asserts the exact text for the
   example above and every variant.
 - **Downstream defaults.** *Enter result* and the live *Start match* line-up start with the
-  selection's starters + subs ticked instead of the whole squad — a default, not a change
-  in behaviour; with no selection they are as before. The matchday PDF pre-ticks the
+  available players ticked instead of the whole squad — a default, not a change in
+  behaviour; with nothing recorded they are as before. The matchday PDF pre-ticks the
   *Avail* boxes (above).
 - Times: `kickoff_at` is UK wall-clock; `arrival_time()` goes through Europe/London so a
   kick-off just after midnight or on a clock-change morning still comes out right.

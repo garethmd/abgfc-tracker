@@ -111,10 +111,10 @@ Full rules in [Security](08-security.md).
 | POST/DELETE | `/fixtures/{id}/live/against` | coach | opposition goal (`their_score` ± 1; no event) |
 | POST | `/fixtures/{id}/live/finish` | coach | `status=played`; the fixture is now exactly what `PUT /result` produces |
 | DELETE | `/fixtures/{id}/live` | coach | started by mistake: clears everything, back to `scheduled` |
-| GET | `/fixtures/{id}/selection` | viewer | `SelectionRead` or `null` — the pre-match plan (below) |
-| PUT | `/fixtures/{id}/selection` | coach | `SelectionSubmit`; replaces the whole plan; 409 unless `scheduled`/`postponed`; 422 for a player outside the team's cohort or picked twice |
+| GET | `/fixtures/{id}/selection` | viewer | `SelectionRead` or `null` — pre-match availability (below) |
+| PUT | `/fixtures/{id}/selection` | coach | `SelectionSubmit`; replaces the whole thing; 409 unless `scheduled`/`postponed`; 422 for a player outside the team's cohort or listed twice |
 | DELETE | `/fixtures/{id}/selection` | coach | 404 if there isn't one |
-| GET | `/fixtures/{id}/selection/message?mark_subs=&date_line=` | coach | `{text}` — the parents' message in the house style; 404 until a squad is selected |
+| GET | `/fixtures/{id}/selection/message?date_line=` | coach | `{text}` — the parents' message in the house style listing the available players; 404 until availability is recorded |
 
 `ResultSubmit`:
 
@@ -142,17 +142,17 @@ tap at a time. Every call returns the full `FixtureDetail`. While a fixture is `
 `finish` moves it to `played`, after which the post-match screen is used as normal for
 the awards and any corrections. Viewers see the running score through `GET /fixtures/{id}`.
 
-**Pre-match selection** (`services/selections.py`) is the coach's plan for an upcoming
+**Pre-match availability** (`services/selections.py`) is who can play in an upcoming
 match — separate from `appearances`, which only the result flows write.
 
 ```json
-PUT {"players": [{"player_id": 3, "status": "start"}, {"player_id": 7, "status": "sub"},
+PUT {"players": [{"player_id": 3, "status": "available"},
                  {"player_id": 9, "status": "unavailable", "reason": "injured"}],
      "coaching": "Adam & Dan", "notes": "Bring both kits"}
 
 GET → {"fixture_id": 12,
-       "starters": [{"player": {...}, "squad_number": 1, "status": "start", "reason": null}, ...],
-       "subs": [...], "unavailable": [...],
+       "available": [{"player": {...}, "squad_number": 1, "status": "available", "reason": null}, ...],
+       "unavailable": [...],
        "arrival_at": "2026-09-26T10:30:00", "arrival_lead_minutes": 30,
        "coaching": "Adam & Dan", "notes": "Bring both kits", "updated_at": "..."}
 ```

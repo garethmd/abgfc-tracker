@@ -1,4 +1,4 @@
-"""Pre-match squad selection: the coach's plan for an upcoming fixture.
+"""Pre-match availability: who can play in an upcoming fixture and who can't.
 
 A plan, not a record. `appearances` (who played) are only ever written by the result
 flows; this never touches them. The selection is one aggregate - a header row with the
@@ -27,7 +27,7 @@ from app.schemas.selection import (
 )
 from app.services.access import Access
 from app.services.fixtures import FixtureService
-from app.services.messages import MessageInput, SquadLine, arrival_time, parents_message
+from app.services.messages import MessageInput, arrival_time, parents_message
 
 EDITABLE = {FixtureStatus.SCHEDULED, FixtureStatus.POSTPONED}
 
@@ -47,7 +47,7 @@ class SelectionService:
     def put(self, fixture_id: int, data: SelectionSubmit) -> SelectionRead:
         fixture = self.fixtures.get(fixture_id, UserRole.COACH)
         if fixture.status not in EDITABLE:
-            raise ConflictError("The squad can only be selected before the match is played")
+            raise ConflictError("Availability can only be set before the match is played")
         self._check_players(fixture, [p.player_id for p in data.players])
 
         selection = fixture.selection
@@ -73,15 +73,15 @@ class SelectionService:
     def delete(self, fixture_id: int) -> None:
         fixture = self.fixtures.get(fixture_id, UserRole.COACH)
         if fixture.selection is None:
-            raise NotFoundError("No squad has been selected for this fixture")
+            raise NotFoundError("No availability has been recorded for this fixture")
         fixture.selection = None
         self.db.commit()
 
-    def message(self, fixture_id: int, *, mark_subs: bool, date_line: bool) -> ParentsMessage:
-        """The parents' message for a selected squad (coaches - it names children)."""
+    def message(self, fixture_id: int, *, date_line: bool) -> ParentsMessage:
+        """The parents' message listing the available players (coaches - it names children)."""
         fixture = self.fixtures.get(fixture_id, UserRole.COACH)
         if fixture.selection is None:
-            raise NotFoundError("Select the squad first")
+            raise NotFoundError("Record who's available first")
         sel = self._read(fixture)
         text = parents_message(
             MessageInput(
@@ -92,11 +92,9 @@ class SelectionService:
                 ground=fixture.venue_notes,
                 arrival=sel.arrival_at,
                 coaching=sel.coaching,
-                squad=[SquadLine(p.player.display_name) for p in sel.starters]
-                + [SquadLine(p.player.display_name, sub=True) for p in sel.subs],
+                squad=[p.player.display_name for p in sel.available],
                 notes=sel.notes,
             ),
-            mark_subs=mark_subs,
             date_line=date_line,
         )
         return ParentsMessage(text=text)
@@ -143,8 +141,7 @@ class SelectionService:
         lead = fixture.team_season.arrival_lead_minutes
         return SelectionRead(
             fixture_id=fixture.id,
-            starters=group(SelectionStatus.START),
-            subs=group(SelectionStatus.SUB),
+            available=group(SelectionStatus.AVAILABLE),
             unavailable=group(SelectionStatus.UNAVAILABLE),
             arrival_at=arrival_time(fixture.kickoff_at, lead),
             arrival_lead_minutes=lead,

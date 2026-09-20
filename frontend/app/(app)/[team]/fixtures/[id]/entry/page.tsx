@@ -23,7 +23,7 @@ export default function ResultEntryPage({ params }: PageProps<"/[team]/fixtures/
     { enabled: !!fixture.data },
   );
   const awardTypes = $api.useQuery("get", "/api/v1/award-types", { params: { query: { club_team_id: team.id } } });
-  // A pre-match selection, if the coach made one, is the default for "who played".
+  // The players marked available beforehand, if any, are the default for "who played".
   const selection = $api.useQuery(
     "get",
     "/api/v1/fixtures/{fixture_id}/selection",

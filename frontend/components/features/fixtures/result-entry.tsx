@@ -34,7 +34,7 @@ export function ResultEntry({
   squad: Member[];
   awardTypes: AwardType[];
   base: string;
-  /** Player ids to start with ticked (the pre-match selection); default is the whole squad. */
+  /** Player ids to start with ticked (those marked available beforehand); default is the whole squad. */
   preselect?: number[];
 }) {
   const router = useRouter();
@@ -48,7 +48,7 @@ export function ResultEntry({
 
   const isEdit = fixture.status === "played";
   // Fresh entry: preselect the whole squad — most kids play every week, so deselecting is fewer
-  // taps — unless the coach picked a squad beforehand, in which case start from that.
+  // taps — unless availability was recorded beforehand, in which case start from that.
   const [playing, setPlaying] = useState<Set<number>>(
     () => new Set(isEdit ? fixture.appearances.map((a) => a.player.id) : (preselect ?? players.map((p) => p.id))),
   );

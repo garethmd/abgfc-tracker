@@ -25,6 +25,10 @@
       ],
       "cwd": "backend",
       "port": 8000
+    },
+    {
+      "name": "frontend-existing",
+      "url": "http://localhost:3000"
     }
   ]
 }

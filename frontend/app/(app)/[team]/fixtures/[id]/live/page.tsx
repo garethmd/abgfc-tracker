@@ -32,7 +32,7 @@ export default function LiveMatchPage({ params }: PageProps<"/[team]/fixtures/[i
     { enabled: !!fixture.data },
   );
 
-  // A pre-match selection, if there is one, is the default line-up.
+  // The players marked available beforehand, if any, are the default line-up.
   const selection = $api.useQuery(
     "get",
     "/api/v1/fixtures/{fixture_id}/selection",

@@ -90,7 +90,7 @@ export default function FixturesPage() {
                 {nextUp.status === "scheduled" && selection.data !== undefined && (selection.data || canEdit) && (
                   <div className="flex items-center gap-2 border-t border-border/60 px-4 py-2.5 text-xs text-muted-foreground">
                     <ClipboardList className="size-3.5 shrink-0" />
-                    <span className="tnum">{selection.data ? selectionSummary(selection.data) : "No squad selected yet"}</span>
+                    <span className="tnum">{selection.data ? selectionSummary(selection.data) : "Availability not recorded yet"}</span>
                   </div>
                 )}
                 {canEdit && teamSeason && nextUp.status === "scheduled" && (
@@ -111,7 +111,7 @@ export default function FixturesPage() {
                     <div className={selection.data ? "grid grid-cols-2 gap-2" : ""}>
                       <Button asChild variant="outline" className="h-11 w-full">
                         <Link href={`${base}/fixtures/${nextUp.id}/selection`}>
-                          <ClipboardList className="size-4" /> {selection.data ? "Edit squad" : "Select squad"}
+                          <ClipboardList className="size-4" /> {selection.data ? "Edit availability" : "Availability"}
                         </Link>
                       </Button>
                       {selection.data && (
