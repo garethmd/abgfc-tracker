@@ -28,7 +28,7 @@ frontend/
 │       └── [team]/                everything a coach uses
 │           ├── layout.tsx         slug → TeamAccess → <TeamProvider> + <AppShell nav>
 │           ├── page.tsx           dashboard
-│           ├── fixtures/          list, new, [id] (detail), [id]/entry, [id]/edit, [id]/live
+│           ├── fixtures/          list, new, [id] (detail), [id]/entry, [id]/edit, [id]/live, [id]/selection
 │           ├── players/           squad list, [id] (profile)
 │           └── settings/          seasons, awards, leagues, opposition, appearance, account
 ├── components/
@@ -88,6 +88,9 @@ qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });   // prefix mat
 - Query keys are `[method, path, init]`, so invalidating by path prefix refreshes every
   variant of that query.
 - `fetchClient` is for one-offs (login, logout, multipart photo upload).
+- **Times are wall-clock.** `kickoff_at` and `sent_at` are naive UK times; forms send the
+  `datetime-local` value as typed (`"…T11:00:00"`), never `toISOString()` (which would
+  shift it to UTC), and `toLocalInput` is a slice for the same reason.
 - `errorMessage(error)` turns `{detail}` (string or Pydantic list) into a toast string.
 - **401 handling**: the middleware in `client.ts` calls `/auth/logout` (to clear the
   HttpOnly cookie — otherwise `proxy.ts` would bounce `/login` straight back) and then
@@ -99,14 +102,16 @@ qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });   // prefix mat
 | Page | Component(s) | Notes |
 |---|---|---|
 | Dashboard | `RecordCard`, `HighlightTiles`, `Leaderboard`, `FormPips` | All/League toggle; spreadsheet button in header |
-| Fixtures | `FixtureRow` | "Next up" card with *Start match* + *Enter result* + *Sheet* (PDF); becomes "Live now" with *Continue live match* while a fixture is live; rows show a red *Live* badge and the running score |
-| Fixture detail | `MatchNotes`, `GoalLine` | *Start match* / *Enter result* when scheduled, *Continue live match* when live; ⋯ menu: edit, edit result, PDF, delete; warnings banner |
-| Result entry | `ResultEntry`, `GoalSheet`, `Chip`, `ScoreStepper` | squad preselected; bottom sheet scorer→assist; sticky save |
+| Fixtures | `FixtureRow`, `MessageSheet` | "Next up" card with *Start match* + *Enter result* + *Sheet* (PDF), the selection status line, *Select/Edit squad* and *Message parents*; becomes "Live now" with *Continue live match* while a fixture is live; rows show a red *Live* badge and the running score |
+| Fixture detail | `SelectionCard`, `MatchNotes`, `GoalLine` | *Start match* / *Enter result* when scheduled, *Continue live match* when live; Squad card (the plan) on scheduled fixtures; ⋯ menu: edit, edit result, PDF, delete; warnings banner |
+| Squad selection | `SquadSelection` (+ `ReasonSheet`) | tap a chip to cycle not picked → starting → sub → out; arrival card; coaching + notes; sticky save; remove selection |
+| Message parents | `MessageSheet` | bottom sheet: server-rendered text (editable), *Mark subs* / *Add the date*, `navigator.share` on phones, copy fallback |
+| Result entry | `ResultEntry`, `GoalSheet`, `Chip`, `ScoreStepper` | squad preselected (the selection's starters + subs when there is one); bottom sheet scorer→assist; sticky save |
 | Live match | `LineUp`, `LiveMatch` (+ `GoalSheet`/`Chip` from result entry) | line-up → sticky score card, Goal/Against/Undo bar, Full time → entry screen for awards |
 | Fixture new/edit | `FixtureForm` | inline "+ New team…" creates opposition |
 | Squad | `PlayerAvatar`, `PlayerForm` (sheet) | "Already at the club" mode picks from the cohort pool |
 | Player | `PhotoPicker`, `PlayerAvatar`, `Stat` | season stats, history across teams |
-| Settings | `SeasonsManager` (roll-over dialog), `AwardTypesManager`, `CompetitionsManager`, `TeamsManager`, `ThemeToggle`, `AccountCard` | |
+| Settings | `SeasonsManager` (roll-over dialog, match length, arrival lead time), `AwardTypesManager`, `CompetitionsManager`, `TeamsManager`, `ThemeToggle`, `AccountCard` | |
 | Admin | `UsersManager` (roles with scope picker, reset password), `StructureManager` | admins only |
 | Cohort overview | cards per team, players table, `MovePlayerDialog` | cohort coaches |
 

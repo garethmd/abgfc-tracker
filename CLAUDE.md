@@ -49,7 +49,7 @@ backend/   FastAPI + SQLAlchemy 2 + Alembic, managed by uv (Python 3.13)
   tests/              pytest; conftest builds an in-memory DB per test
 frontend/  Next.js 16 App Router + TypeScript + Tailwind 4 + shadcn (radix)
   app/(app)/          Authenticated. layout loads /auth/me -> MeProvider; page.tsx routes
-    [team]/           Everything a coach uses: dashboard, fixtures (+ [id]/live), players, settings
+    [team]/           Everything a coach uses: dashboard, fixtures (+ [id]/live, [id]/selection), players, settings
     cohorts/[id]/     Age-group overview (Stuart): team records + player game time + moves
     admin/            Coaches (users/roles/password reset), age groups & teams
     teams/            Picker for people with several teams
@@ -72,7 +72,7 @@ not spreadsheet columns. Full DDL is in `backend/alembic/versions/`; rationale h
 | `cohorts` | An age group independent of season ("Born 2016/17", `birth_year_start`). U10 this year, U11 next: `Cohort.age_group_for(season)`. Teams and players belong to a cohort; so does the age-group coach's role. |
 | `club_teams` | Our teams (Blues/Blacks/Reds/Whites) - `cohort_id`, `slug` (URL: `/blues`), `colour` (accent). Not to be confused with `teams` (opposition). |
 | `seasons` | Club-wide: "2026/27" + dates. Nothing hangs off it directly any more. |
-| `team_seasons` | A club team in a season: `age_group`, `format`, `match_minutes`, `is_current` (one per team). **This is what squads, fixtures, awards and stats hang off**, and what a coach is looking at. Roll-over (`TeamSeasonService.start`) creates it, derives the age group, and can copy the squad forward. |
+| `team_seasons` | A club team in a season: `age_group`, `format`, `match_minutes`, `arrival_lead_minutes` (parents' "arrive at" = kick-off minus this, default 30), `is_current` (one per team). **This is what squads, fixtures, awards and stats hang off**, and what a coach is looking at. Roll-over (`TeamSeasonService.start`) creates it, derives the age group, and can copy the squad forward. |
 | `players` | A person in a cohort (`cohort_id`), not a squad slot. Never hard-deleted — set `left_date`. Stats survive a player leaving or moving because appearances/events reference the player, not the squad row. |
 | `squad_members` | Player ↔ team-season, with `squad_number`, `primary_position_id`, `left_at`. Moving a child between teams mid-season = `left_at` here and a new row on the other team (`POST /players/{id}/move`, cohort coaches). |
 | `users` / `user_roles` | Login + roles at a scope: `club` (scope_id NULL), `cohort`, or `team`. Roles: viewer < coach < admin. Widen upwards - a cohort coach is a coach on every team in the cohort. Resolved per request into `Access` (`services/access.py`). Admins manage users only within scopes they administer. |
@@ -84,6 +84,7 @@ not spreadsheet columns. Full DDL is in `backend/alembic/versions/`; rationale h
 | `player_stints` | Rolling-sub detail: `(appearance_id, on_minute, off_minute NULL=to the end, position_id)`. Hangs off the appearance so a stint can't exist for someone who didn't play. `stats.minutes_for_appearance()` already computes minutes; nothing writes stints yet. |
 | `match_events` | `goal` / `assist` / `own_goal` / `opp_own_goal` with `player_id` (NULL only for `opp_own_goal`), `minute`, `sequence`. **An assist is its own row pointing at its goal via `related_event_id`.** Goals and assists are `COUNT(*)`s. A goal is therefore an addressable thing a YouTube clip can attach to. |
 | `award_types` / `awards` | Two club-wide rows today (`coaches_potm`, `parents_potm`, `club_team_id NULL`). A team's own award ("Blues most improved") is a row with `club_team_id` set - only that team sees it. `scope` (match/month/season) + nullable `fixture_id` + `period_label` cover "goal of the month". Awards are keyed by `team_season_id`. Joint winners allowed. |
+| `fixture_selections` / `fixture_selection_players` | The coach's **plan** for an upcoming fixture (`services/selections.py`): one header per fixture (`coaching`, `notes`, cascades) + one row per player with `status` start/sub/unavailable and a `reason`. A plan is not a record - `appearances` are only written by the result flows and stats never read this. `GET/PUT/DELETE /fixtures/{id}/selection` (replaced whole; 409 once played; player must be in the team's cohort) returns `starters`/`subs`/`unavailable` + `arrival_at`. `GET …/selection/message?mark_subs=&date_line=` renders the parents' message in the club's house style (`services/messages.py`, pure functions, exact text under test; the frontend never holds the template). Result entry, the live line-up and the matchday PDF use it as a default. |
 | `match_notes` | Free-text match reports on a fixture - typically WhatsApp messages pasted in after the game. Several per fixture; `author`/`sent_at` describe the original message, `created_by` the coach who pasted it. Read with the fixture's access, write needs coach. `GET/POST /fixtures/{id}/notes`, `PATCH/DELETE …/notes/{note_id}`. Shown as "Match report" on a played fixture's page. (The fixture's own `notes` column is one-line admin: pitch, kit.) |
 | `media` / `media_links` | `media(kind: youtube/photo/file, url | storage_key, …)`. `media_links` has **three nullable FKs** (`fixture_id`, `player_id`, `match_event_id`) with a CHECK that exactly one is set — real FKs and cascades, unlike `target_type/target_id`. **In use for player profile photos**: a `photo` media row + a link with `role='profile_photo'` (`services/media.py`). Files live under `settings.media_dir` (`/data/media` in production, mode 600), never a public bucket; uploads are re-encoded with EXIF/GPS stripped into `-full.jpg` (1200px) and `-thumb.jpg` (256px square). Served only via `GET /players/{id}/photo?size=` with the player's access rules; `PlayerRead.photo_key` is a random token that changes per upload for cache-busting (media ids get reused by SQLite). Fixture and goal-clip media reuse the same table; only the routes are missing. |
 
@@ -144,6 +145,10 @@ makes it `played` and the UI hands over to the entry screen for awards. `PUT /re
 409 while live, so a fixture is only ever on one path. Errors are `{"detail": "..."}` with
 404/409/422/401.
 
+Times are naive UK wall-clock (`kickoff_at`, `sent_at`): forms send the `datetime-local`
+value as typed, never `toISOString()`; `services/messages.arrival_time` goes through
+Europe/London for the arithmetic.
+
 Frontend types are generated: `make api-client` (exports `openapi.json` without a
 running server, then `openapi-typescript`). CI should run `make check-api`.
 `lib/api/client.ts` wraps `openapi-fetch` + `openapi-react-query`; query keys are
@@ -155,7 +160,9 @@ covers every fixture query.
 `backend/app/services/reports.py` renders the **matchday sheet**: one A4 page for the
 next (or a given) fixture - fixture details and previous meetings, season record,
 last match with scorers and both POTMs, the squad with appearances-out-of-played
-(fewest shaded, the fairness nudge), an "available" tick box per player and a ruled plan box.
+(fewest shaded, the fairness nudge), an "available" tick box per player (pre-filled from the
+squad selection when there is one: ticked = selected, filled = starting, crossed = out) and a
+ruled plan box.
 `GET /team-seasons/{id}/reports/matchday.pdf?fixture_id=`; coaches only, since it
 names children. Pure Python (fpdf2, core Helvetica, so stick to Latin-1 text); the
 crest is `app/assets/crest.png`. Tests extract the text with pypdf and assert on it -

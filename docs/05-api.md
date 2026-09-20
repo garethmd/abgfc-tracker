@@ -58,7 +58,7 @@ Full rules in [Security](08-security.md).
 | GET/PATCH | `/club-teams/{id}` | viewer / team admin | |
 | GET | `/club-teams/{id}/seasons` | team viewer | newest first |
 | POST | `/club-teams/{id}/seasons` | team coach | `TeamSeasonStart`: `{season_id | season_name, age_group?, format?, match_minutes, copy_squad_from_team_season_id?, make_current}` |
-| GET/PATCH | `/team-seasons/{id}` | viewer / coach | PATCH: `age_group, format, match_minutes` |
+| GET/PATCH | `/team-seasons/{id}` | viewer / coach | PATCH: `age_group, format, match_minutes, arrival_lead_minutes` (0–180) |
 | POST | `/team-seasons/{id}/make-current` | coach | |
 | GET | `/seasons`, `/seasons/{id}` | any | club-wide |
 | POST | `/seasons` | any signed-in | `{name, start_date?, end_date?}` |
@@ -111,6 +111,10 @@ Full rules in [Security](08-security.md).
 | POST/DELETE | `/fixtures/{id}/live/against` | coach | opposition goal (`their_score` ± 1; no event) |
 | POST | `/fixtures/{id}/live/finish` | coach | `status=played`; the fixture is now exactly what `PUT /result` produces |
 | DELETE | `/fixtures/{id}/live` | coach | started by mistake: clears everything, back to `scheduled` |
+| GET | `/fixtures/{id}/selection` | viewer | `SelectionRead` or `null` — the pre-match plan (below) |
+| PUT | `/fixtures/{id}/selection` | coach | `SelectionSubmit`; replaces the whole plan; 409 unless `scheduled`/`postponed`; 422 for a player outside the team's cohort or picked twice |
+| DELETE | `/fixtures/{id}/selection` | coach | 404 if there isn't one |
+| GET | `/fixtures/{id}/selection/message?mark_subs=&date_line=` | coach | `{text}` — the parents' message in the house style; 404 until a squad is selected |
 
 `ResultSubmit`:
 
@@ -137,6 +141,26 @@ tap at a time. Every call returns the full `FixtureDetail`. While a fixture is `
 `PUT /result` answers 409 ("finish it first") and `PATCH` can't set the status to `live`;
 `finish` moves it to `played`, after which the post-match screen is used as normal for
 the awards and any corrections. Viewers see the running score through `GET /fixtures/{id}`.
+
+**Pre-match selection** (`services/selections.py`) is the coach's plan for an upcoming
+match — separate from `appearances`, which only the result flows write.
+
+```json
+PUT {"players": [{"player_id": 3, "status": "start"}, {"player_id": 7, "status": "sub"},
+                 {"player_id": 9, "status": "unavailable", "reason": "injured"}],
+     "coaching": "Adam & Dan", "notes": "Bring both kits"}
+
+GET → {"fixture_id": 12,
+       "starters": [{"player": {...}, "squad_number": 1, "status": "start", "reason": null}, ...],
+       "subs": [...], "unavailable": [...],
+       "arrival_at": "2026-09-26T10:30:00", "arrival_lead_minutes": 30,
+       "coaching": "Adam & Dan", "notes": "Bring both kits", "updated_at": "..."}
+```
+
+Each list is in squad-number then name order. `arrival_at` is kick-off minus the
+team-season's `arrival_lead_minutes`, computed in Europe/London and returned as naive
+wall-clock like `kickoff_at`. The message endpoint renders `services/messages.py` — the
+frontend never holds a copy of the template.
 
 ### Stats
 

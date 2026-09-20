@@ -28,6 +28,9 @@ erDiagram
     fixtures ||--o{ match_events : "has"
     fixtures ||--o{ awards : "has"
     fixtures ||--o{ match_notes : "has"
+    fixtures ||--o| fixture_selections : "plan for"
+    fixture_selections ||--o{ fixture_selection_players : "picks"
+    players ||--o{ fixture_selection_players : "picked"
     appearances ||--o{ player_stints : "on pitch"
     match_events ||--o| match_events : "assist → goal"
     award_types ||--o{ awards : "typed"
@@ -78,7 +81,8 @@ hangs off a season directly; it exists so every team's "2026/27" is the same sea
 **`team_seasons`** — a club team in a season. `club_team_id`, `season_id` (unique
 together), `age_group` ("U10", stored for display, derived at creation), `format` ("7v7"),
 `match_minutes` (default 50; the FA U10 maximum — feeds time-on-pitch), `is_current`
-(one per club team, enforced in `TeamSeasonService`). **Squads, fixtures, awards and stats
+(one per club team, enforced in `TeamSeasonService`), `arrival_lead_minutes` (default 30:
+"Please arrive at" in the parents' message is kick-off minus this). **Squads, fixtures, awards and stats
 all key on this.** Created by `TeamSeasonService.start`, which can copy the previous
 squad forward.
 
@@ -149,6 +153,22 @@ player's record; `opp_own_goal` counts for us with no player.
 `author` (who wrote the message), `sent_at` (when), `created_by_user_id` (the coach who
 pasted it). Several per fixture; cascade with the fixture.
 
+### Pre-match selection
+
+**`fixture_selections`** — the coach's **plan** for an upcoming fixture, one per fixture
+(`fixture_id` unique, cascades). `coaching` ("Adam & Dan"), `notes` (free text for
+parents), `created_by_user_id`. A plan is not a record: `appearances` (who played) are
+only ever written by the result flows, and the stats engine never reads this table.
+
+**`fixture_selection_players`** — one row per player on the plan: `selection_id`
+(cascade), `player_id` (RESTRICT), `status` (`start` | `sub` | `unavailable`), `reason`
+("injured"). Unique per (selection, player). Starters + subs are the squad the parents'
+message lists and the default line-up for result entry and the live screen; `start` /
+`sub` is the split the time-on-pitch work will read. A player must be in the team's
+cohort (which includes its squad). Replaced whole on every `PUT` — a header row with
+children rather than JSON so player ids are FK-enforced and "how often has X been left
+out" is a query later.
+
 ### Awards
 
 **`award_types`** — `code` (unique), `name`, `scope` (`match` | `month` | `season`),
@@ -180,6 +200,8 @@ media row + a link with `role='profile_photo'`.
                                   existing rows into a Blues team season; users → club admin
 20260915_2143_match_notes.py      match_notes
 20260920_1127_live_fixture_status.py  adds 'live' to the fixtures.status CHECK
+20260920_1233_squad_selection.py  fixture_selections, fixture_selection_players,
+                                  team_seasons.arrival_lead_minutes
 ```
 
 - Alembic runs in **batch mode** (`render_as_batch=True`) because SQLite can't `ALTER`

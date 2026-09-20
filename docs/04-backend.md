@@ -13,7 +13,7 @@ backend/
 │   ├── repositories/       every query; BaseRepository[Model] + one per aggregate
 │   ├── services/           business rules; see below
 │   ├── api/deps.py         DB, CurrentUser, Access dependencies
-│   ├── api/routers/        auth, club, seasons, players, lookups, fixtures, live, users, reports
+│   ├── api/routers/        auth, club, seasons, players, lookups, fixtures (+notes, selection), live, users, reports
 │   └── assets/crest.png    used by the PDF
 ├── alembic/                env.py + versions/
 ├── scripts/                seed.py (migrate + seed), export_openapi.py
@@ -62,6 +62,7 @@ backend/
 | `match.py` | `Appearance`, `PlayerStint`, `MatchEvent` (self-referential `related_event`) |
 | `award.py` | `Award` |
 | `note.py` | `MatchNote` |
+| `selection.py` | `FixtureSelection`, `SelectionPlayer` (the pre-match plan) |
 | `media.py` | `Media`, `MediaLink` |
 | `user.py` | `User`, `UserRole` (exported as `UserRoleAssignment` to avoid clashing with the enum) |
 
@@ -109,6 +110,8 @@ Every service takes `(db, access)`; the access object is how scoping happens.
 | `fixtures.py` | CRUD with match-number uniqueness; `submit_result` — the transactional post-match write; `_to_detail` folds assists into goals and attaches `score_warnings`. |
 | `live.py` | `LiveMatchService`: the same result written one tap at a time (start/squad/goals/against/finish/abandon) while `status=live`. |
 | `notes.py` | Match notes CRUD. |
+| `selections.py` | `SelectionService`: the pre-match plan (get/put/delete, replaced whole) and `message()` for the parents' text. Editable while `scheduled`/`postponed`; 409 once played. |
+| `messages.py` | Pure functions: `parents_message()` renders the house-style text from plain values; `arrival_time()` does kick-off minus lead in Europe/London; `format_kickoff` ("11am", "10.30am"), `kickoff_article` ("a"/"an"). No DB, so the exact text is unit-tested and a scheduled reminder can reuse it. |
 | `media.py` | `PlayerPhotoService`: re-encode (EXIF stripped, orientation applied), two sizes, private storage, replace/remove. |
 | `stats.py` | Pure functions + `StatsService` (summary, leaderboard, player row, cohort overview). See [Stats](07-stats.md). |
 | `reports.py` | Matchday PDF (fpdf2). |
@@ -169,5 +172,7 @@ In production `docs_url`/`openapi_url` are `None`.
 - `test_stats.py` — the arithmetic against the oracle; `test_api.py` — CRUD and the entry
   flow; `test_access.py` — scoping across roles; `test_config.py` — production guard;
   `test_reports.py`, `test_exports.py` (recalculates in LibreOffice when installed),
-  `test_photos.py`, `test_notes.py`, `test_live.py` (live entry end to end + scoping).
+  `test_photos.py`, `test_notes.py`, `test_live.py` (live entry end to end + scoping),
+  `test_selections.py` (the plan, the message's exact text and variants, arrival arithmetic
+  across midnight/DST, scoping, the PDF with a selection).
 - Run `make test`; `uv run pytest -q tests/test_x.py -k name` for one.
