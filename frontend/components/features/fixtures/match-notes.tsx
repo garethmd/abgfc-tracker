@@ -38,7 +38,7 @@ export function MatchNotes({ fixtureId, canEdit }: { fixtureId: number; canEdit:
 
   async function onSave(e: React.FormEvent) {
     e.preventDefault();
-    const payload = { body, author: author.trim() || null, sent_at: sentAt ? new Date(sentAt).toISOString().slice(0, 19) : null };
+    const payload = { body, author: author.trim() || null, sent_at: sentAt ? `${sentAt}:00` : null };
     try {
       if (editing === "new") await create.mutateAsync({ params: { path: { fixture_id: fixtureId } }, body: payload });
       else if (editing) await update.mutateAsync({ params: { path: { fixture_id: fixtureId, note_id: editing.id } }, body: payload });
