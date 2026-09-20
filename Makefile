@@ -37,7 +37,8 @@ seed-demo: ## Reset the dev DB and load the fictional demo season (the test orac
 	cd $(BACKEND) && uv run python -m scripts.seed --reset --demo
 
 test: ## Run the backend test suite
-	cd $(BACKEND) && uv run pytest -q
+	# .env.production is exported above for deploys; keep its secrets out of the tests
+	cd $(BACKEND) && env -u ABGFC_COACH_PASSWORD -u ABGFC_SECRET_KEY uv run pytest -q
 
 lint: ## Lint + typecheck everything
 	cd $(BACKEND) && uv run ruff check . && uv run ruff format --check .
