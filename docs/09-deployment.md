@@ -102,8 +102,14 @@ Three layers, the first two free and in place:
    script lacked the sudo, and nobody noticed for a week.
 2. **Off-box**: `make backup` takes a fresh copy and pulls it to your Mac. Do this
    regularly; it's the only copy that survives losing the droplet.
-3. **Not enabled**: DigitalOcean's droplet backups ($1.20/month weekly). One `doctl`
-   command if the budget allows.
+3. **DigitalOcean droplet backups** — enabled 20 September 2026: weekly, Sundays
+   04:00–08:00 UTC (after Saturday's results are in), 28-day retention, $1.20/month.
+   Whole-disk, so it covers `/data/media` too. Restoring one replaces the entire droplet
+   (`doctl compute droplet-action restore <id> --image-id <backup>`), so it's the
+   "lost the box" layer, not the "a coach deleted a fixture" layer — use the SQLite
+   copies for that. Policy: `doctl compute droplet backup-policies get 600477835`;
+   the plan defaults to *daily* ($1.80) if re-enabled, so set weekly explicitly with
+   `droplet-action change-backup-policy`.
 
 **Photos are not in the SQLite backup.** `/data/media` needs its own copy — see the
 roadmap; until then `rsync -a deploy@<ip>:/data/media data/media-backup/` by hand.

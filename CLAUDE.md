@@ -195,7 +195,9 @@ tagged `latest` + commit SHA) - the 1GB box runs the app but can't build it.
   `make prod-shell`. **Roll back**: set `IMAGE_TAG=<commit sha>` in the box's `.env` and
   run `make deploy` (every main commit's images are tagged with its SHA), or restore a
   backup. Branch protection requires the checks on PRs; admins can still push to `main`.
-- **Backups** (free, no DO add-on): `deploy/backup.sh` runs nightly at 02:00 via the
+- **Backups**: DigitalOcean weekly droplet backups are on (Sun 04:00 UTC, 28-day
+  retention, whole disk incl. media; restore = replace the droplet). Plus, free:
+  `deploy/backup.sh` runs nightly at 02:00 via the
   deploy user's crontab (installed by `make deploy`), using SQLite's online backup +
   integrity check into `/data/backups`, keeping 14 days; `/data/backups/backup.log` says
   whether it ran - **look at it after a deploy** (it failed silently for a week in Sept
