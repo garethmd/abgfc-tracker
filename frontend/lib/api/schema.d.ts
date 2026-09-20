@@ -329,6 +329,135 @@ export interface paths {
         patch: operations["update_fixture_api_v1_fixtures__fixture_id__patch"];
         trace?: never;
     };
+    "/api/v1/fixtures/{fixture_id}/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Abandon Live
+         * @description Started by mistake: clears everything and returns the fixture to scheduled.
+         */
+        delete: operations["abandon_live_api_v1_fixtures__fixture_id__live_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fixtures/{fixture_id}/live/against": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Live Goal Against */
+        post: operations["live_goal_against_api_v1_fixtures__fixture_id__live_against_post"];
+        /** Remove Live Goal Against */
+        delete: operations["remove_live_goal_against_api_v1_fixtures__fixture_id__live_against_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fixtures/{fixture_id}/live/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finish Live
+         * @description Full time: the fixture becomes 'played', exactly as PUT /result would leave it.
+         */
+        post: operations["finish_live_api_v1_fixtures__fixture_id__live_finish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fixtures/{fixture_id}/live/goals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Live Goal */
+        post: operations["add_live_goal_api_v1_fixtures__fixture_id__live_goals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fixtures/{fixture_id}/live/goals/{event_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove Live Goal */
+        delete: operations["remove_live_goal_api_v1_fixtures__fixture_id__live_goals__event_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fixtures/{fixture_id}/live/squad": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Live Squad */
+        put: operations["set_live_squad_api_v1_fixtures__fixture_id__live_squad_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fixtures/{fixture_id}/live/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Live
+         * @description Kick off: the fixture goes live with today's squad and a 0-0 score.
+         */
+        post: operations["start_live_api_v1_fixtures__fixture_id__live_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/fixtures/{fixture_id}/notes": {
         parameters: {
             query?: never;
@@ -1189,7 +1318,7 @@ export interface components {
          * FixtureStatus
          * @enum {string}
          */
-        FixtureStatus: "scheduled" | "played" | "postponed" | "cancelled" | "abandoned";
+        FixtureStatus: "scheduled" | "live" | "played" | "postponed" | "cancelled" | "abandoned";
         /** FixtureUpdate */
         FixtureUpdate: {
             /** Competition Id */
@@ -1297,6 +1426,38 @@ export interface components {
             rows: components["schemas"]["PlayerStatsRow"][];
             /** Team Season Id */
             team_season_id: number;
+        };
+        /**
+         * LiveGoal
+         * @description A goal as it happens. `sequence` is the client's next event sequence: resending the
+         *     same one (a retried request) returns the goal already recorded instead of a second.
+         */
+        LiveGoal: {
+            /** Assisted By Id */
+            assisted_by_id?: number | null;
+            /**
+             * Event Type
+             * @default goal
+             */
+            event_type?: string;
+            /** Minute */
+            minute?: number | null;
+            /** Notes */
+            notes?: string | null;
+            /** Scorer Id */
+            scorer_id?: number | null;
+            /** Sequence */
+            sequence: number;
+        };
+        /**
+         * LiveSquad
+         * @description Who is playing today. Captain, if given, must be one of them.
+         */
+        LiveSquad: {
+            /** Captain Id */
+            captain_id?: number | null;
+            /** Player Ids */
+            player_ids: number[];
         };
         /** LoginRequest */
         LoginRequest: {
@@ -2722,6 +2883,281 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["FixtureUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    abandon_live_api_v1_fixtures__fixture_id__live_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    live_goal_against_api_v1_fixtures__fixture_id__live_against_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_live_goal_against_api_v1_fixtures__fixture_id__live_against_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finish_live_api_v1_fixtures__fixture_id__live_finish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_live_goal_api_v1_fixtures__fixture_id__live_goals_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveGoal"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_live_goal_api_v1_fixtures__fixture_id__live_goals__event_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
+                event_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_live_squad_api_v1_fixtures__fixture_id__live_squad_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveSquad"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_live_api_v1_fixtures__fixture_id__live_start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveSquad"];
             };
         };
         responses: {

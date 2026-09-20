@@ -144,3 +144,29 @@ class ResultSubmit(InputModel):
         if len(ids) != len(set(ids)):
             raise ValueError("a player can only appear once")
         return self
+
+
+# --- Live match entry ------------------------------------------------------
+# Same end state as ResultSubmit, written one tap at a time (services/live.py).
+
+
+class LiveSquad(InputModel):
+    """Who is playing today. Captain, if given, must be one of them."""
+
+    player_ids: list[int] = Field(min_length=1)
+    captain_id: int | None = None
+
+    @model_validator(mode="after")
+    def _check(self):
+        if len(self.player_ids) != len(set(self.player_ids)):
+            raise ValueError("a player can only appear once")
+        if self.captain_id is not None and self.captain_id not in self.player_ids:
+            raise ValueError("the captain must be playing")
+        return self
+
+
+class LiveGoal(GoalInput):
+    """A goal as it happens. `sequence` is the client's next event sequence: resending the
+    same one (a retried request) returns the goal already recorded instead of a second."""
+
+    sequence: int = Field(ge=1)

@@ -85,7 +85,9 @@ def gather(
         if fixture is None:
             raise NotFoundError(f"Fixture {fixture_id} not in this team season")
     else:
-        upcoming = [f for f in all_fixtures if f.status == FixtureStatus.SCHEDULED]
+        upcoming = [
+            f for f in all_fixtures if f.status in (FixtureStatus.SCHEDULED, FixtureStatus.LIVE)
+        ]
         fixture = upcoming[0] if upcoming else None
 
     previous = (

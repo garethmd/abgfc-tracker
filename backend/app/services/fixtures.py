@@ -77,6 +77,8 @@ class FixtureService:
             TeamRepository(self.db).get_or_404(changes["opposition_team_id"])
         if changes.get("match_number") is not None:
             self._check_match_number(fixture.team_season_id, changes["match_number"], id)
+        if changes.get("status") == FixtureStatus.LIVE and fixture.status != FixtureStatus.LIVE:
+            raise ValidationError("Use 'Start match' to take a fixture live")
         for k, v in changes.items():
             setattr(fixture, k, v)
         if fixture.status == FixtureStatus.PLAYED and (
@@ -94,6 +96,8 @@ class FixtureService:
     def submit_result(self, id: int, data: ResultSubmit) -> FixtureDetail:
         """Replace the fixture's whole result atomically and mark it played."""
         fixture = self.get(id, UserRole.COACH)
+        if fixture.status == FixtureStatus.LIVE:
+            raise ConflictError("This match is being tracked live - finish it first")
 
         players = PlayerRepository(self.db)
         positions = PositionRepository(self.db)

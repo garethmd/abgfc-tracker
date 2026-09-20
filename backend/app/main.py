@@ -2,7 +2,17 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routers import auth, club, fixtures, lookups, players, reports, seasons, users
+from app.api.routers import (
+    auth,
+    club,
+    fixtures,
+    live,
+    lookups,
+    players,
+    reports,
+    seasons,
+    users,
+)
 from app.config import get_settings
 from app.core.errors import AppError
 
@@ -31,7 +41,7 @@ def create_app() -> FastAPI:
     async def app_error_handler(_: Request, exc: AppError) -> JSONResponse:
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
-    for r in (auth, club, seasons, players, lookups, fixtures, users, reports):
+    for r in (auth, club, seasons, players, lookups, fixtures, live, users, reports):
         app.include_router(r.router, prefix=API_PREFIX)
 
     @app.get("/api/health", tags=["meta"])

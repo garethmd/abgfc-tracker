@@ -16,6 +16,7 @@ class Venue(StrEnum):
 
 class FixtureStatus(StrEnum):
     SCHEDULED = "scheduled"
+    LIVE = "live"  # being recorded at the side of the pitch; becomes PLAYED on finish
     PLAYED = "played"
     POSTPONED = "postponed"
     CANCELLED = "cancelled"
