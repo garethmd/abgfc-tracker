@@ -27,8 +27,10 @@ can then show a position breakdown.
 **Time on pitch (rolling subs).** `player_stints(appearance_id, on_minute, off_minute,
 position_id)` exists; `stats.minutes_for_appearance` computes minutes and
 `PlayerStatsRow.minutes` flips from `None` once every appearance has stints. Needed: a
-"subs" step on the result screen (or a live match clock), writing stints per appearance.
-The cohort overview's *Mins* column then lights up.
+"subs" step on the result screen, or subs + a clock on the live screen
+(`services/live.py` - a sub would close the leaver's stint and open one for the player
+coming on; kick-off would give starters a stint from minute 0), writing stints per
+appearance. The cohort overview's *Mins* column then lights up.
 
 **Player cards.** Photos, memberships history and per-season stats exist. Add: a
 season-by-season block (`GET /players/{id}/memberships` + stats per team season),
@@ -60,10 +62,12 @@ the PDF endpoint with a service credential and emailing it. Needs an email provi
 
 ## Platform
 
-**Offline / optimistic entry.** `PUT /fixtures/{id}/result` is idempotent by design.
-Persist TanStack Query's mutation cache (`persistQueryClient` + `onMutate`) so a result
-saved without signal is retried when the phone reconnects, and the fixture page shows
-the optimistic result meanwhile.
+**Offline / optimistic entry.** `PUT /fixtures/{id}/result` is idempotent by design, and
+the live endpoints are small (goals are retry-safe via `sequence`). Persist TanStack
+Query's mutation cache (`persistQueryClient` + `onMutate`) so a result or a live goal
+saved without signal is retried when the phone reconnects, and the page shows the
+optimistic state meanwhile. Today live goals retry twice on a network error and the
+screen refetches on focus; a persisted queue is the next step.
 
 **Postgres.** Only if SQLite becomes limiting (it won't at club scale). Portability
 work: boolean `server_default="1"` → `true`, the partial unique index needs

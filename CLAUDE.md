@@ -49,7 +49,7 @@ backend/   FastAPI + SQLAlchemy 2 + Alembic, managed by uv (Python 3.13)
   tests/              pytest; conftest builds an in-memory DB per test
 frontend/  Next.js 16 App Router + TypeScript + Tailwind 4 + shadcn (radix)
   app/(app)/          Authenticated. layout loads /auth/me -> MeProvider; page.tsx routes
-    [team]/           Everything a coach uses: dashboard, fixtures, players, settings
+    [team]/           Everything a coach uses: dashboard, fixtures (+ [id]/live), players, settings
     cohorts/[id]/     Age-group overview (Stuart): team records + player game time + moves
     admin/            Coaches (users/roles/password reset), age groups & teams
     teams/            Picker for people with several teams
@@ -79,7 +79,7 @@ not spreadsheet columns. Full DDL is in `backend/alembic/versions/`; rationale h
 | `positions` | Lookup (GK/DEF/MID/FWD + `category`). Finer positions later = rows sharing a category. |
 | `competitions` | Global lookup with `type` (league/cup/friendly/tournament). "League-only" stats filter on the type, so a second league competition needs no code. |
 | `teams` | Opposition. We are not a row; fixtures are always us-vs-them. Enables head-to-head later. |
-| `fixtures` | Keyed by `team_season_id`. `our_score`/`their_score` are **stored** as well as derivable — at pitchside you know the score before the scorers. `stats.score_warnings()` reports mismatches instead of blocking. A derby (Blues v Blacks) is two rows, one per team; `teams.club_team_id` links the opposition row to our own team. |
+| `fixtures` | Keyed by `team_season_id`. `status` includes `live` (being recorded from the pitch; only `played` counts for stats). `our_score`/`their_score` are **stored** as well as derivable — at pitchside you know the score before the scorers. `stats.score_warnings()` reports mismatches instead of blocking. A derby (Blues v Blacks) is two rows, one per team; `teams.club_team_id` links the opposition row to our own team. |
 | `appearances` | One row per player per fixture (`started`, `position_id`, `shirt_number`, `captain`). Unique (fixture, player). This is what the app writes today. |
 | `player_stints` | Rolling-sub detail: `(appearance_id, on_minute, off_minute NULL=to the end, position_id)`. Hangs off the appearance so a stint can't exist for someone who didn't play. `stats.minutes_for_appearance()` already computes minutes; nothing writes stints yet. |
 | `match_events` | `goal` / `assist` / `own_goal` / `opp_own_goal` with `player_id` (NULL only for `opp_own_goal`), `minute`, `sequence`. **An assist is its own row pointing at its goal via `related_event_id`.** Goals and assists are `COUNT(*)`s. A goal is therefore an addressable thing a YouTube clip can attach to. |
@@ -138,7 +138,11 @@ Team-scoped resources live under `/team-seasons/{id}/...` (squad, stats); fixtur
 The one that matters: **`PUT /fixtures/{id}/result`** takes the whole
 result (score, appearances, goals+assists, awards) in one transactional write and marks
 the fixture played — that's the under-a-minute flow, and it's idempotent so it can be
-queued offline later. Errors are `{"detail": "..."}` with 404/409/422/401.
+queued offline later. **Live entry** (`/fixtures/{id}/live/start|squad|goals|against|finish`,
+`services/live.py`) writes the same result one tap at a time while `status=live`; `finish`
+makes it `played` and the UI hands over to the entry screen for awards. `PUT /result` is
+409 while live, so a fixture is only ever on one path. Errors are `{"detail": "..."}` with
+404/409/422/401.
 
 Frontend types are generated: `make api-client` (exports `openapi.json` without a
 running server, then `openapi-typescript`). CI should run `make check-api`.

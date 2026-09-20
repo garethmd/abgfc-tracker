@@ -104,6 +104,13 @@ Full rules in [Security](08-security.md).
 | **PUT** | **`/fixtures/{id}/result`** | coach | **the post-match write** — see below |
 | GET/POST | `/fixtures/{id}/notes` | viewer / coach | `MatchNoteRead[]`; `{body, author?, sent_at?}` |
 | PATCH/DELETE | `/fixtures/{id}/notes/{note_id}` | coach | 404 if the note isn't on that fixture |
+| POST | `/fixtures/{id}/live/start` | coach | `LiveSquad {player_ids, captain_id?}` → `status=live`, 0-0; 409 unless `scheduled` |
+| PUT | `/fixtures/{id}/live/squad` | coach | `LiveSquad`; 422 if it drops someone with a goal/assist |
+| POST | `/fixtures/{id}/live/goals` | coach | `LiveGoal` = `GoalInput` + `sequence`; bumps the score; same `sequence` again = same goal (retry-safe), other goal at a used `sequence` = 409 |
+| DELETE | `/fixtures/{id}/live/goals/{event_id}` | coach | undo: removes goal + assist, decrements the score |
+| POST/DELETE | `/fixtures/{id}/live/against` | coach | opposition goal (`their_score` ± 1; no event) |
+| POST | `/fixtures/{id}/live/finish` | coach | `status=played`; the fixture is now exactly what `PUT /result` produces |
+| DELETE | `/fixtures/{id}/live` | coach | started by mistake: clears everything, back to `scheduled` |
 
 `ResultSubmit`:
 
@@ -124,6 +131,12 @@ can't assist their own goal; own goals can't be assisted; `opp_own_goal` has no 
 award types must be match-scoped and visible to the team. Replaces the fixture's whole
 result and sets `status=played`. Score/scorer disagreements come back as `warnings` on
 the detail, not errors.
+
+**Live entry** (`/fixtures/{id}/live/*`, `services/live.py`) writes the same result one
+tap at a time. Every call returns the full `FixtureDetail`. While a fixture is `live`,
+`PUT /result` answers 409 ("finish it first") and `PATCH` can't set the status to `live`;
+`finish` moves it to `played`, after which the post-match screen is used as normal for
+the awards and any corrections. Viewers see the running score through `GET /fixtures/{id}`.
 
 ### Stats
 

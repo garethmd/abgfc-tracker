@@ -28,7 +28,7 @@ frontend/
 │       └── [team]/                everything a coach uses
 │           ├── layout.tsx         slug → TeamAccess → <TeamProvider> + <AppShell nav>
 │           ├── page.tsx           dashboard
-│           ├── fixtures/          list, new, [id] (detail), [id]/entry, [id]/edit
+│           ├── fixtures/          list, new, [id] (detail), [id]/entry, [id]/edit, [id]/live
 │           ├── players/           squad list, [id] (profile)
 │           └── settings/          seasons, awards, leagues, opposition, appearance, account
 ├── components/
@@ -102,6 +102,7 @@ qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });   // prefix mat
 | Fixtures | `FixtureRow` | "Next up" card with *Enter result* + *Sheet* (PDF) |
 | Fixture detail | `MatchNotes`, `GoalLine` | ⋯ menu: edit, edit result, PDF, delete; warnings banner |
 | Result entry | `ResultEntry`, `GoalSheet`, `Chip`, `ScoreStepper` | squad preselected; bottom sheet scorer→assist; sticky save |
+| Live match | `LineUp`, `LiveMatch` (+ `GoalSheet`/`Chip` from result entry) | line-up + captain → sticky score card, Goal/Against/Undo bar, Full time → entry screen for awards |
 | Fixture new/edit | `FixtureForm` | inline "+ New team…" creates opposition |
 | Squad | `PlayerAvatar`, `PlayerForm` (sheet) | "Already at the club" mode picks from the cohort pool |
 | Player | `PhotoPicker`, `PlayerAvatar`, `Stat` | season stats, history across teams |

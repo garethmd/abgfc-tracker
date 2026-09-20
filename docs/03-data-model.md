@@ -120,8 +120,9 @@ We are never "the home team" in a row; fixtures are always us-vs-opposition.
 **`fixtures`** — `team_season_id`, `competition_id`, `opposition_team_id`,
 `match_number` (unique per team season, auto-assigned as max+1 if omitted), `kickoff_at`,
 `venue` (`home` | `away` | `neutral`), `venue_notes` (ground), `status` (`scheduled` |
-`played` | `postponed` | `cancelled` | `abandoned`), `our_score`, `their_score` (NULL
-until played; CHECK ≥ 0), `duration_minutes` (overrides the team season's default),
+`live` | `played` | `postponed` | `cancelled` | `abandoned` — `live` is a match being
+recorded from the pitch, see [Features](11-features.md#live-match-entry)), `our_score`,
+`their_score` (NULL until played or live; CHECK ≥ 0), `duration_minutes` (overrides the team season's default),
 `notes` (one-line admin). Index on (team_season_id, kickoff_at).
 Scores are **stored** as well as derivable from events; `stats.score_warnings()` reports
 disagreements instead of blocking entry.
@@ -178,6 +179,7 @@ media row + a link with `role='profile_photo'`.
 20260912_2346_multi_team.py       cohorts, club teams, team seasons, user roles; remaps
                                   existing rows into a Blues team season; users → club admin
 20260915_2143_match_notes.py      match_notes
+20260920_1127_live_fixture_status.py  adds 'live' to the fixtures.status CHECK
 ```
 
 - Alembic runs in **batch mode** (`render_as_batch=True`) because SQLite can't `ALTER`

@@ -1,4 +1,4 @@
-# 11. Reports, exports and media
+# 11. Reports, exports, media and live entry
 
 ## Matchday sheet (PDF)
 
@@ -67,6 +67,35 @@ need coach. Cascade with the fixture.
 UI: *Match report* section on a played fixture's page (`MatchNotes` component) — bottom
 sheet with a paste box, *From*, *Sent*; edit/delete per note for coaches. Distinct from
 the fixture's one-line `notes` field (pitch/kit admin).
+
+## Live match entry
+
+A second way to record a match, alongside the post-match screen (which is unchanged).
+`services/live.py`, routes under `/fixtures/{id}/live`, UI at `/[team]/fixtures/[id]/live`
+(`LineUp` + `LiveMatch` in `components/features/fixtures/live-match.tsx`).
+
+- **Start match** (fixture page and the *Next up* card, next to *Enter result*) → pick
+  who's playing and an optional captain → *Kick off*. The fixture becomes `status=live`
+  with `appearances` (all `started`) and a 0-0 score. No new tables: the result is
+  written into its usual columns as it happens.
+- **Goal** opens the same scorer → assist bottom sheet as the result screen and writes a
+  `match_events` row (+ assist) immediately; **Against** bumps `their_score` (opposition
+  goals have no event type); **Undo** reverses the last of either, and any goal row can be
+  removed. Each write returns the whole `FixtureDetail`, which the screen drops into the
+  query cache - nothing is held only in the browser, so a locked phone or a reload just
+  shows the server's state. Goals carry a client `sequence`, so a retried request can't
+  double-count. The page also polls every 15s while live, for a second phone watching.
+- **Change squad** for a late arrival or no-show (anyone with a goal or assist stays).
+- **Full time** → `status=played`, then straight to the existing *Edit result* screen for
+  the POTM chips. From there on it is indistinguishable from a match entered after the game
+  (the result screen preserves a captain it finds on the fixture).
+- **Discard live match** (⋯ menu) puts the fixture back to `scheduled` with nothing recorded.
+- The two paths can't clash: `start` needs `scheduled`; `PUT /result` is refused while
+  `live`; the UI shows only *Continue live match* on a live fixture. The fixtures list shows
+  a red *Live* badge and the running score; the stats engine ignores `live` (only `played`
+  counts).
+
+No clock and no minutes: that's the *time on pitch* item on the [roadmap](12-roadmap.md).
 
 ## Player profile photos
 

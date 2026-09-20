@@ -13,7 +13,7 @@ backend/
 │   ├── repositories/       every query; BaseRepository[Model] + one per aggregate
 │   ├── services/           business rules; see below
 │   ├── api/deps.py         DB, CurrentUser, Access dependencies
-│   ├── api/routers/        auth, club, seasons, players, lookups, fixtures, users, reports
+│   ├── api/routers/        auth, club, seasons, players, lookups, fixtures, live, users, reports
 │   └── assets/crest.png    used by the PDF
 ├── alembic/                env.py + versions/
 ├── scripts/                seed.py (migrate + seed), export_openapi.py
@@ -107,6 +107,7 @@ Every service takes `(db, access)`; the access object is how scoping happens.
 | `players.py` | Players (cohort-scoped uniqueness of display name), squad upsert/remove, `move` between teams, `memberships`. |
 | `lookups.py` | Competitions, opposition teams (delete refused while fixtures reference them), award types (per-team codes). |
 | `fixtures.py` | CRUD with match-number uniqueness; `submit_result` — the transactional post-match write; `_to_detail` folds assists into goals and attaches `score_warnings`. |
+| `live.py` | `LiveMatchService`: the same result written one tap at a time (start/squad/goals/against/finish/abandon) while `status=live`. |
 | `notes.py` | Match notes CRUD. |
 | `media.py` | `PlayerPhotoService`: re-encode (EXIF stripped, orientation applied), two sizes, private storage, replace/remove. |
 | `stats.py` | Pure functions + `StatsService` (summary, leaderboard, player row, cohort overview). See [Stats](07-stats.md). |
@@ -168,5 +169,5 @@ In production `docs_url`/`openapi_url` are `None`.
 - `test_stats.py` — the arithmetic against the oracle; `test_api.py` — CRUD and the entry
   flow; `test_access.py` — scoping across roles; `test_config.py` — production guard;
   `test_reports.py`, `test_exports.py` (recalculates in LibreOffice when installed),
-  `test_photos.py`, `test_notes.py`.
+  `test_photos.py`, `test_notes.py`, `test_live.py` (live entry end to end + scoping).
 - Run `make test`; `uv run pytest -q tests/test_x.py -k name` for one.
