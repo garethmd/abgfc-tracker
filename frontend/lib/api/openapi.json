@@ -2055,6 +2055,19 @@
         "title": "MembershipRead",
         "type": "object"
       },
+      "ParentsMessage": {
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "ParentsMessage",
+        "type": "object"
+      },
       "PlayerCreate": {
         "additionalProperties": false,
         "properties": {
@@ -2835,6 +2848,212 @@
         "title": "SeasonUpdate",
         "type": "object"
       },
+      "SelectionPlayerInput": {
+        "additionalProperties": false,
+        "properties": {
+          "player_id": {
+            "title": "Player Id",
+            "type": "integer"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "examples": [
+              "injured",
+              "away"
+            ],
+            "title": "Reason"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SelectionStatus"
+          }
+        },
+        "required": [
+          "player_id",
+          "status"
+        ],
+        "title": "SelectionPlayerInput",
+        "type": "object"
+      },
+      "SelectionPlayerRead": {
+        "properties": {
+          "player": {
+            "$ref": "#/components/schemas/PlayerSummary"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "squad_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Squad Number"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SelectionStatus"
+          }
+        },
+        "required": [
+          "player",
+          "squad_number",
+          "status",
+          "reason"
+        ],
+        "title": "SelectionPlayerRead",
+        "type": "object"
+      },
+      "SelectionRead": {
+        "description": "Starters, subs and the unavailable as three lists (squad-number then name order),\nso the message and the live line-up read the split straight off.",
+        "properties": {
+          "arrival_at": {
+            "format": "date-time",
+            "title": "Arrival At",
+            "type": "string"
+          },
+          "arrival_lead_minutes": {
+            "title": "Arrival Lead Minutes",
+            "type": "integer"
+          },
+          "coaching": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coaching"
+          },
+          "fixture_id": {
+            "title": "Fixture Id",
+            "type": "integer"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "starters": {
+            "items": {
+              "$ref": "#/components/schemas/SelectionPlayerRead"
+            },
+            "title": "Starters",
+            "type": "array"
+          },
+          "subs": {
+            "items": {
+              "$ref": "#/components/schemas/SelectionPlayerRead"
+            },
+            "title": "Subs",
+            "type": "array"
+          },
+          "unavailable": {
+            "items": {
+              "$ref": "#/components/schemas/SelectionPlayerRead"
+            },
+            "title": "Unavailable",
+            "type": "array"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fixture_id",
+          "starters",
+          "subs",
+          "unavailable",
+          "arrival_at",
+          "arrival_lead_minutes",
+          "coaching",
+          "notes",
+          "updated_at"
+        ],
+        "title": "SelectionRead",
+        "type": "object"
+      },
+      "SelectionStatus": {
+        "description": "A player's place in a pre-match selection (the plan, not who played).",
+        "enum": [
+          "start",
+          "sub",
+          "unavailable"
+        ],
+        "title": "SelectionStatus",
+        "type": "string"
+      },
+      "SelectionSubmit": {
+        "additionalProperties": false,
+        "description": "The whole plan for a match in one write - replaces what was there, like PUT /result.",
+        "properties": {
+          "coaching": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "examples": [
+              "Adam & Dan"
+            ],
+            "title": "Coaching"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 5000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "players": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SelectionPlayerInput"
+            },
+            "title": "Players",
+            "type": "array"
+          }
+        },
+        "title": "SelectionSubmit",
+        "type": "object"
+      },
       "SetPasswordRequest": {
         "additionalProperties": false,
         "properties": {
@@ -3172,6 +3391,10 @@
             ],
             "title": "Age Group"
           },
+          "arrival_lead_minutes": {
+            "title": "Arrival Lead Minutes",
+            "type": "integer"
+          },
           "club_team": {
             "$ref": "#/components/schemas/ClubTeamRead"
           },
@@ -3209,7 +3432,8 @@
           "age_group",
           "format",
           "match_minutes",
-          "is_current"
+          "is_current",
+          "arrival_lead_minutes"
         ],
         "title": "TeamSeasonRead",
         "type": "object"
@@ -3314,6 +3538,19 @@
               }
             ],
             "title": "Age Group"
+          },
+          "arrival_lead_minutes": {
+            "anyOf": [
+              {
+                "maximum": 180.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Arrival Lead Minutes"
           },
           "format": {
             "anyOf": [
@@ -6034,6 +6271,268 @@
           }
         },
         "summary": "Submit Result",
+        "tags": [
+          "fixtures"
+        ]
+      }
+    },
+    "/api/v1/fixtures/{fixture_id}/selection": {
+      "delete": {
+        "operationId": "delete_selection_api_v1_fixtures__fixture_id__selection_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fixture_id",
+            "required": true,
+            "schema": {
+              "title": "Fixture Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Selection",
+        "tags": [
+          "fixtures"
+        ]
+      },
+      "get": {
+        "description": "None until a coach has picked a squad.",
+        "operationId": "get_selection_api_v1_fixtures__fixture_id__selection_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fixture_id",
+            "required": true,
+            "schema": {
+              "title": "Fixture Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/SelectionRead"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Get Selection Api V1 Fixtures  Fixture Id  Selection Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Selection",
+        "tags": [
+          "fixtures"
+        ]
+      },
+      "put": {
+        "description": "Replace the whole selection: starters, subs, unavailable, coaching, notes.",
+        "operationId": "put_selection_api_v1_fixtures__fixture_id__selection_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fixture_id",
+            "required": true,
+            "schema": {
+              "title": "Fixture Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelectionSubmit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SelectionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Selection",
+        "tags": [
+          "fixtures"
+        ]
+      }
+    },
+    "/api/v1/fixtures/{fixture_id}/selection/message": {
+      "get": {
+        "description": "The parents' message in the club's house style, from the selection.",
+        "operationId": "parents_message_api_v1_fixtures__fixture_id__selection_message_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fixture_id",
+            "required": true,
+            "schema": {
+              "title": "Fixture Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "mark_subs",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Mark Subs",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_line",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Date Line",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParentsMessage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Parents Message",
         "tags": [
           "fixtures"
         ]

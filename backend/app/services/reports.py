@@ -16,13 +16,21 @@ from fpdf import FPDF
 from sqlalchemy.orm import Session
 
 from app.core.errors import NotFoundError
-from app.models import CompetitionType, Fixture, FixtureStatus, TeamSeason, UserRole
+from app.models import (
+    CompetitionType,
+    Fixture,
+    FixtureStatus,
+    SelectionStatus,
+    TeamSeason,
+    UserRole,
+)
 from app.repositories.club import TeamSeasonRepository
 from app.repositories.fixtures import FixtureRepository
 from app.schemas.fixture import FixtureDetail
 from app.schemas.stats import PlayerStatsRow
 from app.services.access import Access
 from app.services.fixtures import FixtureService
+from app.services.messages import arrival_time, format_arrival
 from app.services.stats import StatsService, form, outcome, team_record
 
 CREST = Path(__file__).resolve().parent.parent / "assets" / "crest.png"
@@ -67,6 +75,8 @@ class MatchdayData:
     last_match: FixtureDetail | None
     rows: list[PlayerStatsRow]
     generated_at: datetime
+    # The pre-match plan, if the coach has picked one: player id -> start/sub/unavailable
+    selection: dict[int, SelectionStatus]
 
 
 def gather(
@@ -101,7 +111,12 @@ def gather(
     )
     last = FixtureService(db, access).detail(played[-1].id) if played else None
     rows = StatsService(db, access).leaderboard(ts.id).rows
-    return MatchdayData(ts, fixture, previous, played, last, rows, datetime.now())
+    selection = (
+        {p.player_id: SelectionStatus(p.status) for p in fixture.selection.players}
+        if fixture and fixture.selection
+        else {}
+    )
+    return MatchdayData(ts, fixture, previous, played, last, rows, datetime.now(), selection)
 
 
 # --- layout ------------------------------------------------------------------------
@@ -212,6 +227,16 @@ def render(data: MatchdayData) -> bytes:
             pdf.text_line("Already played them: " + "; ".join(parts), 9, colour=INK, h=5)
         if f.notes:
             pdf.text_line(f.notes.replace("\n", " "), 9, "I", colour=MUTED, h=5)
+        if f.selection is not None:
+            n_start = sum(1 for v in data.selection.values() if v == SelectionStatus.START)
+            n_sub = sum(1 for v in data.selection.values() if v == SelectionStatus.SUB)
+            arrive = format_arrival(arrival_time(f.kickoff_at, ts.arrival_lead_minutes))
+            bits = [
+                f"Squad selected: {n_start} starting, {n_sub} subs",
+                f"arrive {arrive}",
+                f"{f.selection.coaching} coaching" if f.selection.coaching else None,
+            ]
+            pdf.text_line("  ·  ".join(b for b in bits if b), 9, colour=INK, h=5)
     pdf.ln(3)
 
     # --- season so far | last match (two columns) -----------------------------------
@@ -325,17 +350,20 @@ def render(data: MatchdayData) -> bytes:
             style = "B" if i == 1 else ""
             pdf.set_font("Helvetica", style, 9)
             pdf.cell(w, row_h, c, align=a)
-        # one tick box: available this week
+        # one tick box: available this week - pre-filled from the selection if there is one
         x = pdf.l_margin + sum(widths[:-1])
-        pdf.set_draw_color(150, 150, 150)
-        pdf.set_line_width(0.25)
-        pdf.rect(x + fixed["Avail"] / 2 - 1.8, y + row_h / 2 - 1.8, 3.6, 3.6)
+        _avail_box(pdf, x + fixed["Avail"] / 2, y + row_h / 2, data.selection.get(r.player.id))
         pdf.ln(row_h)
         pdf.rule()
+    footnotes = []
     if played_n and any(r.appearances == min_apps and r.appearances < played_n for r in rows):
+        footnotes.append("Shaded = fewest appearances so far")
+    if data.selection:
+        footnotes.append("Ticked = selected, filled = starting, crossed = unavailable")
+    if footnotes:
         pdf.set_font("Helvetica", "I", 7.5)
         pdf.set_text_color(*MUTED)
-        pdf.cell(0, 5, "Shaded = fewest appearances so far", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 5, "  ·  ".join(footnotes), new_x="LMARGIN", new_y="NEXT")
     pdf.ln(2)
 
     # --- plan box fills what's left ------------------------------------------------------
@@ -350,6 +378,30 @@ def render(data: MatchdayData) -> bytes:
         yy += 7
 
     return bytes(pdf.output())
+
+
+def _avail_box(pdf: Sheet, cx: float, cy: float, status: SelectionStatus | None) -> None:
+    """A 3.6mm box centred on (cx, cy): empty, ticked (sub), filled + ticked (starting)
+    or crossed (unavailable). Drawn, not a glyph - core Helvetica has no tick."""
+    half = 1.8
+    pdf.set_line_width(0.25)
+    if status == SelectionStatus.START:
+        pdf.set_fill_color(*pdf.accent)
+        pdf.set_draw_color(*pdf.accent)
+        pdf.rect(cx - half, cy - half, 2 * half, 2 * half, style="FD")
+        pdf.set_draw_color(255, 255, 255)
+    else:
+        pdf.set_draw_color(150, 150, 150)
+        pdf.rect(cx - half, cy - half, 2 * half, 2 * half)
+    if status in (SelectionStatus.START, SelectionStatus.SUB):
+        pdf.set_line_width(0.4)
+        pdf.line(cx - 1.2, cy, cx - 0.3, cy + 1.0)
+        pdf.line(cx - 0.3, cy + 1.0, cx + 1.3, cy - 1.1)
+    elif status == SelectionStatus.UNAVAILABLE:
+        pdf.set_draw_color(150, 150, 150)
+        pdf.set_line_width(0.4)
+        pdf.line(cx - 1.1, cy - 1.1, cx + 1.1, cy + 1.1)
+        pdf.line(cx - 1.1, cy + 1.1, cx + 1.1, cy - 1.1)
 
 
 def _positions(data: MatchdayData) -> dict[int, str]:

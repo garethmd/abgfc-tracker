@@ -514,6 +514,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/fixtures/{fixture_id}/selection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Selection
+         * @description None until a coach has picked a squad.
+         */
+        get: operations["get_selection_api_v1_fixtures__fixture_id__selection_get"];
+        /**
+         * Put Selection
+         * @description Replace the whole selection: starters, subs, unavailable, coaching, notes.
+         */
+        put: operations["put_selection_api_v1_fixtures__fixture_id__selection_put"];
+        post?: never;
+        /** Delete Selection */
+        delete: operations["delete_selection_api_v1_fixtures__fixture_id__selection_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fixtures/{fixture_id}/selection/message": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Parents Message
+         * @description The parents' message in the club's house style, from the selection.
+         */
+        get: operations["parents_message_api_v1_fixtures__fixture_id__selection_message_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/players": {
         parameters: {
             query?: never;
@@ -1547,6 +1592,11 @@ export interface components {
             /** Team Slug */
             team_slug: string;
         };
+        /** ParentsMessage */
+        ParentsMessage: {
+            /** Text */
+            text: string;
+        };
         /** PlayerCreate */
         PlayerCreate: {
             /** Cohort Id */
@@ -1757,6 +1807,82 @@ export interface components {
             /** Start Date */
             start_date?: string | null;
         };
+        /** SelectionPlayerInput */
+        SelectionPlayerInput: {
+            /** Player Id */
+            player_id: number;
+            /**
+             * Reason
+             * @example injured
+             * @example away
+             */
+            reason?: string | null;
+            status: components["schemas"]["SelectionStatus"];
+        };
+        /** SelectionPlayerRead */
+        SelectionPlayerRead: {
+            player: components["schemas"]["PlayerSummary"];
+            /** Reason */
+            reason: string | null;
+            /** Squad Number */
+            squad_number: number | null;
+            status: components["schemas"]["SelectionStatus"];
+        };
+        /**
+         * SelectionRead
+         * @description Starters, subs and the unavailable as three lists (squad-number then name order),
+         *     so the message and the live line-up read the split straight off.
+         */
+        SelectionRead: {
+            /**
+             * Arrival At
+             * Format: date-time
+             */
+            arrival_at: string;
+            /** Arrival Lead Minutes */
+            arrival_lead_minutes: number;
+            /** Coaching */
+            coaching: string | null;
+            /** Fixture Id */
+            fixture_id: number;
+            /** Notes */
+            notes: string | null;
+            /** Starters */
+            starters: components["schemas"]["SelectionPlayerRead"][];
+            /** Subs */
+            subs: components["schemas"]["SelectionPlayerRead"][];
+            /** Unavailable */
+            unavailable: components["schemas"]["SelectionPlayerRead"][];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * SelectionStatus
+         * @description A player's place in a pre-match selection (the plan, not who played).
+         * @enum {string}
+         */
+        SelectionStatus: "start" | "sub" | "unavailable";
+        /**
+         * SelectionSubmit
+         * @description The whole plan for a match in one write - replaces what was there, like PUT /result.
+         */
+        SelectionSubmit: {
+            /**
+             * Coaching
+             * @example Adam & Dan
+             */
+            coaching?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Players
+             * @default []
+             */
+            players?: components["schemas"]["SelectionPlayerInput"][];
+        };
         /** SetPasswordRequest */
         SetPasswordRequest: {
             /** New Password */
@@ -1845,6 +1971,8 @@ export interface components {
         TeamSeasonRead: {
             /** Age Group */
             age_group: string | null;
+            /** Arrival Lead Minutes */
+            arrival_lead_minutes: number;
             club_team: components["schemas"]["ClubTeamRead"];
             /** Format */
             format: string | null;
@@ -1894,6 +2022,8 @@ export interface components {
         TeamSeasonUpdate: {
             /** Age Group */
             age_group?: string | null;
+            /** Arrival Lead Minutes */
+            arrival_lead_minutes?: number | null;
             /** Format */
             format?: string | null;
             /** Match Minutes */
@@ -3343,6 +3473,143 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FixtureDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_selection_api_v1_fixtures__fixture_id__selection_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SelectionRead"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_selection_api_v1_fixtures__fixture_id__selection_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SelectionSubmit"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SelectionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_selection_api_v1_fixtures__fixture_id__selection_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    parents_message_api_v1_fixtures__fixture_id__selection_message_get: {
+        parameters: {
+            query?: {
+                mark_subs?: boolean;
+                date_line?: boolean;
+            };
+            header?: never;
+            path: {
+                fixture_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParentsMessage"];
                 };
             };
             /** @description Validation Error */

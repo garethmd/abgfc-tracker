@@ -56,6 +56,7 @@ class TeamSeasonRead(ORMModel):
     format: str | None
     match_minutes: int
     is_current: bool
+    arrival_lead_minutes: int  # "Please arrive at" = kick-off minus this
 
 
 class TeamSeasonStart(InputModel):
@@ -81,3 +82,4 @@ class TeamSeasonUpdate(InputModel):
     age_group: str | None = Field(default=None, max_length=10)
     format: str | None = Field(default=None, max_length=10)
     match_minutes: int | None = Field(default=None, ge=10, le=120)
+    arrival_lead_minutes: int | None = Field(default=None, ge=0, le=180)

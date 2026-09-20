@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from app.models.lookup import Competition
     from app.models.match import Appearance, MatchEvent
     from app.models.note import MatchNote
+    from app.models.selection import FixtureSelection
     from app.models.team import Team
 
 
@@ -70,6 +71,10 @@ class Fixture(TimestampMixin, Base):
     )
     match_notes: Mapped[list["MatchNote"]] = relationship(
         back_populates="fixture", cascade="all, delete-orphan", order_by="MatchNote.sent_at"
+    )
+    # The pre-match plan (services/selections.py); None until a coach picks a squad.
+    selection: Mapped["FixtureSelection | None"] = relationship(
+        back_populates="fixture", cascade="all, delete-orphan", uselist=False
     )
 
     @property

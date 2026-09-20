@@ -68,6 +68,8 @@ class TeamSeason(TimestampMixin, Base):
     match_minutes: Mapped[int] = mapped_column(Integer, default=50, server_default="50")
     # One current team-season per club team; enforced in the service layer.
     is_current: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    # "Please arrive at ..." in the parents' message = kick-off minus this.
+    arrival_lead_minutes: Mapped[int] = mapped_column(Integer, default=30, server_default="30")
 
     club_team: Mapped[ClubTeam] = relationship(back_populates="team_seasons")
     season: Mapped["Season"] = relationship(back_populates="team_seasons")

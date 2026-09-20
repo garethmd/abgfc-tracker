@@ -19,11 +19,10 @@ export function formatTime(iso: string): string {
   return timeFmt.format(new Date(iso));
 }
 
-/** "2026-10-17T10:00" for <input type="datetime-local"> */
+/** "2026-10-17T10:00" for <input type="datetime-local">. Kick-off is a naive wall-clock
+ *  time, so this is a slice, not a Date round-trip (which would shift it by the zone). */
 export function toLocalInput(iso: string): string {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return iso.slice(0, 16);
 }
 
 export function joinNames(names: string[]): string {

@@ -10,6 +10,7 @@ from app.models.enums import (
     MediaKind,
     PositionCategory,
     RoleScope,
+    SelectionStatus,
     UserRole,
     Venue,
 )
@@ -20,6 +21,7 @@ from app.models.media import Media, MediaLink
 from app.models.note import MatchNote
 from app.models.player import Player, SquadMember
 from app.models.season import Season
+from app.models.selection import FixtureSelection, SelectionPlayer
 from app.models.team import Team
 from app.models.user import User
 from app.models.user import UserRole as UserRoleAssignment
@@ -49,6 +51,9 @@ __all__ = [
     "Position",
     "PositionCategory",
     "Season",
+    "SelectionPlayer",
+    "SelectionStatus",
+    "FixtureSelection",
     "SquadMember",
     "Team",
     "User",

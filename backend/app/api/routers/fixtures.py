@@ -10,8 +10,10 @@ from app.schemas.fixture import (
     ResultSubmit,
 )
 from app.schemas.note import MatchNoteCreate, MatchNoteRead, MatchNoteUpdate
+from app.schemas.selection import ParentsMessage, SelectionRead, SelectionSubmit
 from app.services.fixtures import FixtureService
 from app.services.notes import MatchNoteService
+from app.services.selections import SelectionService
 
 router = APIRouter(prefix="/fixtures", tags=["fixtures"])
 
@@ -79,3 +81,37 @@ def update_note(fixture_id: int, note_id: int, data: MatchNoteUpdate, db: DB, ac
 @router.delete("/{fixture_id}/notes/{note_id}", status_code=204)
 def delete_note(fixture_id: int, note_id: int, db: DB, access: Access):
     MatchNoteService(db, access).delete(fixture_id, note_id)
+
+
+# --- pre-match squad selection (the plan; appearances stay the record) ---------------
+
+
+@router.get("/{fixture_id}/selection", response_model=SelectionRead | None)
+def get_selection(fixture_id: int, db: DB, access: Access):
+    """None until a coach has picked a squad."""
+    return SelectionService(db, access).get(fixture_id)
+
+
+@router.put("/{fixture_id}/selection", response_model=SelectionRead)
+def put_selection(fixture_id: int, data: SelectionSubmit, db: DB, access: Access):
+    """Replace the whole selection: starters, subs, unavailable, coaching, notes."""
+    return SelectionService(db, access).put(fixture_id, data)
+
+
+@router.delete("/{fixture_id}/selection", status_code=204)
+def delete_selection(fixture_id: int, db: DB, access: Access):
+    SelectionService(db, access).delete(fixture_id)
+
+
+@router.get("/{fixture_id}/selection/message", response_model=ParentsMessage)
+def parents_message(
+    fixture_id: int,
+    db: DB,
+    access: Access,
+    mark_subs: bool = False,
+    date_line: bool = False,
+):
+    """The parents' message in the club's house style, from the selection."""
+    return SelectionService(db, access).message(
+        fixture_id, mark_subs=mark_subs, date_line=date_line
+    )

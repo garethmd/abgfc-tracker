@@ -20,8 +20,8 @@ type Fixture = Schema["FixtureDetail"];
 function defaultKickoff() {
   const d = new Date();
   d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7)); // next Saturday
-  d.setHours(10, 0, 0, 0);
-  return toLocalInput(d.toISOString());
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T10:00`;
 }
 
 export function FixtureForm({ fixture }: { fixture?: Fixture }) {
@@ -61,7 +61,8 @@ export function FixtureForm({ fixture }: { fixture?: Fixture }) {
       const common = {
         competition_id: Number(competitionId),
         opposition_team_id: oppositionId,
-        kickoff_at: new Date(kickoff).toISOString().slice(0, 19),
+        // Kick-off is stored as UK wall-clock time (no zone), exactly as typed.
+        kickoff_at: kickoff.length === 16 ? `${kickoff}:00` : kickoff,
         venue,
         venue_notes: venueNotes || null,
         notes: notes || null,
