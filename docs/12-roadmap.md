@@ -32,6 +32,14 @@ position_id)` exists; `stats.minutes_for_appearance` computes minutes and
 coming on; kick-off would give starters a stint from minute 0), writing stints per
 appearance. The cohort overview's *Mins* column then lights up.
 
+**Captain as a first-class field.** `appearances.captain` exists but nothing writes it;
+the Blues record the captain as a team award ("Captain", `club_team_id` set), which
+works through the existing POTM chips and counts on the leaderboard. Making it
+first-class means a captain picker on the result screen (and the live line-up), a
+captaincies column, and a one-off script that converts the existing Captain award rows
+into `appearances.captain` and deactivates the award type. Until then, keep the award
+convention - don't write `appearances.captain` from one path and not the other.
+
 **Player cards.** Photos, memberships history and per-season stats exist. Add: a
 season-by-season block (`GET /players/{id}/memberships` + stats per team season),
 milestones (first goal, 10th appearance — derive from events/appearances), form (last

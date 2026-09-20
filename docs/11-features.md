@@ -75,7 +75,7 @@ A second way to record a match, alongside the post-match screen (which is unchan
 (`LineUp` + `LiveMatch` in `components/features/fixtures/live-match.tsx`).
 
 - **Start match** (fixture page and the *Next up* card, next to *Enter result*) → pick
-  who's playing and an optional captain → *Kick off*. The fixture becomes `status=live`
+  who's playing → *Kick off*. The fixture becomes `status=live`
   with `appearances` (all `started`) and a 0-0 score. No new tables: the result is
   written into its usual columns as it happens.
 - **Goal** opens the same scorer → assist bottom sheet as the result screen and writes a
@@ -87,8 +87,9 @@ A second way to record a match, alongside the post-match screen (which is unchan
   double-count. The page also polls every 15s while live, for a second phone watching.
 - **Change squad** for a late arrival or no-show (anyone with a goal or assist stays).
 - **Full time** → `status=played`, then straight to the existing *Edit result* screen for
-  the POTM chips. From there on it is indistinguishable from a match entered after the game
-  (the result screen preserves a captain it finds on the fixture).
+  the POTM chips (and the captain, where a team records that as an award - see the
+  [roadmap](12-roadmap.md)). From there on it is indistinguishable from a match entered
+  after the game.
 - **Discard live match** (⋯ menu) puts the fixture back to `scheduled` with nothing recorded.
 - The two paths can't clash: `start` needs `scheduled`; `PUT /result` is refused while
   `live`; the UI shows only *Continue live match* on a live fixture. The fixtures list shows

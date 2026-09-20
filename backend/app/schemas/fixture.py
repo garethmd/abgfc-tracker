@@ -151,17 +151,14 @@ class ResultSubmit(InputModel):
 
 
 class LiveSquad(InputModel):
-    """Who is playing today. Captain, if given, must be one of them."""
+    """Who is playing today. The captain is recorded afterwards as an award, like POTM."""
 
     player_ids: list[int] = Field(min_length=1)
-    captain_id: int | None = None
 
     @model_validator(mode="after")
     def _check(self):
         if len(self.player_ids) != len(set(self.player_ids)):
             raise ValueError("a player can only appear once")
-        if self.captain_id is not None and self.captain_id not in self.player_ids:
-            raise ValueError("the captain must be playing")
         return self
 
 

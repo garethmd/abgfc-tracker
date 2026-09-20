@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Flag, MoreHorizontal, Star, Trash2, Undo2, Users, X } from "lucide-react";
+import { Flag, MoreHorizontal, Trash2, Undo2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { $api, errorMessage, type Schema } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
@@ -37,26 +37,23 @@ function availablePlayers(squad: Member[], fixture: Fixture): Player[] {
   return [...fromSquad, ...extra];
 }
 
-// --- Before kick-off: who's playing, who's captain ------------------------------------
+// --- Before kick-off: who's playing ---------------------------------------------------
 
 export function LineUp({ fixture, squad }: { fixture: Fixture; squad: Member[] }) {
   const qc = useQueryClient();
   const players = useMemo(() => availablePlayers(squad, fixture), [squad, fixture]);
   const [picked, setPicked] = useState<number[]>([]);
-  const [captain, setCaptain] = useState<number | null>(null);
-  const [captainSheet, setCaptainSheet] = useState(false);
   const start = $api.useMutation("post", "/api/v1/fixtures/{fixture_id}/live/start");
 
   function toggle(id: number) {
     setPicked((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
-    if (captain === id) setCaptain(null);
   }
 
   async function kickOff() {
     try {
       const d = await start.mutateAsync({
         params: { path: { fixture_id: fixture.id } },
-        body: { player_ids: picked, captain_id: captain },
+        body: { player_ids: picked },
       });
       qc.setQueryData(fixtureKey(fixture.id), d);
       qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });
@@ -65,8 +62,6 @@ export function LineUp({ fixture, squad }: { fixture: Fixture; squad: Member[] }
       toast.error(errorMessage(err));
     }
   }
-
-  const nameOf = (id: number | null) => players.find((p) => p.id === id)?.display_name;
 
   return (
     <div className="space-y-8 pb-24">
@@ -85,14 +80,6 @@ export function LineUp({ fixture, squad }: { fixture: Fixture; squad: Member[] }
         {players.length === 0 && <p className="text-sm text-muted-foreground">No players in this season&apos;s squad.</p>}
       </section>
 
-      <section>
-        <SectionTitle>Captain</SectionTitle>
-        <Button type="button" variant="outline" className="h-12 w-full justify-start" onClick={() => setCaptainSheet(true)} disabled={picked.length === 0}>
-          <Star className={cn("size-4", captain ? "fill-current text-primary" : "text-muted-foreground")} />
-          {captain ? nameOf(captain) : "Pick a captain (optional)"}
-        </Button>
-      </section>
-
       <div className="fixed inset-x-0 bottom-16 z-20 border-t border-border/60 bg-background/90 p-3 backdrop-blur md:static md:border-0 md:bg-transparent md:p-0">
         <div className="mx-auto max-w-lg">
           <Button type="button" className="h-12 w-full text-base" onClick={kickOff} disabled={start.isPending || picked.length === 0}>
@@ -100,16 +87,6 @@ export function LineUp({ fixture, squad }: { fixture: Fixture; squad: Member[] }
           </Button>
         </div>
       </div>
-
-      <PlayerPickSheet
-        open={captainSheet}
-        onOpenChange={setCaptainSheet}
-        title="Who's captain?"
-        players={players.filter((p) => picked.includes(p.id))}
-        selected={captain}
-        onPick={(id) => { setCaptain(id); setCaptainSheet(false); }}
-        onClear={() => { setCaptain(null); setCaptainSheet(false); }}
-      />
     </div>
   );
 }
@@ -190,9 +167,9 @@ export function LiveMatch({ fixture, squad, teamName, base }: { fixture: Fixture
     else onRemoveAgainst();
   }
 
-  function onSquad(playerIds: number[], captainId: number | null) {
+  function onSquad(playerIds: number[]) {
     setSquadSheet(false);
-    run(() => setSquad.mutateAsync({ ...path, body: { player_ids: playerIds, captain_id: captainId } }), apply);
+    run(() => setSquad.mutateAsync({ ...path, body: { player_ids: playerIds } }), apply);
   }
 
   function onFinish() {
@@ -216,7 +193,6 @@ export function LiveMatch({ fixture, squad, teamName, base }: { fixture: Fixture
     });
   }
 
-  const captain = fixture.appearances.find((a) => a.captain)?.player;
   const ourGoals = fixture.goals.filter((g) => g.event_type !== "own_goal").length;
   const oppGoals = (fixture.their_score ?? 0) - fixture.goals.filter((g) => g.event_type === "own_goal").length;
 
@@ -306,7 +282,6 @@ export function LiveMatch({ fixture, squad, teamName, base }: { fixture: Fixture
           {fixture.appearances.map((a) => (
             <div key={a.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
               <span className="flex-1 font-medium">{a.player.display_name}</span>
-              {a.captain && <span className="flex items-center gap-1 text-xs text-muted-foreground"><Star className="size-3 fill-current text-primary" /> Captain</span>}
             </div>
           ))}
         </Card>
@@ -364,12 +339,11 @@ export function LiveMatch({ fixture, squad, teamName, base }: { fixture: Fixture
 
       <GoalSheet open={goalSheet} onOpenChange={setGoalSheet} players={playing} onAdd={onGoal} />
       <SquadSheet
-        key={fixture.appearances.map((a) => `${a.player.id}${a.captain ? "c" : ""}`).join(",")}
+        key={fixture.appearances.map((a) => a.player.id).join(",")}
         open={squadSheet}
         onOpenChange={setSquadSheet}
         players={players}
         initial={fixture.appearances.map((a) => a.player.id)}
-        initialCaptain={captain?.id ?? null}
         locked={fixture.goals.flatMap((g) => [g.scorer?.id, g.assisted_by?.id]).filter((id): id is number => id != null)}
         onSave={onSquad}
       />
@@ -379,48 +353,11 @@ export function LiveMatch({ fixture, squad, teamName, base }: { fixture: Fixture
 
 // --- Sheets -----------------------------------------------------------------------
 
-function PlayerPickSheet({
-  open,
-  onOpenChange,
-  title,
-  players,
-  selected,
-  onPick,
-  onClear,
-}: {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  title: string;
-  players: Player[];
-  selected: number | null;
-  onPick: (id: number) => void;
-  onClear: () => void;
-}) {
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto rounded-t-2xl pb-[calc(env(safe-area-inset-bottom)+1rem)]">
-        <SheetHeader className="text-left">
-          <SheetTitle>{title}</SheetTitle>
-        </SheetHeader>
-        <div className="px-4">
-          <div className="grid grid-cols-3 gap-2">
-            {players.map((p) => (
-              <Chip key={p.id} selected={selected === p.id} onClick={() => onPick(p.id)} accent>{p.display_name}</Chip>
-            ))}
-          </div>
-          <Button variant="ghost" className="mt-4 h-11 w-full" onClick={onClear}>No captain</Button>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
 function SquadSheet({
   open,
   onOpenChange,
   players,
   initial,
-  initialCaptain,
   locked,
   onSave,
 }: {
@@ -428,16 +365,13 @@ function SquadSheet({
   onOpenChange: (o: boolean) => void;
   players: Player[];
   initial: number[];
-  initialCaptain: number | null;
   locked: number[];
-  onSave: (playerIds: number[], captainId: number | null) => void;
+  onSave: (playerIds: number[]) => void;
 }) {
   const [picked, setPicked] = useState<number[]>(initial);
-  const [captain, setCaptain] = useState<number | null>(initialCaptain);
 
   function reset() {
     setPicked(initial);
-    setCaptain(initialCaptain);
   }
 
   function toggle(id: number) {
@@ -446,7 +380,6 @@ function SquadSheet({
       return;
     }
     setPicked((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
-    if (captain === id) setCaptain(null);
   }
 
   return (
@@ -461,15 +394,7 @@ function SquadSheet({
               <Chip key={p.id} selected={picked.includes(p.id)} onClick={() => toggle(p.id)}>{p.display_name}</Chip>
             ))}
           </div>
-          <div>
-            <SectionTitle>Captain</SectionTitle>
-            <div className="grid grid-cols-3 gap-2">
-              {players.filter((p) => picked.includes(p.id)).map((p) => (
-                <Chip key={p.id} selected={captain === p.id} onClick={() => setCaptain(captain === p.id ? null : p.id)} accent>{p.display_name}</Chip>
-              ))}
-            </div>
-          </div>
-          <Button className="h-12 w-full" onClick={() => onSave(picked, captain)} disabled={picked.length === 0}>Save</Button>
+          <Button className="h-12 w-full" onClick={() => onSave(picked)} disabled={picked.length === 0}>Save</Button>
         </div>
       </SheetContent>
     </Sheet>

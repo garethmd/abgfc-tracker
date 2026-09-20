@@ -96,12 +96,7 @@ export function ResultEntry({ fixture, squad, awardTypes, base }: { fixture: Fix
         body: {
           our_score: ourScore,
           their_score: theirScore,
-          // Keep a captain recorded by the live screen; this screen doesn't pick one.
-          appearances: playingPlayers.map((p) => ({
-            player_id: p.id,
-            started: true,
-            captain: fixture.appearances.some((a) => a.player.id === p.id && a.captain),
-          })),
+          appearances: playingPlayers.map((p) => ({ player_id: p.id, started: true })),
           goals: goals.map((g) => ({ event_type: g.event_type, scorer_id: g.scorer_id, assisted_by_id: g.assisted_by_id })),
           awards: Object.entries(awards).flatMap(([typeId, set]) => [...set].map((player_id) => ({ award_type_id: Number(typeId), player_id }))),
         },

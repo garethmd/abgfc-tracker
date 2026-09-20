@@ -42,9 +42,7 @@ class LiveMatchService:
         fixture.our_score = 0
         fixture.their_score = 0
         for pid in data.player_ids:
-            fixture.appearances.append(
-                Appearance(player_id=pid, started=True, captain=pid == data.captain_id)
-            )
+            fixture.appearances.append(Appearance(player_id=pid, started=True))
         self.db.commit()
         return self.fixtures.detail(fixture_id)
 
@@ -63,8 +61,6 @@ class LiveMatchService:
         for pid in data.player_ids:
             if pid not in current:
                 fixture.appearances.append(Appearance(player_id=pid, started=True))
-        for a in fixture.appearances:
-            a.captain = a.player_id == data.captain_id
         self.db.commit()
         return self.fixtures.detail(fixture_id)
 

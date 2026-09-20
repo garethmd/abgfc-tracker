@@ -104,7 +104,7 @@ Full rules in [Security](08-security.md).
 | **PUT** | **`/fixtures/{id}/result`** | coach | **the post-match write** — see below |
 | GET/POST | `/fixtures/{id}/notes` | viewer / coach | `MatchNoteRead[]`; `{body, author?, sent_at?}` |
 | PATCH/DELETE | `/fixtures/{id}/notes/{note_id}` | coach | 404 if the note isn't on that fixture |
-| POST | `/fixtures/{id}/live/start` | coach | `LiveSquad {player_ids, captain_id?}` → `status=live`, 0-0; 409 unless `scheduled` |
+| POST | `/fixtures/{id}/live/start` | coach | `LiveSquad {player_ids}` → `status=live`, 0-0; 409 unless `scheduled` |
 | PUT | `/fixtures/{id}/live/squad` | coach | `LiveSquad`; 422 if it drops someone with a goal/assist |
 | POST | `/fixtures/{id}/live/goals` | coach | `LiveGoal` = `GoalInput` + `sequence`; bumps the score; same `sequence` again = same goal (retry-safe), other goal at a used `sequence` = 409 |
 | DELETE | `/fixtures/{id}/live/goals/{event_id}` | coach | undo: removes goal + assist, decrements the score |

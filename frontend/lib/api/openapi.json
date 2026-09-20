@@ -1709,19 +1709,8 @@
       },
       "LiveSquad": {
         "additionalProperties": false,
-        "description": "Who is playing today. Captain, if given, must be one of them.",
+        "description": "Who is playing today. The captain is recorded afterwards as an award, like POTM.",
         "properties": {
-          "captain_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Captain Id"
-          },
           "player_ids": {
             "items": {
               "type": "integer"

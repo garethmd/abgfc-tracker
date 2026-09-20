@@ -25,12 +25,11 @@ def test_live_flow_end_to_end(auth_client: TestClient, demo: DemoSeason):
     squad = [P[n] for n in ["Archie", "Max", "Noah", "Jack", "Ayla", "Kayson", "Stanley", "Teddy"]]
     url = f"{API}/fixtures/{fixture.id}/live"
 
-    r = auth_client.post(f"{url}/start", json={"player_ids": squad, "captain_id": P["Max"]})
+    r = auth_client.post(f"{url}/start", json={"player_ids": squad})
     assert r.status_code == 200, r.text
     d = r.json()
     assert d["status"] == "live" and (d["our_score"], d["their_score"]) == (0, 0)
     assert len(d["appearances"]) == 8 and all(a["started"] for a in d["appearances"])
-    assert [a["player"]["display_name"] for a in d["appearances"] if a["captain"]] == ["Max"]
 
     # Viewers see the running score through the ordinary endpoint; stats ignore it.
     assert auth_client.get(f"{API}/fixtures/{fixture.id}").json()["status"] == "live"
@@ -71,9 +70,7 @@ def test_live_flow_end_to_end(auth_client: TestClient, demo: DemoSeason):
     assert d["their_score"] == 0 and len(d["goals"]) == 2
 
     # Late arrival; someone with a goal can't be dropped.
-    r = auth_client.put(
-        f"{url}/squad", json={"player_ids": squad + [P["William"]], "captain_id": P["Max"]}
-    )
+    r = auth_client.put(f"{url}/squad", json={"player_ids": squad + [P["William"]]})
     assert r.status_code == 200 and len(r.json()["appearances"]) == 9
     r = auth_client.put(f"{url}/squad", json={"player_ids": squad[1:]})
     assert r.status_code == 422 and "Archie" in r.json()["detail"]
@@ -113,8 +110,7 @@ def test_live_flow_end_to_end(auth_client: TestClient, demo: DemoSeason):
         "our_score": 2,
         "their_score": 0,
         "appearances": [
-            {"player_id": a["player"]["id"], "started": a["started"], "captain": a["captain"]}
-            for a in d["appearances"]
+            {"player_id": a["player"]["id"], "started": a["started"]} for a in d["appearances"]
         ],
         "goals": [
             {
@@ -130,7 +126,6 @@ def test_live_flow_end_to_end(auth_client: TestClient, demo: DemoSeason):
     assert r.status_code == 200, r.text
     d = r.json()
     assert [a["player"]["display_name"] for a in d["awards"]] == ["Teddy"]
-    assert [a["player"]["display_name"] for a in d["appearances"] if a["captain"]] == ["Max"]
     assert _board(auth_client, demo)["Archie"]["goals"] == 6
 
     # Live endpoints are closed once it's played.
@@ -143,8 +138,6 @@ def test_start_validation(auth_client: TestClient, demo: DemoSeason):
     P = {name: p.id for name, p in demo.players.items()}
     url = f"{API}/fixtures/{fixture.id}/live"
     r = auth_client.post(f"{url}/start", json={"player_ids": [P["Archie"], P["Archie"]]})
-    assert r.status_code == 422
-    r = auth_client.post(f"{url}/start", json={"player_ids": [P["Archie"]], "captain_id": P["Max"]})
     assert r.status_code == 422
     r = auth_client.post(f"{url}/start", json={"player_ids": [999_999]})
     assert r.status_code == 404

@@ -1451,11 +1451,9 @@ export interface components {
         };
         /**
          * LiveSquad
-         * @description Who is playing today. Captain, if given, must be one of them.
+         * @description Who is playing today. The captain is recorded afterwards as an award, like POTM.
          */
         LiveSquad: {
-            /** Captain Id */
-            captain_id?: number | null;
             /** Player Ids */
             player_ids: number[];
         };
