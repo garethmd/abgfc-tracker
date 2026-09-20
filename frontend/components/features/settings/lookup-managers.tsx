@@ -105,9 +105,11 @@ export function TeamsManager() {
   const create = $api.useMutation("post", "/api/v1/teams");
   const update = $api.useMutation("patch", "/api/v1/teams/{team_id}");
   const remove = $api.useMutation("delete", "/api/v1/teams/{team_id}");
+  const merge = $api.useMutation("post", "/api/v1/teams/{team_id}/merge");
   const [editing, setEditing] = useState<Schema["TeamRead"] | "new" | null>(null);
   const [name, setName] = useState("");
   const [shortName, setShortName] = useState("");
+  const [mergeInto, setMergeInto] = useState("");
   const invalidate = () => qc.invalidateQueries({ queryKey: ["get", "/api/v1/teams"] });
 
   function openFor(t: Schema["TeamRead"] | "new") {
@@ -133,6 +135,22 @@ export function TeamsManager() {
     try {
       await remove.mutateAsync({ params: { path: { team_id: id } } });
       invalidate();
+    } catch (err) {
+      toast.error(errorMessage(err));
+    }
+  }
+
+  async function onMerge() {
+    if (editing === null || editing === "new" || !mergeInto) return;
+    const target = list.data?.find((t) => t.id === Number(mergeInto));
+    if (!confirm(`Merge "${editing.name}" into "${target?.name}"? Its fixtures move across and "${editing.name}" is deleted.`)) return;
+    try {
+      await merge.mutateAsync({ params: { path: { team_id: editing.id } }, body: { into_team_id: Number(mergeInto) } });
+      qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });
+      invalidate();
+      setEditing(null);
+      setMergeInto("");
+      toast.success("Merged");
     } catch (err) {
       toast.error(errorMessage(err));
     }
@@ -170,6 +188,21 @@ export function TeamsManager() {
             <Field label="Short name"><Input className="h-11" value={shortName} onChange={(e) => setShortName(e.target.value)} placeholder="Shown in tight spaces" /></Field>
             <Button type="submit" className="h-11 w-full" disabled={create.isPending || update.isPending}>Save</Button>
           </form>
+          {editing !== "new" && editing && (
+            <div className="mt-2 space-y-2 rounded-lg bg-muted/40 p-3">
+              <p className="text-xs font-medium">Duplicate of another team?</p>
+              <div className="flex gap-2">
+                <Select value={mergeInto} onValueChange={setMergeInto}>
+                  <SelectTrigger className="h-10 flex-1"><SelectValue placeholder="Merge into…" /></SelectTrigger>
+                  <SelectContent>
+                    {(list.data ?? []).filter((t) => t.id !== editing.id).map((t) => <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button type="button" variant="outline" className="h-10" disabled={!mergeInto || merge.isPending} onClick={onMerge}>Merge</Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground">Fixtures against this team move to the other one and this entry is removed.</p>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>

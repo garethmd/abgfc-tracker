@@ -11,7 +11,7 @@ from app.schemas.lookup import (
     CompetitionUpdate,
     PositionRead,
 )
-from app.schemas.team import HeadToHead, TeamCreate, TeamRead, TeamUpdate
+from app.schemas.team import HeadToHead, TeamCreate, TeamMerge, TeamRead, TeamUpdate
 from app.services.lookups import AwardTypeService, CompetitionService, TeamService
 
 router = APIRouter(tags=["lookups"])
@@ -80,6 +80,13 @@ def head_to_head(team_id: int, db: DB, access: Access, club_team_id: int | None 
     """Our record and every fixture against this opposition (scoped to teams you can see;
     pass club_team_id to restrict to one of our teams)."""
     return TeamService(db).head_to_head(team_id, access, club_team_id)
+
+
+@router.post("/teams/{team_id}/merge", response_model=TeamRead)
+def merge_team(team_id: int, data: TeamMerge, db: DB, access: Access):
+    """Fold this opposition team into another (fixtures re-pointed, this row deleted).
+    Needs coach on every ABGFC team that has played them."""
+    return TeamService(db).merge(team_id, data.into_team_id, access)
 
 
 @router.patch("/teams/{team_id}", response_model=TeamRead)

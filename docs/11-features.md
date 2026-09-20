@@ -184,3 +184,44 @@ UI: `/[team]/opposition` (every opposition team; ABGFC badge on derby rows) and
 `/[team]/opposition/[id]` (record card, form pips, the three lists linking to fixture
 pages). Users with more than one team get a *this team / All ABGFC* toggle. Linked from
 the opposition name on a fixture page and from Settings → Opposition.
+
+## Importing fixtures from FA Full-Time
+
+**Why paste, not fetch.** The FA site sits behind Cloudflare and challenges everything
+that isn't a real, headed browser session — plain requests, browser-like headers and
+headless Chromium all get a 403 (tested from a home IP and the droplet). There is no
+official feed (no iCal/RSS/JSON), and the ECAL "sync to calendar" widget is present but
+disabled for the NEHYL. Scraping would be fragile and against the FA's terms, so the
+coach copies the fixtures table from the page and pastes it into the app. If the league
+ever enables calendar sync, that ICS feed could drive the same matcher automatically.
+
+**Parsing** (`services/imports.py::parse_fa_fixtures`). The page's copy carries both the
+plain text (tab-separated; team names appear twice because of the logo cells) and HTML.
+The import page captures the clipboard's `text/html` on paste; the HTML rows include
+`displayFixture.html?id=…` links, which become `fixtures.external_id` (unique) — the
+stable key for re-imports. Plain text works too, just without ids. Dates are `dd/mm/yy`.
+
+**Matching.** `norm()` lower-cases, drops age tokens (U10M, U9) and punctuation;
+`similarity()` is 1.0 for equal normalised names, 0.9 when one token set contains the
+other ("Hook Tigers" ⊂ "Hook U10M Tigers"), else Jaccard overlap — so "Haslemere Town
+Harriers" v "Haslemere Town Panthers" scores 0.5, not a match. Threshold 0.8 for
+opposition, 0.75 for competitions ("U10M Conference League Group Stage" → "Conference
+League"). Abbreviations the coaches typed ("CPR Hawks") don't match and are left for the
+coach to pick. Rows where one side is another of our club teams are flagged as a derby
+and the new opposition row is linked via `club_team_id`.
+
+**Classification.** For the target team season: `skip` when neither side is this team;
+`existing` when the FA id is already stored or a fixture exists on the same date against
+a matching opponent (only `venue_notes` and `external_id` are filled if blank; kick-off,
+status, scores untouched); `conflict` when the date is taken by a different opponent;
+otherwise `create`. The preview writes nothing.
+
+**Apply.** Per-row decisions (`ImportRowDecision`): create (existing opposition/
+competition ids or new names — new opposition names get the age token stripped, new
+competitions default to type league), update, or skip. Match numbers continue from the
+team's highest. Re-pasting the same table yields all `existing` / "nothing to change".
+
+**Merging duplicate opposition.** `POST /teams/{id}/merge {into_team_id}` re-points every
+fixture and deletes the source, filling blank details on the target; requires coach on
+every club team that has played the source. UI: Settings → Opposition → Edit → "Merge
+into…".

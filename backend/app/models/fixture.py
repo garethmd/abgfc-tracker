@@ -56,6 +56,8 @@ class Fixture(TimestampMixin, Base):
         Integer
     )  # overrides team_season.match_minutes
     notes: Mapped[str | None] = mapped_column(Text)
+    # The FA Full-Time fixture id when imported from there; lets re-imports update, not duplicate.
+    external_id: Mapped[str | None] = mapped_column(String(50), unique=True)
 
     team_season: Mapped["TeamSeason"] = relationship(back_populates="fixtures")
     competition: Mapped["Competition"] = relationship()

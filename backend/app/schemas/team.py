@@ -18,6 +18,13 @@ class TeamUpdate(InputModel):
     short_name: str | None = Field(default=None, max_length=30)
     colours: str | None = Field(default=None, max_length=50)
     notes: str | None = None
+    club_team_id: int | None = None  # link a derby opponent to our own team
+
+
+class TeamMerge(InputModel):
+    """Fold this opposition team into another (fixtures re-pointed, this row deleted)."""
+
+    into_team_id: int
 
 
 class TeamRead(ORMModel):

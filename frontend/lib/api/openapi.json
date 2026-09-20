@@ -1002,6 +1002,17 @@
             ],
             "title": "Duration Minutes"
           },
+          "external_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id"
+          },
           "goals": {
             "items": {
               "$ref": "#/components/schemas/GoalRead"
@@ -1131,6 +1142,17 @@
               }
             ],
             "title": "Duration Minutes"
+          },
+          "external_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id"
           },
           "id": {
             "title": "Id",
@@ -1759,6 +1781,453 @@
           "players"
         ],
         "title": "HighlightTile",
+        "type": "object"
+      },
+      "ImportApply": {
+        "additionalProperties": false,
+        "properties": {
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ImportRowDecision"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "rows"
+        ],
+        "title": "ImportApply",
+        "type": "object"
+      },
+      "ImportPasteRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "html": {
+            "anyOf": [
+              {
+                "maxLength": 2000000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Html"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "maxLength": 200000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "title": "ImportPasteRequest",
+        "type": "object"
+      },
+      "ImportPreview": {
+        "properties": {
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ImportRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "team_season_id": {
+            "title": "Team Season Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "team_season_id",
+          "rows",
+          "counts"
+        ],
+        "title": "ImportPreview",
+        "type": "object"
+      },
+      "ImportResult": {
+        "properties": {
+          "created": {
+            "title": "Created",
+            "type": "integer"
+          },
+          "new_competitions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "New Competitions",
+            "type": "array"
+          },
+          "new_teams": {
+            "items": {
+              "type": "string"
+            },
+            "title": "New Teams",
+            "type": "array"
+          },
+          "skipped": {
+            "title": "Skipped",
+            "type": "integer"
+          },
+          "updated": {
+            "title": "Updated",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "created",
+          "updated",
+          "skipped",
+          "new_teams",
+          "new_competitions"
+        ],
+        "title": "ImportResult",
+        "type": "object"
+      },
+      "ImportRow": {
+        "properties": {
+          "action": {
+            "enum": [
+              "create",
+              "existing",
+              "conflict",
+              "skip"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "away": {
+            "title": "Away",
+            "type": "string"
+          },
+          "competition": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Suggestion"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "competition_raw": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Competition Raw"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "derby_club_team_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Derby Club Team Id"
+          },
+          "existing_fixture_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Existing Fixture Id"
+          },
+          "external_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id"
+          },
+          "home": {
+            "title": "Home",
+            "type": "string"
+          },
+          "line": {
+            "title": "Line",
+            "type": "integer"
+          },
+          "opposition": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Suggestion"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "opposition_raw": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opposition Raw"
+          },
+          "our_venue": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Venue"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FixtureStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time"
+          },
+          "venue_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Venue Notes"
+          }
+        },
+        "required": [
+          "line",
+          "date",
+          "time",
+          "home",
+          "away",
+          "action"
+        ],
+        "title": "ImportRow",
+        "type": "object"
+      },
+      "ImportRowDecision": {
+        "additionalProperties": false,
+        "description": "What the coach decided for one previewed row.",
+        "properties": {
+          "action": {
+            "enum": [
+              "create",
+              "update",
+              "skip"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "competition_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Competition Id"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "derby_club_team_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Derby Club Team Id"
+          },
+          "existing_fixture_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Existing Fixture Id"
+          },
+          "external_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id"
+          },
+          "line": {
+            "title": "Line",
+            "type": "integer"
+          },
+          "new_competition_name": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Competition Name"
+          },
+          "new_competition_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CompetitionType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "new_opposition_name": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Opposition Name"
+          },
+          "opposition_team_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opposition Team Id"
+          },
+          "our_venue": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Venue"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FixtureStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time"
+          },
+          "venue_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Venue Notes"
+          }
+        },
+        "required": [
+          "line",
+          "action",
+          "date"
+        ],
+        "title": "ImportRowDecision",
         "type": "object"
       },
       "Leaderboard": {
@@ -3291,6 +3760,29 @@
         "title": "SquadMemberUpsert",
         "type": "object"
       },
+      "Suggestion": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "confidence"
+        ],
+        "title": "Suggestion",
+        "type": "object"
+      },
       "TeamAccess": {
         "description": "One team the signed-in user can see, with what they may do there.",
         "properties": {
@@ -3369,6 +3861,21 @@
           "name"
         ],
         "title": "TeamCreate",
+        "type": "object"
+      },
+      "TeamMerge": {
+        "additionalProperties": false,
+        "description": "Fold this opposition team into another (fixtures re-pointed, this row deleted).",
+        "properties": {
+          "into_team_id": {
+            "title": "Into Team Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "into_team_id"
+        ],
+        "title": "TeamMerge",
         "type": "object"
       },
       "TeamRead": {
@@ -3690,6 +4197,17 @@
       "TeamUpdate": {
         "additionalProperties": false,
         "properties": {
+          "club_team_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Club Team Id"
+          },
           "colours": {
             "anyOf": [
               {
@@ -7733,6 +8251,144 @@
         ]
       }
     },
+    "/api/v1/team-seasons/{team_season_id}/fixtures/import": {
+      "post": {
+        "description": "Apply the coach's decisions from the preview.",
+        "operationId": "apply_import_api_v1_team_seasons__team_season_id__fixtures_import_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "team_season_id",
+            "required": true,
+            "schema": {
+              "title": "Team Season Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportApply"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Apply Import",
+        "tags": [
+          "imports"
+        ]
+      }
+    },
+    "/api/v1/team-seasons/{team_season_id}/fixtures/import/preview": {
+      "post": {
+        "description": "Classify fixtures pasted from FA Full-Time against what's already entered.\nWrites nothing.",
+        "operationId": "preview_import_api_v1_team_seasons__team_season_id__fixtures_import_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "team_season_id",
+            "required": true,
+            "schema": {
+              "title": "Team Season Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportPasteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Import",
+        "tags": [
+          "imports"
+        ]
+      }
+    },
     "/api/v1/team-seasons/{team_season_id}/make-current": {
       "post": {
         "operationId": "make_current_api_v1_team_seasons__team_season_id__make_current_post",
@@ -8599,6 +9255,75 @@
           }
         },
         "summary": "Head To Head",
+        "tags": [
+          "lookups"
+        ]
+      }
+    },
+    "/api/v1/teams/{team_id}/merge": {
+      "post": {
+        "description": "Fold this opposition team into another (fixtures re-pointed, this row deleted).\nNeeds coach on every ABGFC team that has played them.",
+        "operationId": "merge_team_api_v1_teams__team_id__merge_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "team_id",
+            "required": true,
+            "schema": {
+              "title": "Team Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamMerge"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Merge Team",
         "tags": [
           "lookups"
         ]

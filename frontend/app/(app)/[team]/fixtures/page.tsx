@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { CalendarDays, ClipboardList, FileDown, MessageCircle, Plus, Radio } from "lucide-react";
+import { CalendarDays, ClipboardList, FileDown, MessageCircle, Plus, Radio, Upload } from "lucide-react";
 import { matchdaySheetUrl } from "@/lib/reports";
 import { $api } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
@@ -44,11 +44,18 @@ export default function FixturesPage() {
         description={teamSeason ? `${teamSeason.season.name} · ${fixtures.data?.length ?? 0} fixtures` : undefined}
         action={
           canEdit ? (
-            <Button asChild size="sm">
-              <Link href={`${base}/fixtures/new`}>
-                <Plus className="size-4" /> Add
-              </Link>
-            </Button>
+            <div className="flex gap-2">
+              <Button asChild size="sm" variant="outline" title="Import fixtures from FA Full-Time">
+                <Link href={`${base}/fixtures/import`}>
+                  <Upload className="size-4" /> Import
+                </Link>
+              </Button>
+              <Button asChild size="sm">
+                <Link href={`${base}/fixtures/new`}>
+                  <Plus className="size-4" /> Add
+                </Link>
+              </Button>
+            </div>
           ) : undefined
         }
       />

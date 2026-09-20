@@ -748,6 +748,47 @@ export interface paths {
         patch: operations["update_team_season_api_v1_team_seasons__team_season_id__patch"];
         trace?: never;
     };
+    "/api/v1/team-seasons/{team_season_id}/fixtures/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply Import
+         * @description Apply the coach's decisions from the preview.
+         */
+        post: operations["apply_import_api_v1_team_seasons__team_season_id__fixtures_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/team-seasons/{team_season_id}/fixtures/import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview Import
+         * @description Classify fixtures pasted from FA Full-Time against what's already entered.
+         *     Writes nothing.
+         */
+        post: operations["preview_import_api_v1_team_seasons__team_season_id__fixtures_import_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/team-seasons/{team_season_id}/make-current": {
         parameters: {
             query?: never;
@@ -928,6 +969,27 @@ export interface paths {
         get: operations["head_to_head_api_v1_teams__team_id__head_to_head_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teams/{team_id}/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Merge Team
+         * @description Fold this opposition team into another (fixtures re-pointed, this row deleted).
+         *     Needs coach on every ABGFC team that has played them.
+         */
+        post: operations["merge_team_api_v1_teams__team_id__merge_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1325,6 +1387,8 @@ export interface components {
             competition: components["schemas"]["CompetitionRead"];
             /** Duration Minutes */
             duration_minutes: number | null;
+            /** External Id */
+            external_id?: string | null;
             /** Goals */
             goals: components["schemas"]["GoalRead"][];
             /** Id */
@@ -1357,6 +1421,8 @@ export interface components {
             competition: components["schemas"]["CompetitionRead"];
             /** Duration Minutes */
             duration_minutes: number | null;
+            /** External Id */
+            external_id?: string | null;
             /** Id */
             id: number;
             /**
@@ -1531,6 +1597,120 @@ export interface components {
             players: components["schemas"]["PlayerSummary"][];
             /** Value */
             value: number;
+        };
+        /** ImportApply */
+        ImportApply: {
+            /** Rows */
+            rows: components["schemas"]["ImportRowDecision"][];
+        };
+        /** ImportPasteRequest */
+        ImportPasteRequest: {
+            /** Html */
+            html?: string | null;
+            /** Text */
+            text?: string | null;
+        };
+        /** ImportPreview */
+        ImportPreview: {
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /** Rows */
+            rows: components["schemas"]["ImportRow"][];
+            /** Team Season Id */
+            team_season_id: number;
+        };
+        /** ImportResult */
+        ImportResult: {
+            /** Created */
+            created: number;
+            /** New Competitions */
+            new_competitions: string[];
+            /** New Teams */
+            new_teams: string[];
+            /** Skipped */
+            skipped: number;
+            /** Updated */
+            updated: number;
+        };
+        /** ImportRow */
+        ImportRow: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "create" | "existing" | "conflict" | "skip";
+            /** Away */
+            away: string;
+            competition?: components["schemas"]["Suggestion"] | null;
+            /** Competition Raw */
+            competition_raw?: string | null;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Derby Club Team Id */
+            derby_club_team_id?: number | null;
+            /** Existing Fixture Id */
+            existing_fixture_id?: number | null;
+            /** External Id */
+            external_id?: string | null;
+            /** Home */
+            home: string;
+            /** Line */
+            line: number;
+            opposition?: components["schemas"]["Suggestion"] | null;
+            /** Opposition Raw */
+            opposition_raw?: string | null;
+            our_venue?: components["schemas"]["Venue"] | null;
+            /** Reason */
+            reason?: string | null;
+            status?: components["schemas"]["FixtureStatus"] | null;
+            /** Time */
+            time: string | null;
+            /** Venue Notes */
+            venue_notes?: string | null;
+        };
+        /**
+         * ImportRowDecision
+         * @description What the coach decided for one previewed row.
+         */
+        ImportRowDecision: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "create" | "update" | "skip";
+            /** Competition Id */
+            competition_id?: number | null;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Derby Club Team Id */
+            derby_club_team_id?: number | null;
+            /** Existing Fixture Id */
+            existing_fixture_id?: number | null;
+            /** External Id */
+            external_id?: string | null;
+            /** Line */
+            line: number;
+            /** New Competition Name */
+            new_competition_name?: string | null;
+            new_competition_type?: components["schemas"]["CompetitionType"] | null;
+            /** New Opposition Name */
+            new_opposition_name?: string | null;
+            /** Opposition Team Id */
+            opposition_team_id?: number | null;
+            our_venue?: components["schemas"]["Venue"] | null;
+            status?: components["schemas"]["FixtureStatus"] | null;
+            /** Time */
+            time?: string | null;
+            /** Venue Notes */
+            venue_notes?: string | null;
         };
         /** Leaderboard */
         Leaderboard: {
@@ -1963,6 +2143,15 @@ export interface components {
             /** Squad Number */
             squad_number?: number | null;
         };
+        /** Suggestion */
+        Suggestion: {
+            /** Confidence */
+            confidence: number;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+        };
         /**
          * TeamAccess
          * @description One team the signed-in user can see, with what they may do there.
@@ -1983,6 +2172,14 @@ export interface components {
             notes?: string | null;
             /** Short Name */
             short_name?: string | null;
+        };
+        /**
+         * TeamMerge
+         * @description Fold this opposition team into another (fixtures re-pointed, this row deleted).
+         */
+        TeamMerge: {
+            /** Into Team Id */
+            into_team_id: number;
         };
         /** TeamRead */
         TeamRead: {
@@ -2082,6 +2279,8 @@ export interface components {
         };
         /** TeamUpdate */
         TeamUpdate: {
+            /** Club Team Id */
+            club_team_id?: number | null;
             /** Colours */
             colours?: string | null;
             /** Name */
@@ -4288,6 +4487,80 @@ export interface operations {
             };
         };
     };
+    apply_import_api_v1_team_seasons__team_season_id__fixtures_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_season_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportApply"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_import_api_v1_team_seasons__team_season_id__fixtures_import_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_season_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportPasteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     make_current_api_v1_team_seasons__team_season_id__make_current_post: {
         parameters: {
             query?: never;
@@ -4749,6 +5022,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HeadToHead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    merge_team_api_v1_teams__team_id__merge_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeamMerge"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamRead"];
                 };
             };
             /** @description Validation Error */

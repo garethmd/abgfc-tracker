@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from app.core.errors import ConflictError
+from app.core.errors import ConflictError, ValidationError
 from app.models import AwardType, Competition, Team, UserRole
 from app.repositories.club import ClubTeamRepository
 from app.repositories.fixtures import FixtureRepository
@@ -125,6 +125,42 @@ class TeamService:
             upcoming=[item(f) for f in upcoming],
             other=[item(f) for f in other],
         )
+
+    def merge(self, id: int, into_team_id: int, access: Access) -> Team:
+        """Fold a duplicate opposition team into another: re-point every fixture, keep
+        the target's details (filling blanks from the source), delete the source."""
+        from sqlalchemy import update
+
+        from app.models import Fixture
+
+        if id == into_team_id:
+            raise ValidationError("Choose a different team to merge into")
+        source = self.repo.get_or_404(id)
+        target = self.repo.get_or_404(into_team_id)
+        if (
+            source.club_team_id
+            and target.club_team_id
+            and source.club_team_id != target.club_team_id
+        ):
+            raise ValidationError("These are two different ABGFC teams")
+        # Merging touches every team's fixtures against the source, so require coach on all of them.
+        touched = {
+            f.team_season.club_team_id
+            for f in FixtureRepository(self.db).list_v_opposition(id, None, None)
+        }
+        for team_id in touched:
+            access.require_team(ClubTeamRepository(self.db).get_or_404(team_id), UserRole.COACH)
+        self.db.execute(
+            update(Fixture)
+            .where(Fixture.opposition_team_id == id)
+            .values(opposition_team_id=into_team_id)
+        )
+        for attr in ("short_name", "colours", "notes", "club_team_id"):
+            if getattr(target, attr) is None and getattr(source, attr) is not None:
+                setattr(target, attr, getattr(source, attr))
+        self.db.delete(source)
+        self.db.commit()
+        return target
 
     def delete(self, id: int) -> None:
         team = self.repo.get_or_404(id)

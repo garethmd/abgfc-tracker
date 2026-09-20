@@ -244,8 +244,24 @@ run it after touching a formula. Buttons: dashboard header and Settings → Seas
 - Offline/optimistic writes are not built yet; TanStack Query is the seam
   (persist the mutation cache + `onMutate` on the result submit).
 
+## Importing fixtures from FA Full-Time
+
+The FA site blocks automated fetching (Cloudflare challenges even headless browsers; no
+feed; the ECAL calendar widget is disabled for this league), so import is **paste-based**:
+`/[team]/fixtures/import`. The page captures the clipboard's HTML on paste (it keeps the
+`displayFixture.html?id=` links → `fixtures.external_id`) and falls back to the tab-
+separated text. `services/imports.py`: `parse_fa_fixtures` → `FixtureImportService.preview`
+classifies each row - `existing` (same team season + same date, or same FA id; only
+blanks are filled), `create`, `conflict` (same date, different opponent), `skip` (another
+team's row) - with opposition/competition suggestions from `similarity()` (normalised
+names, token containment, Jaccard; abbreviations like "CPR" need a human). Nothing is
+written until `apply` with the coach's per-row decisions. Kick-off times are taken as
+listed (08:00 is often the FA's placeholder). New opposition names have the age token
+stripped. `POST /teams/{id}/merge` folds duplicate opposition rows (fixtures re-pointed);
+UI in Settings → Opposition → Edit.
+
 ## Out of scope (deliberately)
 
-CSV import from the sheet, media upload/routes, league tables. Captain is recorded as a
+CSV import from the sheet, media upload/routes, league tables, scraping FA Full-Time. Captain is recorded as a
 team award (the Blues' "Captain"), not `appearances.captain` - see the roadmap before
 writing that column from any path.

@@ -39,6 +39,7 @@ class FixtureUpdate(InputModel):
 class FixtureRead(ORMModel):
     id: int
     team_season_id: int
+    external_id: str | None = None
     competition: CompetitionRead
     opposition: TeamRead
     match_number: int | None

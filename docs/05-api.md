@@ -91,6 +91,7 @@ Full rules in [Security](08-security.md).
 | PATCH | `/award-types/{id}` | same | `{name?, is_active?}` |
 | GET/POST/PATCH/DELETE | `/competitions[/{id}]` | any signed-in | delete refused while fixtures use it |
 | GET/POST/PATCH/DELETE | `/teams[/{id}]` | any signed-in | opposition; delete refused while fixtures use it |
+| POST | `/teams/{id}/merge` | coach on every team that played them | `{into_team_id}`; fixtures re-pointed, source deleted |
 | GET | `/teams/{id}/head-to-head?club_team_id=` | any (scoped) | `HeadToHead`: record, form, `played` (newest first), `upcoming`, `other` — only fixtures of our teams the caller can see; `club_team_id` narrows to one team (403 if not yours) |
 
 ### Fixtures and results
@@ -161,6 +162,13 @@ Each list is in squad-number then name order. `arrival_at` is kick-off minus the
 team-season's `arrival_lead_minutes`, computed in Europe/London and returned as naive
 wall-clock like `kickoff_at`. The message endpoint renders `services/messages.py` — the
 frontend never holds a copy of the template.
+
+### Import (FA Full-Time paste)
+
+| Method | Path | Access | Notes |
+|---|---|---|---|
+| POST | `/team-seasons/{id}/fixtures/import/preview` | coach | `{text?, html?}` → `ImportPreview` (rows classified create/existing/conflict/skip with suggestions); writes nothing |
+| POST | `/team-seasons/{id}/fixtures/import` | coach | `{rows: ImportRowDecision[]}` → `ImportResult` counts + new team/competition names |
 
 ### Stats
 
