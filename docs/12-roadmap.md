@@ -31,8 +31,8 @@ position_id)` exists; `stats.minutes_for_appearance` computes minutes and
 (`services/live.py` - a sub would close the leaver's stint and open one for the player
 coming on; kick-off would give starters a stint from minute 0), writing stints per
 appearance. The cohort overview's *Mins* column then lights up. If a starters/bench
-split is ever wanted before kick-off, `fixture_selection_players.status` is the place
-(a `bench` value); today it only records available / unavailable.
+split is ever wanted before kick-off, a `bench` flag on the availability rows is the
+place; today it only records who's out.
 
 **Captain as a first-class field.** `appearances.captain` exists but nothing writes it;
 the Blues record the captain as a team award ("Captain", `club_team_id` set), which

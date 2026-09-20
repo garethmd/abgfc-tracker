@@ -84,7 +84,9 @@ def upgrade() -> None:
     )
     with op.batch_alter_table("fixture_unavailable_players", schema=None) as batch_op:
         batch_op.create_index(
-            batch_op.f("ix_fixture_unavailable_players_selection_id"), ["selection_id"], unique=False
+            batch_op.f("ix_fixture_unavailable_players_selection_id"),
+            ["selection_id"],
+            unique=False,
         )
 
     with op.batch_alter_table("team_seasons", schema=None) as batch_op:
