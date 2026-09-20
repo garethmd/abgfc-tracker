@@ -95,6 +95,11 @@ Three layers, the first two free and in place:
 1. **Nightly on the box**: `deploy/backup.sh` via the deploy user's crontab (installed by
    every deploy) at 02:00 — `sqlite3 .backup` (consistent while running), integrity
    check, 14-day retention in `/data/backups`, log at `/data/backups/backup.log`.
+   The API container runs as root and owns `/data/abgfc.db` (mode 600; `restore.sh`
+   sets it that way too), so the script reads it with `sudo -n` — the deploy user has
+   passwordless sudo from cloud-init. **Check `backup.log` after every deploy**: from
+   15 to 20 September 2026 it read "unable to open database" nightly because the
+   script lacked the sudo, and nobody noticed for a week.
 2. **Off-box**: `make backup` takes a fresh copy and pulls it to your Mac. Do this
    regularly; it's the only copy that survives losing the droplet.
 3. **Not enabled**: DigitalOcean's droplet backups ($1.20/month weekly). One `doctl`

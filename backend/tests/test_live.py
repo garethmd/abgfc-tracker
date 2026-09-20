@@ -147,6 +147,16 @@ def test_start_validation(auth_client: TestClient, demo: DemoSeason):
         f"{API}/fixtures/{played.id}/live/start", json={"player_ids": [P["Archie"]]}
     )
     assert r.status_code == 409
+    # A scheduled fixture that somehow carries a result is never wiped by start.
+    auth_client.put(
+        f"{API}/fixtures/{fixture.id}/result",
+        json={"our_score": 1, "their_score": 0, "appearances": [{"player_id": P["Archie"]}]},
+    )
+    auth_client.patch(f"{API}/fixtures/{fixture.id}", json={"status": "scheduled"})
+    r = auth_client.post(f"{url}/start", json={"player_ids": [P["Max"]]})
+    assert r.status_code == 409 and "Enter result" in r.json()["detail"]
+    assert len(auth_client.get(f"{API}/fixtures/{fixture.id}").json()["appearances"]) == 1
+    auth_client.patch(f"{API}/fixtures/{fixture.id}", json={"status": "played"})
     # And status can't be set to live through PATCH.
     r = auth_client.patch(f"{API}/fixtures/{fixture.id}", json={"status": "live"})
     assert r.status_code == 422

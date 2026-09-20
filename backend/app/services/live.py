@@ -32,12 +32,12 @@ class LiveMatchService:
             raise ConflictError("This match is already being tracked live")
         if fixture.status != FixtureStatus.SCHEDULED:
             raise ConflictError("Only a scheduled fixture can be started")
+        if fixture.appearances or fixture.events or fixture.awards:
+            # A scheduled fixture shouldn't have a result on it; if one does (someone
+            # PATCHed a played match back), never throw it away from here.
+            raise ConflictError("This fixture already has a result recorded - use Enter result")
         self._check_players(data.player_ids)
 
-        fixture.appearances.clear()
-        fixture.events.clear()
-        fixture.awards.clear()
-        self.db.flush()
         fixture.status = FixtureStatus.LIVE
         fixture.our_score = 0
         fixture.their_score = 0

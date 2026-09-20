@@ -198,7 +198,8 @@ tagged `latest` + commit SHA) - the 1GB box runs the app but can't build it.
 - **Backups** (free, no DO add-on): `deploy/backup.sh` runs nightly at 02:00 via the
   deploy user's crontab (installed by `make deploy`), using SQLite's online backup +
   integrity check into `/data/backups`, keeping 14 days; `/data/backups/backup.log` says
-  whether it ran. `make backup` takes a fresh copy and pulls it to the gitignored
+  whether it ran - **look at it after a deploy** (it failed silently for a week in Sept
+  2026 when the DB became root-owned; the script now reads it with `sudo -n`). `make backup` takes a fresh copy and pulls it to the gitignored
   `data/backups/` on your Mac - do this now and then, it's the off-box copy.
   `make restore FILE=data/backups/abgfc-….db` stops the API, keeps the current DB as
   `pre-restore-…`, swaps the file in and waits for health. If a coach thinks they've
