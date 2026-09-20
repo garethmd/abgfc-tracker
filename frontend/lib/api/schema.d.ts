@@ -913,6 +913,27 @@ export interface paths {
         patch: operations["update_team_api_v1_teams__team_id__patch"];
         trace?: never;
     };
+    "/api/v1/teams/{team_id}/head-to-head": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Head To Head
+         * @description Our record and every fixture against this opposition (scoped to teams you can see;
+         *     pass club_team_id to restrict to one of our teams).
+         */
+        get: operations["head_to_head_api_v1_teams__team_id__head_to_head_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users": {
         parameters: {
             query?: never;
@@ -1452,6 +1473,56 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** HeadToHead */
+        HeadToHead: {
+            /** Form */
+            form: string[];
+            /** Other */
+            other: components["schemas"]["HeadToHeadFixture"][];
+            /** Played */
+            played: components["schemas"]["HeadToHeadFixture"][];
+            record: components["schemas"]["TeamRecord"];
+            team: components["schemas"]["TeamRead"];
+            /** Upcoming */
+            upcoming: components["schemas"]["HeadToHeadFixture"][];
+        };
+        /**
+         * HeadToHeadFixture
+         * @description A fixture against this opposition, with enough context to list across seasons.
+         */
+        HeadToHeadFixture: {
+            /** Club Team Id */
+            club_team_id: number;
+            /** Club Team Name */
+            club_team_name: string;
+            /** Competition Name */
+            competition_name: string;
+            /** Id */
+            id: number;
+            /**
+             * Kickoff At
+             * Format: date-time
+             */
+            kickoff_at: string;
+            /** Match Number */
+            match_number: number | null;
+            /** Our Score */
+            our_score: number | null;
+            /** Result */
+            result: string | null;
+            /** Season Name */
+            season_name: string;
+            /** Status */
+            status: string;
+            /** Team Season Id */
+            team_season_id: number;
+            /** Their Score */
+            their_score: number | null;
+            /** Venue */
+            venue: string;
+            /** Venue Notes */
+            venue_notes: string | null;
+        };
         /** HighlightTile */
         HighlightTile: {
             /** Label */
@@ -1915,6 +1986,8 @@ export interface components {
         };
         /** TeamRead */
         TeamRead: {
+            /** Club Team Id */
+            club_team_id?: number | null;
             /** Colours */
             colours: string | null;
             /** Id */
@@ -4641,6 +4714,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TeamRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    head_to_head_api_v1_teams__team_id__head_to_head_get: {
+        parameters: {
+            query?: {
+                club_team_id?: number | null;
+            };
+            header?: never;
+            path: {
+                team_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HeadToHead"];
                 };
             };
             /** @description Validation Error */

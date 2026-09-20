@@ -29,7 +29,7 @@ import { SelectionCard } from "@/components/features/fixtures/selection-card";
 
 export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixtures/[id]">) {
   const { id } = use(params);
-  const { base, canEdit } = useTeam();
+  const { team, base, canEdit } = useTeam();
   const fixtureId = Number(id);
   const router = useRouter();
   const qc = useQueryClient();
@@ -69,7 +69,7 @@ export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixture
   return (
     <div className="mx-auto max-w-2xl">
       <PageHeader
-        title={<span>Blues <span className="text-muted-foreground">v</span> {f.opposition.name}</span>}
+        title={<span>{team.name} <span className="text-muted-foreground">v</span> <Link href={`${base}/opposition/${f.opposition.id}`} className="hover:underline">{f.opposition.name}</Link></span>}
         description={
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span>{formatLongDate(f.kickoff_at)}, {formatTime(f.kickoff_at)}</span>

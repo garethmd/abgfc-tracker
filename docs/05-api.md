@@ -91,6 +91,7 @@ Full rules in [Security](08-security.md).
 | PATCH | `/award-types/{id}` | same | `{name?, is_active?}` |
 | GET/POST/PATCH/DELETE | `/competitions[/{id}]` | any signed-in | delete refused while fixtures use it |
 | GET/POST/PATCH/DELETE | `/teams[/{id}]` | any signed-in | opposition; delete refused while fixtures use it |
+| GET | `/teams/{id}/head-to-head?club_team_id=` | any (scoped) | `HeadToHead`: record, form, `played` (newest first), `upcoming`, `other` — only fixtures of our teams the caller can see; `club_team_id` narrows to one team (403 if not yours) |
 
 ### Fixtures and results
 

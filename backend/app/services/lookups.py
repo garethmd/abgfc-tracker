@@ -12,7 +12,7 @@ from app.schemas.lookup import (
     CompetitionCreate,
     CompetitionUpdate,
 )
-from app.schemas.team import TeamCreate, TeamUpdate
+from app.schemas.team import HeadToHead, HeadToHeadFixture, TeamCreate, TeamUpdate
 from app.services.access import Access
 from app.services.club import slugify
 
@@ -81,6 +81,50 @@ class TeamService:
             setattr(team, k, v)
         self.db.commit()
         return team
+
+    def head_to_head(self, id: int, access: Access, club_team_id: int | None) -> HeadToHead:
+        """Our record against this opposition: every fixture the caller can see, or just
+        one of our teams' when club_team_id is given."""
+        from app.models import FixtureStatus
+        from app.services.stats import form, outcome, team_record
+
+        team = self.repo.get_or_404(id)
+        if club_team_id is not None:
+            access.require_team(ClubTeamRepository(self.db).get_or_404(club_team_id))
+        fixtures = FixtureRepository(self.db).list_v_opposition(
+            id, access.visible_team_ids(), club_team_id
+        )
+
+        def item(f) -> HeadToHeadFixture:
+            played = f.status == FixtureStatus.PLAYED and f.our_score is not None
+            return HeadToHeadFixture(
+                id=f.id,
+                team_season_id=f.team_season_id,
+                club_team_id=f.team_season.club_team_id,
+                club_team_name=f.team_season.club_team.name,
+                season_name=f.team_season.season.name,
+                competition_name=f.competition.name,
+                match_number=f.match_number,
+                kickoff_at=f.kickoff_at,
+                venue=f.venue,
+                venue_notes=f.venue_notes,
+                status=f.status,
+                our_score=f.our_score,
+                their_score=f.their_score,
+                result=outcome(f.our_score, f.their_score) if played else None,
+            )
+
+        played = [f for f in fixtures if f.status == FixtureStatus.PLAYED]
+        upcoming = [f for f in fixtures if f.status == FixtureStatus.SCHEDULED]
+        other = [f for f in fixtures if f not in played and f not in upcoming]
+        return HeadToHead(
+            team=team,
+            record=team_record(played),
+            form=[x.result for x in form(played, n=len(played) or 1)],
+            played=[item(f) for f in reversed(played)],
+            upcoming=[item(f) for f in upcoming],
+            other=[item(f) for f in other],
+        )
 
     def delete(self, id: int) -> None:
         team = self.repo.get_or_404(id)

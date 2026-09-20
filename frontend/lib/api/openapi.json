@@ -1572,6 +1572,169 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "HeadToHead": {
+        "properties": {
+          "form": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Form",
+            "type": "array"
+          },
+          "other": {
+            "items": {
+              "$ref": "#/components/schemas/HeadToHeadFixture"
+            },
+            "title": "Other",
+            "type": "array"
+          },
+          "played": {
+            "items": {
+              "$ref": "#/components/schemas/HeadToHeadFixture"
+            },
+            "title": "Played",
+            "type": "array"
+          },
+          "record": {
+            "$ref": "#/components/schemas/TeamRecord"
+          },
+          "team": {
+            "$ref": "#/components/schemas/TeamRead"
+          },
+          "upcoming": {
+            "items": {
+              "$ref": "#/components/schemas/HeadToHeadFixture"
+            },
+            "title": "Upcoming",
+            "type": "array"
+          }
+        },
+        "required": [
+          "team",
+          "record",
+          "form",
+          "played",
+          "upcoming",
+          "other"
+        ],
+        "title": "HeadToHead",
+        "type": "object"
+      },
+      "HeadToHeadFixture": {
+        "description": "A fixture against this opposition, with enough context to list across seasons.",
+        "properties": {
+          "club_team_id": {
+            "title": "Club Team Id",
+            "type": "integer"
+          },
+          "club_team_name": {
+            "title": "Club Team Name",
+            "type": "string"
+          },
+          "competition_name": {
+            "title": "Competition Name",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kickoff_at": {
+            "format": "date-time",
+            "title": "Kickoff At",
+            "type": "string"
+          },
+          "match_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Match Number"
+          },
+          "our_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Our Score"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "season_name": {
+            "title": "Season Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "team_season_id": {
+            "title": "Team Season Id",
+            "type": "integer"
+          },
+          "their_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Their Score"
+          },
+          "venue": {
+            "title": "Venue",
+            "type": "string"
+          },
+          "venue_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Venue Notes"
+          }
+        },
+        "required": [
+          "id",
+          "team_season_id",
+          "club_team_id",
+          "club_team_name",
+          "season_name",
+          "competition_name",
+          "match_number",
+          "kickoff_at",
+          "venue",
+          "venue_notes",
+          "status",
+          "our_score",
+          "their_score",
+          "result"
+        ],
+        "title": "HeadToHeadFixture",
+        "type": "object"
+      },
       "HighlightTile": {
         "properties": {
           "label": {
@@ -3210,6 +3373,17 @@
       },
       "TeamRead": {
         "properties": {
+          "club_team_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Club Team Id"
+          },
           "colours": {
             "anyOf": [
               {
@@ -8350,6 +8524,81 @@
           }
         },
         "summary": "Update Team",
+        "tags": [
+          "lookups"
+        ]
+      }
+    },
+    "/api/v1/teams/{team_id}/head-to-head": {
+      "get": {
+        "description": "Our record and every fixture against this opposition (scoped to teams you can see;\npass club_team_id to restrict to one of our teams).",
+        "operationId": "head_to_head_api_v1_teams__team_id__head_to_head_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "team_id",
+            "required": true,
+            "schema": {
+              "title": "Team Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "club_team_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Club Team Id"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeadToHead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Head To Head",
         "tags": [
           "lookups"
         ]

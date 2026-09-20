@@ -58,6 +58,27 @@ class FixtureRepository(BaseRepository[Fixture]):
         )
         return self.db.scalar(stmt)
 
+    def list_v_opposition(
+        self, opposition_team_id: int, team_ids: set[int] | None, club_team_id: int | None
+    ) -> list[Fixture]:
+        """Every fixture against one opposition team across seasons, scoped to our teams the
+        caller can see (None = all), optionally to one club team."""
+        stmt = (
+            select(Fixture)
+            .join(Fixture.team_season)
+            .where(Fixture.opposition_team_id == opposition_team_id)
+            .options(
+                *self._list_options,
+                selectinload(Fixture.team_season).selectinload(TeamSeason.season),
+            )
+            .order_by(Fixture.kickoff_at, Fixture.id)
+        )
+        if team_ids is not None:
+            stmt = stmt.where(TeamSeason.club_team_id.in_(team_ids))
+        if club_team_id is not None:
+            stmt = stmt.where(TeamSeason.club_team_id == club_team_id)
+        return list(self.db.scalars(stmt))
+
     def list_played(self, team_season_id: int) -> list[Fixture]:
         """Played fixtures with competition loaded - the input to team-record stats."""
         stmt = (

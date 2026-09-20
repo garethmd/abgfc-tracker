@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
+import { ChevronRight, Plus, Trash2 } from "lucide-react";
+import { useTeam } from "@/lib/team-context";
 import { toast } from "sonner";
 import { $api, errorMessage, type Schema } from "@/lib/api/client";
 import { Card } from "@/components/stat-card";
@@ -98,6 +100,7 @@ export function CompetitionsManager() {
 
 export function TeamsManager() {
   const qc = useQueryClient();
+  const { base } = useTeam();
   const list = $api.useQuery("get", "/api/v1/teams");
   const create = $api.useMutation("post", "/api/v1/teams");
   const update = $api.useMutation("patch", "/api/v1/teams/{team_id}");
@@ -143,10 +146,11 @@ export function TeamsManager() {
       <Card className="divide-y divide-border/40">
         {(list.data ?? []).map((t) => (
           <div key={t.id} className="flex min-h-14 items-center gap-3 px-4 py-2 text-sm">
-            <button type="button" onClick={() => openFor(t)} className="min-w-0 flex-1 text-left">
+            <Link href={`${base}/opposition/${t.id}`} className="min-w-0 flex-1 hover:underline">
               <span className="font-medium">{t.name}</span>
               {t.short_name && <span className="ml-2 text-xs text-muted-foreground">{t.short_name}</span>}
-            </button>
+            </Link>
+            <button type="button" onClick={() => openFor(t)} className="text-xs text-muted-foreground hover:text-foreground">Edit</button>
             <button type="button" onClick={() => onDelete(t.id)} className="flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-destructive" aria-label="Delete">
               <Trash2 className="size-4" />
             </button>
@@ -154,6 +158,9 @@ export function TeamsManager() {
         ))}
         {list.data && !list.data.length && <p className="p-4 text-sm text-muted-foreground">Opposition teams appear here as you add fixtures.</p>}
       </Card>
+      <Link href={`${base}/opposition`} className="mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+        Head-to-head records <ChevronRight className="size-3" />
+      </Link>
 
       <Dialog open={editing !== null} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent>

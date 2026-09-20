@@ -11,7 +11,7 @@ from app.schemas.lookup import (
     CompetitionUpdate,
     PositionRead,
 )
-from app.schemas.team import TeamCreate, TeamRead, TeamUpdate
+from app.schemas.team import HeadToHead, TeamCreate, TeamRead, TeamUpdate
 from app.services.lookups import AwardTypeService, CompetitionService, TeamService
 
 router = APIRouter(tags=["lookups"])
@@ -73,6 +73,13 @@ def create_team(data: TeamCreate, db: DB, _: Access):
 @router.get("/teams/{team_id}", response_model=TeamRead)
 def get_team(team_id: int, db: DB, _: Access):
     return TeamService(db).get(team_id)
+
+
+@router.get("/teams/{team_id}/head-to-head", response_model=HeadToHead)
+def head_to_head(team_id: int, db: DB, access: Access, club_team_id: int | None = None):
+    """Our record and every fixture against this opposition (scoped to teams you can see;
+    pass club_team_id to restrict to one of our teams)."""
+    return TeamService(db).head_to_head(team_id, access, club_team_id)
 
 
 @router.patch("/teams/{team_id}", response_model=TeamRead)

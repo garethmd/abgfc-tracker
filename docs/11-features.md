@@ -170,3 +170,17 @@ library) on the player page for coaches. The upload uses `fetchClient.PUT` with 
 `FormData` body and a pass-through `bodySerializer`.
 
 Backups: **not** covered by the SQLite backup — see [Roadmap](12-roadmap.md).
+
+## Opposition head-to-head
+
+`GET /teams/{id}/head-to-head?club_team_id=` — `TeamService.head_to_head`. Every fixture
+against one opposition team across all seasons, restricted to our teams the caller can
+see (`access.visible_team_ids()`), optionally to one club team. Returns the opposition
+row, a `TeamRecord` over the played ones, form (oldest → newest), and three lists:
+`played` (newest first), `upcoming`, `other` (postponed/cancelled/abandoned), each item
+carrying our team's name, season and competition so the list reads across seasons.
+
+UI: `/[team]/opposition` (every opposition team; ABGFC badge on derby rows) and
+`/[team]/opposition/[id]` (record card, form pips, the three lists linking to fixture
+pages). Users with more than one team get a *this team / All ABGFC* toggle. Linked from
+the opposition name on a fixture page and from Settings → Opposition.
