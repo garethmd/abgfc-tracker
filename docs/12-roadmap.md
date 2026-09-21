@@ -63,9 +63,9 @@ screen pre-filled for the coach to confirm. Never write without confirmation. Ne
 Anthropic API key as a server secret.
 
 **Share to WhatsApp.** Done as *Message parents* ([Features](11-features.md#availability-and-the-parents-message)):
-the text is built server-side and handed to `navigator.share` (or copied). Group posting
+the text is built server-side and handed to WhatsApp's `wa.me` link (or copied). Group posting
 via the official API is not viable; unofficial clients are ruled out for this app. Next
-steps if wanted: attach the matchday PDF to the share, and a **scheduled reminder** — a
+steps if wanted: a **scheduled reminder** — a
 cron hitting `GET /fixtures/{id}/selection/message` for the coming Saturday and emailing
 it to the coach (the template is reusable by design; needs an email provider). A per-match
 override of the arrival lead time would be a nullable column on `fixture_selections`.

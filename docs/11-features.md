@@ -132,9 +132,10 @@ under `/fixtures/{id}/selection`, UI at `/[team]/fixtures/[id]/selection`
 
   *Add the date* puts "Saturday 26 September" first. No emoji, no blank lines except
   before notes. The coach can edit the text, then
-  *Share…* (`navigator.share`, on phones) or *Copy message* and paste it into whichever
-  group they choose — there is deliberately no WhatsApp integration (see the
-  [roadmap](12-roadmap.md)). `tests/test_selections.py` asserts the exact text for the
+  *WhatsApp* (`https://wa.me/?text=…`, which opens the app - or WhatsApp Desktop/Web on
+  a computer - with the message typed and the chat picker up) or *Copy message*. A
+  WhatsApp link cannot name a group, so the coach picks the U10s group themselves; there
+  is deliberately no deeper WhatsApp integration (see the [roadmap](12-roadmap.md)). `tests/test_selections.py` asserts the exact text for the
   example above and every variant.
 - **Downstream defaults.** *Enter result* and the live *Start match* line-up start with the
   available players ticked instead of the whole squad — a default, not a change in
