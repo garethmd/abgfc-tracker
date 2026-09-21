@@ -28,7 +28,12 @@ export function selectionKey(fixtureId: number) {
 
 /** "Available 10 · Not available 2" */
 export function selectionSummary(sel: Selection): string {
-  return `Available ${sel.available.length}${sel.unavailable.length ? ` · Not available ${sel.unavailable.length}` : ""}`;
+  return availabilitySummary({ available: sel.available.length, unavailable: sel.unavailable.length });
+}
+
+/** The same line from the headline the fixtures list carries (`FixtureRead.availability`). */
+export function availabilitySummary(a: { available: number; unavailable: number }): string {
+  return `Available ${a.available}${a.unavailable ? ` · Not available ${a.unavailable}` : ""}`;
 }
 
 /** The available players, as a default for "who played" / the live line-up. undefined

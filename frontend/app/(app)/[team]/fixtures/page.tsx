@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { MessageSheet } from "@/components/features/fixtures/message-sheet";
-import { selectionSummary } from "@/components/features/fixtures/squad-selection";
+import { availabilitySummary } from "@/components/features/fixtures/squad-selection";
 
 export default function FixturesPage() {
   const { teamSeason, canEdit, base } = useTeam();
@@ -29,13 +29,9 @@ export default function FixturesPage() {
   const upcoming = (fixtures.data ?? []).filter((f) => f.status === "scheduled");
   const others = (fixtures.data ?? []).filter((f) => f.status !== "scheduled" && f.status !== "live").slice().reverse();
   const nextUp = live ?? upcoming[0];
-  const selection = $api.useQuery(
-    "get",
-    "/api/v1/fixtures/{fixture_id}/selection",
-    { params: { path: { fixture_id: nextUp?.id ?? 0 } } },
-    { enabled: !!nextUp && nextUp.status === "scheduled" },
-  );
-  const [message, setMessage] = useState(false);
+  const later = upcoming.filter((f) => f.id !== nextUp?.id);
+  // Which fixture's parents' message is open, if any.
+  const [message, setMessage] = useState<number | null>(null);
 
   return (
     <>
@@ -94,10 +90,10 @@ export default function FixturesPage() {
                     </Button>
                   </div>
                 )}
-                {nextUp.status === "scheduled" && selection.data !== undefined && (selection.data || canEdit) && (
+                {nextUp.status === "scheduled" && (nextUp.availability || canEdit) && (
                   <div className="flex items-center gap-2 border-t border-border/60 px-4 py-2.5 text-xs text-muted-foreground">
                     <ClipboardList className="size-3.5 shrink-0" />
-                    <span className="tnum">{selection.data ? selectionSummary(selection.data) : "Availability not recorded yet"}</span>
+                    <span className="tnum">{nextUp.availability ? availabilitySummary(nextUp.availability) : "Availability not recorded yet"}</span>
                   </div>
                 )}
                 {canEdit && teamSeason && nextUp.status === "scheduled" && (
@@ -115,28 +111,50 @@ export default function FixturesPage() {
                         </a>
                       </Button>
                     </div>
-                    <div className={selection.data ? "grid grid-cols-2 gap-2" : ""}>
+                    <div className={nextUp.availability ? "grid grid-cols-2 gap-2" : ""}>
                       <Button asChild variant="outline" className="h-11 w-full">
                         <Link href={`${base}/fixtures/${nextUp.id}/selection`}>
-                          <ClipboardList className="size-4" /> {selection.data ? "Edit availability" : "Availability"}
+                          <ClipboardList className="size-4" /> {nextUp.availability ? "Edit availability" : "Availability"}
                         </Link>
                       </Button>
-                      {selection.data && (
-                        <Button type="button" variant="outline" className="h-11 w-full" onClick={() => setMessage(true)}>
+                      {nextUp.availability && (
+                        <Button type="button" variant="outline" className="h-11 w-full" onClick={() => setMessage(nextUp.id)}>
                           <MessageCircle className="size-4" /> Message parents
                         </Button>
                       )}
                     </div>
-                    <MessageSheet fixtureId={nextUp.id} open={message} onOpenChange={setMessage} />
                   </div>
                 )}
               </Card>
-              {upcoming.filter((f) => f.id !== nextUp.id).length > 0 && (
+              {later.length > 0 && (
                 <Card className="mt-3 divide-y divide-border/40 overflow-hidden">
-                  {upcoming.filter((f) => f.id !== nextUp.id).map((f) => (
-                    <FixtureRow key={f.id} fixture={f} base={base} />
+                  {later.map((f) => (
+                    <div key={f.id}>
+                      <FixtureRow fixture={f} base={base} />
+                      {(f.availability || canEdit) && (
+                        <div className="flex min-h-10 items-center gap-2 border-t border-border/40 bg-muted/30 px-4 py-1.5 text-xs text-muted-foreground">
+                          <ClipboardList className="size-3.5 shrink-0" />
+                          <span className="tnum min-w-0 flex-1 truncate">
+                            {f.availability ? availabilitySummary(f.availability) : "Availability not recorded"}
+                          </span>
+                          {canEdit && f.availability && (
+                            <button type="button" className="flex h-8 items-center gap-1 rounded-md px-2 font-medium text-primary hover:bg-accent" onClick={() => setMessage(f.id)}>
+                              <MessageCircle className="size-3.5" /> Message
+                            </button>
+                          )}
+                          {canEdit && (
+                            <Link href={`${base}/fixtures/${f.id}/selection`} className="flex h-8 items-center rounded-md px-2 font-medium text-primary hover:bg-accent">
+                              {f.availability ? "Edit" : "Availability"}
+                            </Link>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </Card>
+              )}
+              {canEdit && message !== null && (
+                <MessageSheet fixtureId={message} open onOpenChange={(o) => { if (!o) setMessage(null); }} />
               )}
             </section>
           )}

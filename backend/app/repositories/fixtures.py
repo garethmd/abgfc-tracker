@@ -6,6 +6,7 @@ from app.models import (
     Award,
     Competition,
     Fixture,
+    FixtureSelection,
     FixtureStatus,
     MatchEvent,
     MatchNote,
@@ -22,6 +23,7 @@ class FixtureRepository(BaseRepository[Fixture]):
         selectinload(Fixture.competition),
         selectinload(Fixture.opposition),
         selectinload(Fixture.team_season).selectinload(TeamSeason.club_team),
+        selectinload(Fixture.selection).selectinload(FixtureSelection.unavailable),
     )
 
     def list_all(

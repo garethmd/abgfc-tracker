@@ -137,6 +137,11 @@ under `/fixtures/{id}/selection`, UI at `/[team]/fixtures/[id]/selection`
   WhatsApp link cannot name a group, so the coach picks the U10s group themselves; there
   is deliberately no deeper WhatsApp integration (see the [roadmap](12-roadmap.md)). `tests/test_selections.py` asserts the exact text for the
   example above and every variant.
+- **Every upcoming fixture, not just the next.** `FixtureRead.availability`
+  (`{available, unavailable}` or null; filled in by the list route only, squad size counted
+  once per team season) gives the Fixtures page a strip under each upcoming row - the
+  headline plus *Availability*/*Edit* and *Message* for coaches - so a coach can plan and
+  message parents for a game two or three weeks out.
 - **Downstream defaults.** *Enter result* and the live *Start match* line-up start with the
   available players ticked instead of the whole squad — a default, not a change in
   behaviour; with nothing recorded they are as before. The matchday PDF pre-ticks the

@@ -14,13 +14,15 @@ from app.models import (
 from app.repositories.club import TeamSeasonRepository
 from app.repositories.fixtures import FixtureRepository
 from app.repositories.lookups import AwardTypeRepository, CompetitionRepository, PositionRepository
-from app.repositories.players import PlayerRepository
+from app.repositories.players import PlayerRepository, SquadRepository
 from app.repositories.teams import TeamRepository
 from app.schemas.fixture import (
     AppearanceRead,
+    AvailabilitySummary,
     AwardRead,
     FixtureCreate,
     FixtureDetail,
+    FixtureRead,
     FixtureUpdate,
     GoalRead,
     ResultSubmit,
@@ -36,15 +38,35 @@ class FixtureService:
         self.access = access
         self.repo = FixtureRepository(db)
 
-    def list_all(self, team_season_id=None, competition_id=None, status=None) -> list[Fixture]:
+    def list_all(self, team_season_id=None, competition_id=None, status=None) -> list[FixtureRead]:
         if team_season_id is not None:
             self._team_season(team_season_id)
-        return self.repo.list_all(
+        fixtures = self.repo.list_all(
             team_season_id=team_season_id,
             team_ids=self.access.visible_team_ids(),
             competition_id=competition_id,
             status=status,
         )
+        # Availability headline for the fixtures list: the squad size is per team
+        # season, so count it once rather than per fixture.
+        squad_sizes: dict[int, int] = {}
+        out: list[FixtureRead] = []
+        for f in fixtures:
+            read = FixtureRead.model_validate(f)
+            if f.selection is not None:
+                if f.team_season_id not in squad_sizes:
+                    squad_sizes[f.team_season_id] = sum(
+                        1
+                        for m in SquadRepository(self.db).list_for_team_season(f.team_season_id)
+                        if m.left_at is None and m.player.left_date is None
+                    )
+                unavailable = len(f.selection.unavailable)
+                read.availability = AvailabilitySummary(
+                    available=max(squad_sizes[f.team_season_id] - unavailable, 0),
+                    unavailable=unavailable,
+                )
+            out.append(read)
+        return out
 
     def get(self, id: int, minimum: UserRole = UserRole.VIEWER) -> Fixture:
         fixture = self.repo.get_detail(id)

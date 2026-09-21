@@ -221,6 +221,25 @@ def test_marking_players_out(auth_client: TestClient, demo: DemoSeason):
     assert auth_client.delete(url).status_code == 404
 
 
+def test_fixture_list_carries_the_availability_headline(auth_client: TestClient, demo: DemoSeason):
+    """The fixtures list says how many can play, so a coach can see at a glance which
+    upcoming games still need availability - not just the next one."""
+    fx, P = _reds_fixture(auth_client, demo)
+    ts = _reds_ts(auth_client)
+
+    def row():
+        rows = auth_client.get(f"{API}/fixtures", params={"team_season_id": ts}).json()
+        return next(r for r in rows if r["id"] == fx)
+
+    assert row()["availability"] is None
+    auth_client.put(f"{API}/fixtures/{fx}/selection", json=_submit(P, out=["Oscar", "Eli"]))
+    assert row()["availability"] == {"available": len(SQUAD) - 2, "unavailable": 2}
+    auth_client.put(f"{API}/fixtures/{fx}/selection", json=_submit(P))
+    assert row()["availability"] == {"available": len(SQUAD), "unavailable": 0}
+    auth_client.delete(f"{API}/fixtures/{fx}/selection")
+    assert row()["availability"] is None
+
+
 def _reds_ts(client: TestClient) -> int:
     team = client.get(f"{API}/club-teams/by-slug/reds").json()
     return client.get(f"{API}/club-teams/{team['id']}/seasons").json()[0]["id"]

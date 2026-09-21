@@ -99,6 +99,25 @@
         "title": "AppearanceRead",
         "type": "object"
       },
+      "AvailabilitySummary": {
+        "description": "Headline of a fixture's availability (services/selections.py) for lists.",
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "integer"
+          },
+          "unavailable": {
+            "title": "Unavailable",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "available",
+          "unavailable"
+        ],
+        "title": "AvailabilitySummary",
+        "type": "object"
+      },
       "AwardCount": {
         "properties": {
           "award_type_code": {
@@ -981,6 +1000,16 @@
             "title": "Appearances",
             "type": "array"
           },
+          "availability": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AvailabilitySummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "awards": {
             "items": {
               "$ref": "#/components/schemas/AwardRead"
@@ -1129,6 +1158,16 @@
       },
       "FixtureRead": {
         "properties": {
+          "availability": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AvailabilitySummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "competition": {
             "$ref": "#/components/schemas/CompetitionRead"
           },

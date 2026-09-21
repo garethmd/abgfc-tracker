@@ -36,6 +36,13 @@ class FixtureUpdate(InputModel):
     notes: str | None = None
 
 
+class AvailabilitySummary(ORMModel):
+    """Headline of a fixture's availability (services/selections.py) for lists."""
+
+    available: int
+    unavailable: int
+
+
 class FixtureRead(ORMModel):
     id: int
     team_season_id: int
@@ -51,6 +58,8 @@ class FixtureRead(ORMModel):
     their_score: int | None
     duration_minutes: int | None
     notes: str | None
+    # None until a coach records availability; only the list route fills it in.
+    availability: AvailabilitySummary | None = None
 
 
 class AppearanceRead(ORMModel):

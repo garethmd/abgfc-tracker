@@ -1108,6 +1108,16 @@ export interface components {
             /** Started */
             started: boolean;
         };
+        /**
+         * AvailabilitySummary
+         * @description Headline of a fixture's availability (services/selections.py) for lists.
+         */
+        AvailabilitySummary: {
+            /** Available */
+            available: number;
+            /** Unavailable */
+            unavailable: number;
+        };
         /** AwardCount */
         AwardCount: {
             /** Award Type Code */
@@ -1382,6 +1392,7 @@ export interface components {
         FixtureDetail: {
             /** Appearances */
             appearances: components["schemas"]["AppearanceRead"][];
+            availability?: components["schemas"]["AvailabilitySummary"] | null;
             /** Awards */
             awards: components["schemas"]["AwardRead"][];
             competition: components["schemas"]["CompetitionRead"];
@@ -1418,6 +1429,7 @@ export interface components {
         };
         /** FixtureRead */
         FixtureRead: {
+            availability?: components["schemas"]["AvailabilitySummary"] | null;
             competition: components["schemas"]["CompetitionRead"];
             /** Duration Minutes */
             duration_minutes: number | null;
