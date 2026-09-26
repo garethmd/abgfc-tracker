@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Minus, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { $api, errorMessage, type Schema } from "@/lib/api/client";
+import { useTeam } from "@/lib/team-context";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Card } from "@/components/stat-card";
@@ -38,6 +39,7 @@ export function ResultEntry({
   preselect?: number[];
 }) {
   const router = useRouter();
+  const { team } = useTeam();
   const qc = useQueryClient();
   const players = useMemo(() => {
     const fromSquad = squad.filter((m) => !m.left_at && !m.player.left_date).map((m) => m.player);
@@ -133,7 +135,7 @@ export function ResultEntry({
       <section>
         <SectionTitle>Score</SectionTitle>
         <Card className="grid grid-cols-2 divide-x divide-border/60">
-          <ScoreStepper label="Blues" value={ourScore} onChange={setOurScore} />
+          <ScoreStepper label={team.name} value={ourScore} onChange={setOurScore} />
           <ScoreStepper label={fixture.opposition.short_name ?? fixture.opposition.name} value={theirScore} onChange={setTheirScore} />
         </Card>
       </section>

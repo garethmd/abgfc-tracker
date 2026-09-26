@@ -109,7 +109,7 @@ export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixture
 
       <Card className="p-6">
         <div className="flex items-center justify-between gap-4">
-          <TeamName name="Blues" align="left" />
+          <TeamName name={team.name} align="left" />
           {played || f.status === "live" ? (
             <div className="flex items-center gap-3 tnum">
               <span className="text-5xl font-semibold tracking-tighter">{f.our_score}</span>
