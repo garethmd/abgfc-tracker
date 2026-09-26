@@ -261,6 +261,7 @@ export function LiveMatch({ fixture, squad, teamName, base }: { fixture: Fixture
             oppositionName={fixture.opposition.short_name ?? fixture.opposition.name}
             ourScore={fixture.our_score}
             theirScore={fixture.their_score}
+            status={fixture.status}
             onRemove={(g) => onRemoveGoal(g.id)}
           />
         ) : (

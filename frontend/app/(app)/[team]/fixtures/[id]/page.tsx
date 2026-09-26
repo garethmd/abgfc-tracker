@@ -180,6 +180,7 @@ export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixture
                 oppositionName={f.opposition.short_name ?? f.opposition.name}
                 ourScore={f.our_score}
                 theirScore={f.their_score}
+                status={f.status}
                 base={base}
               />
             ) : (
