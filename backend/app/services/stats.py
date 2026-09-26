@@ -119,7 +119,7 @@ def goals_from_events(events: Iterable[MatchEvent]) -> tuple[int, int]:
     for e in events:
         if e.event_type in (EventType.GOAL, EventType.OPP_OWN_GOAL):
             ours += 1
-        elif e.event_type == EventType.OWN_GOAL:
+        elif e.event_type in (EventType.OWN_GOAL, EventType.OPP_GOAL):
             theirs += 1
     return ours, theirs
 
@@ -136,7 +136,7 @@ def score_warnings(fixture: Fixture) -> list[str]:
         warnings.append(f"{ours} goals recorded but our score is {fixture.our_score}")
     if theirs > fixture.their_score:
         warnings.append(
-            f"{theirs} own goals recorded but opposition score is {fixture.their_score}"
+            f"{theirs} goals against recorded but opposition score is {fixture.their_score}"
         )
     appearance_ids = {a.player_id for a in fixture.appearances}
     for e in fixture.events:

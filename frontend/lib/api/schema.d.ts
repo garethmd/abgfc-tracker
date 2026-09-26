@@ -421,6 +421,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/fixtures/{fixture_id}/live/period": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Next Live Period
+         * @description Half time, or the end of a quarter: later events belong to the next period.
+         */
+        post: operations["next_live_period_api_v1_fixtures__fixture_id__live_period_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/fixtures/{fixture_id}/live/squad": {
         parameters: {
             query?: never;
@@ -1337,6 +1357,11 @@ export interface components {
             is_active?: boolean;
             /** Name */
             name: string;
+            /**
+             * Period Count
+             * @default 2
+             */
+            period_count?: number;
             type: components["schemas"]["CompetitionType"];
         };
         /** CompetitionRead */
@@ -1347,6 +1372,8 @@ export interface components {
             is_active: boolean;
             /** Name */
             name: string;
+            /** Period Count */
+            period_count: number;
             type: components["schemas"]["CompetitionType"];
         };
         /**
@@ -1360,6 +1387,8 @@ export interface components {
             is_active?: boolean | null;
             /** Name */
             name?: string | null;
+            /** Period Count */
+            period_count?: number | null;
             type?: components["schemas"]["CompetitionType"] | null;
         };
         /** FixtureCreate */
@@ -1379,6 +1408,8 @@ export interface components {
             notes?: string | null;
             /** Opposition Team Id */
             opposition_team_id: number;
+            /** Period Count */
+            period_count?: number | null;
             /** @default scheduled */
             status?: components["schemas"]["FixtureStatus"];
             /** Team Season Id */
@@ -1396,6 +1427,8 @@ export interface components {
             /** Awards */
             awards: components["schemas"]["AwardRead"][];
             competition: components["schemas"]["CompetitionRead"];
+            /** Current Period */
+            current_period: number | null;
             /** Duration Minutes */
             duration_minutes: number | null;
             /** External Id */
@@ -1416,6 +1449,10 @@ export interface components {
             opposition: components["schemas"]["TeamRead"];
             /** Our Score */
             our_score: number | null;
+            /** Period Count */
+            period_count: number | null;
+            /** Periods */
+            periods: number;
             status: components["schemas"]["FixtureStatus"];
             /** Team Season Id */
             team_season_id: number;
@@ -1431,6 +1468,8 @@ export interface components {
         FixtureRead: {
             availability?: components["schemas"]["AvailabilitySummary"] | null;
             competition: components["schemas"]["CompetitionRead"];
+            /** Current Period */
+            current_period: number | null;
             /** Duration Minutes */
             duration_minutes: number | null;
             /** External Id */
@@ -1449,6 +1488,10 @@ export interface components {
             opposition: components["schemas"]["TeamRead"];
             /** Our Score */
             our_score: number | null;
+            /** Period Count */
+            period_count: number | null;
+            /** Periods */
+            periods: number;
             status: components["schemas"]["FixtureStatus"];
             /** Team Season Id */
             team_season_id: number;
@@ -1479,6 +1522,8 @@ export interface components {
             opposition_team_id?: number | null;
             /** Our Score */
             our_score?: number | null;
+            /** Period Count */
+            period_count?: number | null;
             status?: components["schemas"]["FixtureStatus"] | null;
             /** Their Score */
             their_score?: number | null;
@@ -1509,7 +1554,8 @@ export interface components {
         };
         /**
          * GoalInput
-         * @description scorer_id None + event_type opp_own_goal = opposition own goal.
+         * @description scorer_id None + event_type opp_own_goal = opposition own goal;
+         *     opp_goal = the opposition scored (we never record their players' names).
          */
         GoalInput: {
             /** Assisted By Id */
@@ -1523,6 +1569,8 @@ export interface components {
             minute?: number | null;
             /** Notes */
             notes?: string | null;
+            /** Period */
+            period?: number | null;
             /** Scorer Id */
             scorer_id?: number | null;
         };
@@ -1542,6 +1590,8 @@ export interface components {
             minute: number | null;
             /** Notes */
             notes: string | null;
+            /** Period */
+            period: number | null;
             scorer: components["schemas"]["PlayerSummary"] | null;
             /** Sequence */
             sequence: number;
@@ -1752,6 +1802,8 @@ export interface components {
             minute?: number | null;
             /** Notes */
             notes?: string | null;
+            /** Period */
+            period?: number | null;
             /** Scorer Id */
             scorer_id?: number | null;
             /** Sequence */
@@ -3470,6 +3522,39 @@ export interface operations {
             path: {
                 fixture_id: number;
                 event_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    next_live_period_api_v1_fixtures__fixture_id__live_period_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
             };
             cookie?: {
                 abgfc_session?: string | null;

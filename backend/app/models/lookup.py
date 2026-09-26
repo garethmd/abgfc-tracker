@@ -21,12 +21,16 @@ class Position(Base):
 
 class Competition(Base):
     __tablename__ = "competitions"
+    __table_args__ = (CheckConstraint("period_count BETWEEN 1 AND 4", name="period_count"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), unique=True)
     type: Mapped[CompetitionType] = mapped_column(
         String(20), CheckConstraint(check_in("type", CompetitionType), name="type")
     )
+    # How the match is split: 2 = halves, 4 = quarters. Whether a league plays quarters
+    # is a property of the league; a one-off is overridden on the fixture.
+    period_count: Mapped[int] = mapped_column(Integer, default=2, server_default="2")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
 
 

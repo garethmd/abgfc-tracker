@@ -34,6 +34,10 @@ class Fixture(TimestampMixin, Base):
         CheckConstraint(check_in("status", FixtureStatus), name="status"),
         CheckConstraint("our_score IS NULL OR our_score >= 0", name="our_score_nonneg"),
         CheckConstraint("their_score IS NULL OR their_score >= 0", name="their_score_nonneg"),
+        CheckConstraint(
+            "period_count IS NULL OR period_count BETWEEN 1 AND 4", name="period_count"
+        ),
+        CheckConstraint("current_period IS NULL OR current_period >= 1", name="current_period"),
         Index("ix_fixtures_team_season_id_kickoff_at", "team_season_id", "kickoff_at"),
     )
 
@@ -55,6 +59,9 @@ class Fixture(TimestampMixin, Base):
     duration_minutes: Mapped[int | None] = mapped_column(
         Integer
     )  # overrides team_season.match_minutes
+    period_count: Mapped[int | None] = mapped_column(Integer)  # overrides competition.period_count
+    # Which period we're in; only meaningful while status='live'. Events are stamped with it.
+    current_period: Mapped[int | None] = mapped_column(Integer)
     notes: Mapped[str | None] = mapped_column(Text)
     # The FA Full-Time fixture id when imported from there; lets re-imports update, not duplicate.
     external_id: Mapped[str | None] = mapped_column(String(50), unique=True)
@@ -82,3 +89,8 @@ class Fixture(TimestampMixin, Base):
     @property
     def effective_duration(self) -> int:
         return self.duration_minutes or self.team_season.match_minutes
+
+    @property
+    def periods(self) -> int:
+        """Halves or quarters: the fixture's override, else the competition's."""
+        return self.period_count or self.competition.period_count

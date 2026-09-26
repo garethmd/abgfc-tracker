@@ -31,6 +31,7 @@ class EventType(StrEnum):
     ASSIST = "assist"  # our player assists; related_event_id -> goal
     OWN_GOAL = "own_goal"  # our player, into our own net (counts for them)
     OPP_OWN_GOAL = "opp_own_goal"  # opposition own goal (counts for us, no player)
+    OPP_GOAL = "opp_goal"  # the opposition scored; we never record their players' names
 
 
 class AwardScope(StrEnum):

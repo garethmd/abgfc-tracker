@@ -237,3 +237,100 @@ def test_live_is_scoped(client: TestClient, db, demo: DemoSeason):
     login_as(client, "reds_coach")
     assert client.get(f"{API}/fixtures/{fixture.id}").status_code == 403
     assert client.post(f"{url}/finish").status_code == 403
+
+
+def test_periods_and_opposition_goals(auth_client: TestClient, demo: DemoSeason):
+    """The timeline's two axes: which period each goal was in, and that they scored."""
+    fixture = _scheduled(demo)
+    P = {name: p.id for name, p in demo.players.items()}
+    url = f"{API}/fixtures/{fixture.id}/live"
+
+    # Halves by default (the competition's setting), overridable per fixture.
+    d = auth_client.get(f"{API}/fixtures/{fixture.id}").json()
+    assert d["periods"] == 2 and d["period_count"] is None and d["current_period"] is None
+    r = auth_client.patch(f"{API}/fixtures/{fixture.id}", json={"period_count": 4})
+    assert r.status_code == 200 and r.json()["periods"] == 4
+
+    d = auth_client.post(f"{url}/start", json={"player_ids": [P["Archie"], P["Max"]]}).json()
+    assert d["current_period"] == 1
+
+    d = auth_client.post(f"{url}/goals", json={"scorer_id": P["Archie"], "sequence": 1}).json()
+    assert d["goals"][0]["period"] == 1
+    d = auth_client.post(f"{url}/against").json()
+    opp = d["goals"][1]
+    assert (opp["event_type"], opp["scorer"], opp["period"]) == ("opp_goal", None, 1)
+    assert (d["our_score"], d["their_score"]) == (1, 1)
+
+    d = auth_client.post(f"{url}/period").json()
+    assert d["current_period"] == 2
+    d = auth_client.post(f"{url}/goals", json={"scorer_id": P["Max"], "sequence": 3}).json()
+    assert d["goals"][2]["period"] == 2
+    d = auth_client.post(f"{url}/against").json()
+    assert d["goals"][3]["period"] == 2 and d["their_score"] == 2
+
+    # Undo takes the most recent opposition goal, not the first.
+    d = auth_client.delete(f"{url}/against").json()
+    assert [g["period"] for g in d["goals"] if g["event_type"] == "opp_goal"] == [1]
+    assert d["their_score"] == 1
+
+    d = auth_client.post(f"{url}/finish").json()
+    assert d["current_period"] is None and d["warnings"] == []
+    assert (d["our_score"], d["their_score"]) == (2, 1)
+
+    # The awards step resubmits the whole result: periods and the opposition goal survive.
+    payload = {
+        "our_score": 2,
+        "their_score": 1,
+        "appearances": [{"player_id": a["player"]["id"]} for a in d["appearances"]],
+        "goals": [
+            {
+                "event_type": g["event_type"],
+                "scorer_id": g["scorer"] and g["scorer"]["id"],
+                "assisted_by_id": g["assisted_by"] and g["assisted_by"]["id"],
+                "period": g["period"],
+            }
+            for g in d["goals"]
+        ],
+        "awards": [{"award_type_id": demo.award_types["coaches_potm"].id, "player_id": P["Max"]}],
+    }
+    r = auth_client.put(f"{API}/fixtures/{fixture.id}/result", json=payload)
+    assert r.status_code == 200, r.text
+    d = r.json()
+    assert [(g["event_type"], g["period"]) for g in d["goals"]] == [
+        ("goal", 1),
+        ("opp_goal", 1),
+        ("goal", 2),
+    ]
+    assert d["warnings"] == []
+
+    # Opposition goals count against us in the stats, like an own goal.
+    summary = auth_client.get(f"{API}/team-seasons/{demo.team_season.id}/stats/summary").json()
+    assert summary["overall"]["goals_against"] == 13  # demo's 12 + this fixture's 1
+
+
+def test_opposition_goal_warnings(auth_client: TestClient, demo: DemoSeason):
+    """A score that doesn't match the goals against is a warning, not a block."""
+    fixture = _scheduled(demo)
+    P = {name: p.id for name, p in demo.players.items()}
+    r = auth_client.put(
+        f"{API}/fixtures/{fixture.id}/result",
+        json={
+            "our_score": 0,
+            "their_score": 1,
+            "appearances": [{"player_id": P["Archie"]}],
+            "goals": [{"event_type": "opp_goal"}, {"event_type": "opp_goal"}],
+        },
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["warnings"] == ["2 goals against recorded but opposition score is 1"]
+    # An opposition goal never takes a scorer.
+    r = auth_client.put(
+        f"{API}/fixtures/{fixture.id}/result",
+        json={
+            "our_score": 0,
+            "their_score": 1,
+            "appearances": [{"player_id": P["Archie"]}],
+            "goals": [{"event_type": "opp_goal", "scorer_id": P["Archie"]}],
+        },
+    )
+    assert r.status_code == 422

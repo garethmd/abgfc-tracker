@@ -816,6 +816,13 @@
             "title": "Name",
             "type": "string"
           },
+          "period_count": {
+            "default": 2,
+            "maximum": 4.0,
+            "minimum": 1.0,
+            "title": "Period Count",
+            "type": "integer"
+          },
           "type": {
             "$ref": "#/components/schemas/CompetitionType"
           }
@@ -841,6 +848,10 @@
             "title": "Name",
             "type": "string"
           },
+          "period_count": {
+            "title": "Period Count",
+            "type": "integer"
+          },
           "type": {
             "$ref": "#/components/schemas/CompetitionType"
           }
@@ -849,6 +860,7 @@
           "id",
           "name",
           "type",
+          "period_count",
           "is_active"
         ],
         "title": "CompetitionRead",
@@ -890,6 +902,19 @@
               }
             ],
             "title": "Name"
+          },
+          "period_count": {
+            "anyOf": [
+              {
+                "maximum": 4.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Count"
           },
           "type": {
             "anyOf": [
@@ -957,6 +982,19 @@
             "title": "Opposition Team Id",
             "type": "integer"
           },
+          "period_count": {
+            "anyOf": [
+              {
+                "maximum": 4.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Count"
+          },
           "status": {
             "$ref": "#/components/schemas/FixtureStatus",
             "default": "scheduled"
@@ -1019,6 +1057,17 @@
           },
           "competition": {
             "$ref": "#/components/schemas/CompetitionRead"
+          },
+          "current_period": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Period"
           },
           "duration_minutes": {
             "anyOf": [
@@ -1094,6 +1143,21 @@
             ],
             "title": "Our Score"
           },
+          "period_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Count"
+          },
+          "periods": {
+            "title": "Periods",
+            "type": "integer"
+          },
           "status": {
             "$ref": "#/components/schemas/FixtureStatus"
           },
@@ -1147,6 +1211,9 @@
           "our_score",
           "their_score",
           "duration_minutes",
+          "period_count",
+          "periods",
+          "current_period",
           "notes",
           "appearances",
           "goals",
@@ -1170,6 +1237,17 @@
           },
           "competition": {
             "$ref": "#/components/schemas/CompetitionRead"
+          },
+          "current_period": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Period"
           },
           "duration_minutes": {
             "anyOf": [
@@ -1238,6 +1316,21 @@
             ],
             "title": "Our Score"
           },
+          "period_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Count"
+          },
+          "periods": {
+            "title": "Periods",
+            "type": "integer"
+          },
           "status": {
             "$ref": "#/components/schemas/FixtureStatus"
           },
@@ -1284,6 +1377,9 @@
           "our_score",
           "their_score",
           "duration_minutes",
+          "period_count",
+          "periods",
+          "current_period",
           "notes"
         ],
         "title": "FixtureRead",
@@ -1386,6 +1482,19 @@
             ],
             "title": "Our Score"
           },
+          "period_count": {
+            "anyOf": [
+              {
+                "maximum": 4.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Count"
+          },
           "status": {
             "anyOf": [
               {
@@ -1480,7 +1589,7 @@
       },
       "GoalInput": {
         "additionalProperties": false,
-        "description": "scorer_id None + event_type opp_own_goal = opposition own goal.",
+        "description": "scorer_id None + event_type opp_own_goal = opposition own goal;\nopp_goal = the opposition scored (we never record their players' names).",
         "properties": {
           "assisted_by_id": {
             "anyOf": [
@@ -1495,7 +1604,7 @@
           },
           "event_type": {
             "default": "goal",
-            "pattern": "^(goal|own_goal|opp_own_goal)$",
+            "pattern": "^(goal|own_goal|opp_own_goal|opp_goal)$",
             "title": "Event Type",
             "type": "string"
           },
@@ -1522,6 +1631,19 @@
               }
             ],
             "title": "Notes"
+          },
+          "period": {
+            "anyOf": [
+              {
+                "maximum": 4.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period"
           },
           "scorer_id": {
             "anyOf": [
@@ -1592,6 +1714,17 @@
             ],
             "title": "Notes"
           },
+          "period": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period"
+          },
           "scorer": {
             "anyOf": [
               {
@@ -1614,6 +1747,7 @@
           "assisted_by",
           "assist_event_id",
           "minute",
+          "period",
           "sequence",
           "notes"
         ],
@@ -2327,7 +2461,7 @@
           },
           "event_type": {
             "default": "goal",
-            "pattern": "^(goal|own_goal|opp_own_goal)$",
+            "pattern": "^(goal|own_goal|opp_own_goal|opp_goal)$",
             "title": "Event Type",
             "type": "string"
           },
@@ -2354,6 +2488,19 @@
               }
             ],
             "title": "Notes"
+          },
+          "period": {
+            "anyOf": [
+              {
+                "maximum": 4.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period"
           },
           "scorer_id": {
             "anyOf": [
@@ -6465,6 +6612,65 @@
           }
         },
         "summary": "Remove Live Goal",
+        "tags": [
+          "live"
+        ]
+      }
+    },
+    "/api/v1/fixtures/{fixture_id}/live/period": {
+      "post": {
+        "description": "Half time, or the end of a quarter: later events belong to the next period.",
+        "operationId": "next_live_period_api_v1_fixtures__fixture_id__live_period_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fixture_id",
+            "required": true,
+            "schema": {
+              "title": "Fixture Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixtureDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Next Live Period",
         "tags": [
           "live"
         ]

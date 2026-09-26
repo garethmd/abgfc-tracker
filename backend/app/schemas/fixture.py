@@ -19,6 +19,7 @@ class FixtureCreate(InputModel):
     venue_notes: str | None = Field(default=None, max_length=200)
     status: FixtureStatus = FixtureStatus.SCHEDULED
     duration_minutes: int | None = Field(default=None, ge=10, le=120)
+    period_count: int | None = Field(default=None, ge=1, le=4)  # None = the competition's
     notes: str | None = None
 
 
@@ -33,6 +34,7 @@ class FixtureUpdate(InputModel):
     our_score: int | None = Field(default=None, ge=0)
     their_score: int | None = Field(default=None, ge=0)
     duration_minutes: int | None = Field(default=None, ge=10, le=120)
+    period_count: int | None = Field(default=None, ge=1, le=4)
     notes: str | None = None
 
 
@@ -57,6 +59,9 @@ class FixtureRead(ORMModel):
     our_score: int | None
     their_score: int | None
     duration_minutes: int | None
+    period_count: int | None  # the override, if any
+    periods: int  # what the match is split into: the override, else the competition's
+    current_period: int | None  # while live
     notes: str | None
     # None until a coach records availability; only the list route fills it in.
     availability: AvailabilitySummary | None = None
@@ -75,11 +80,12 @@ class GoalRead(ORMModel):
     """A goal event with its assist folded in - the shape the UI wants."""
 
     id: int
-    event_type: str  # goal | own_goal | opp_own_goal
+    event_type: str  # goal | own_goal | opp_own_goal | opp_goal
     scorer: PlayerSummary | None
     assisted_by: PlayerSummary | None
     assist_event_id: int | None
     minute: int | None
+    period: int | None
     sequence: int
     notes: str | None
 
@@ -112,19 +118,21 @@ class AppearanceInput(InputModel):
 
 
 class GoalInput(InputModel):
-    """scorer_id None + event_type opp_own_goal = opposition own goal."""
+    """scorer_id None + event_type opp_own_goal = opposition own goal;
+    opp_goal = the opposition scored (we never record their players' names)."""
 
-    event_type: str = Field(default="goal", pattern="^(goal|own_goal|opp_own_goal)$")
+    event_type: str = Field(default="goal", pattern="^(goal|own_goal|opp_own_goal|opp_goal)$")
     scorer_id: int | None = None
     assisted_by_id: int | None = None
     minute: int | None = Field(default=None, ge=0, le=130)
+    period: int | None = Field(default=None, ge=1, le=4)
     notes: str | None = None
 
     @model_validator(mode="after")
     def _check_scorer(self):
-        if self.event_type == "opp_own_goal":
+        if self.event_type in ("opp_own_goal", "opp_goal"):
             if self.scorer_id is not None or self.assisted_by_id is not None:
-                raise ValueError("opposition own goals have no scorer or assist")
+                raise ValueError("opposition goals have no scorer or assist")
         elif self.scorer_id is None:
             raise ValueError("scorer_id is required")
         if self.event_type == "own_goal" and self.assisted_by_id is not None:

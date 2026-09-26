@@ -15,12 +15,14 @@ class PositionRead(ORMModel):
 class CompetitionCreate(InputModel):
     name: str = Field(min_length=1, max_length=100)
     type: CompetitionType
+    period_count: int = Field(default=2, ge=1, le=4)  # 2 = halves, 4 = quarters
     is_active: bool = True
 
 
 class CompetitionUpdate(InputModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     type: CompetitionType | None = None
+    period_count: int | None = Field(default=None, ge=1, le=4)
     is_active: bool | None = None
 
 
@@ -28,6 +30,7 @@ class CompetitionRead(ORMModel):
     id: int
     name: str
     type: CompetitionType
+    period_count: int
     is_active: bool
 
 

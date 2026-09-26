@@ -38,6 +38,12 @@ def remove_live_goal_against(fixture_id: int, db: DB, access: Access):
     return LiveMatchService(db, access).remove_goal_against(fixture_id)
 
 
+@router.post("/period", response_model=FixtureDetail)
+def next_live_period(fixture_id: int, db: DB, access: Access):
+    """Half time, or the end of a quarter: later events belong to the next period."""
+    return LiveMatchService(db, access).next_period(fixture_id)
+
+
 @router.post("/finish", response_model=FixtureDetail)
 def finish_live(fixture_id: int, db: DB, access: Access):
     """Full time: the fixture becomes 'played', exactly as PUT /result would leave it."""

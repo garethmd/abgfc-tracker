@@ -39,6 +39,7 @@ class LiveMatchService:
         self._check_players(data.player_ids)
 
         fixture.status = FixtureStatus.LIVE
+        fixture.current_period = 1
         fixture.our_score = 0
         fixture.their_score = 0
         for pid in data.player_ids:
@@ -64,9 +65,18 @@ class LiveMatchService:
         self.db.commit()
         return self.fixtures.detail(fixture_id)
 
+    def next_period(self, fixture_id: int) -> FixtureDetail:
+        """Half time / end of a quarter: everything after this is stamped with the new
+        period. Running over the scheduled number of periods is allowed (extra time)."""
+        fixture = self._live(fixture_id)
+        fixture.current_period = (fixture.current_period or 1) + 1
+        self.db.commit()
+        return self.fixtures.detail(fixture_id)
+
     def finish(self, fixture_id: int) -> FixtureDetail:
         fixture = self._live(fixture_id)
         fixture.status = FixtureStatus.PLAYED
+        fixture.current_period = None  # only meaningful while live; events keep theirs
         self.db.commit()
         return self.fixtures.detail(fixture_id)
 
@@ -78,6 +88,7 @@ class LiveMatchService:
         fixture.awards.clear()
         fixture.our_score = None
         fixture.their_score = None
+        fixture.current_period = None
         fixture.status = FixtureStatus.SCHEDULED
         self.db.commit()
 
@@ -101,6 +112,7 @@ class LiveMatchService:
             event_type=event_type,
             player_id=data.scorer_id,
             minute=data.minute,
+            period=fixture.current_period,
             sequence=data.sequence,
             notes=data.notes,
         )
@@ -111,11 +123,12 @@ class LiveMatchService:
                     event_type=EventType.ASSIST,
                     player_id=data.assisted_by_id,
                     minute=data.minute,
+                    period=fixture.current_period,
                     sequence=data.sequence + 1,
                     related_event=goal,
                 )
             )
-        if event_type == EventType.OWN_GOAL:
+        if event_type in (EventType.OWN_GOAL, EventType.OPP_GOAL):
             fixture.their_score = (fixture.their_score or 0) + 1
         else:
             fixture.our_score = (fixture.our_score or 0) + 1
@@ -142,18 +155,30 @@ class LiveMatchService:
         return self.fixtures.detail(fixture_id)
 
     def goal_against(self, fixture_id: int) -> FixtureDetail:
-        """Opposition goals have no event; they are just the score."""
+        """They scored. We never record the opposition's players, so the row carries only
+        the period - but it is a row, so it sits on the timeline in the right place."""
         fixture = self._live(fixture_id)
+        seq = max((e.sequence for e in fixture.events), default=0) + 1
+        fixture.events.append(
+            MatchEvent(
+                event_type=EventType.OPP_GOAL,
+                player_id=None,
+                period=fixture.current_period,
+                sequence=seq,
+            )
+        )
         fixture.their_score = (fixture.their_score or 0) + 1
         self.db.commit()
         return self.fixtures.detail(fixture_id)
 
     def remove_goal_against(self, fixture_id: int) -> FixtureDetail:
+        """Undo the most recent opposition goal."""
         fixture = self._live(fixture_id)
-        own_goals = sum(1 for e in fixture.events if e.event_type == EventType.OWN_GOAL)
-        if (fixture.their_score or 0) <= own_goals:
+        opp = [e for e in fixture.events if e.event_type == EventType.OPP_GOAL]
+        if not opp:
             raise ValidationError("No opposition goal to remove")
-        fixture.their_score = (fixture.their_score or 0) - 1
+        fixture.events.remove(max(opp, key=lambda e: e.sequence))
+        fixture.their_score = max(0, (fixture.their_score or 0) - 1)
         self.db.commit()
         return self.fixtures.detail(fixture_id)
 

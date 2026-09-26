@@ -168,6 +168,7 @@ class FixtureService:
                 event_type=EventType(g.event_type),
                 player_id=g.scorer_id,
                 minute=g.minute,
+                period=g.period,
                 sequence=seq,
                 notes=g.notes,
             )
@@ -178,6 +179,7 @@ class FixtureService:
                     event_type=EventType.ASSIST,
                     player_id=g.assisted_by_id,
                     minute=g.minute,
+                    period=g.period,
                     sequence=seq,
                     related_event=goal,
                 )
@@ -230,6 +232,7 @@ class FixtureService:
                     assisted_by=PlayerSummary.model_validate(assist.player) if assist else None,
                     assist_event_id=assist.id if assist else None,
                     minute=e.minute,
+                    period=e.period,
                     sequence=e.sequence,
                     notes=e.notes,
                 )
@@ -250,6 +253,9 @@ class FixtureService:
                     "our_score",
                     "their_score",
                     "duration_minutes",
+                    "period_count",
+                    "periods",
+                    "current_period",
                     "notes",
                 )
             },

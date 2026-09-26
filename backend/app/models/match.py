@@ -75,8 +75,8 @@ class MatchEvent(TimestampMixin, Base):
         CheckConstraint(check_in("event_type", EventType), name="event_type"),
         # Only an opposition own goal has no player.
         CheckConstraint(
-            "(event_type = 'opp_own_goal' AND player_id IS NULL) "
-            "OR (event_type <> 'opp_own_goal' AND player_id IS NOT NULL)",
+            "(event_type IN ('opp_own_goal', 'opp_goal') AND player_id IS NULL) "
+            "OR (event_type NOT IN ('opp_own_goal', 'opp_goal') AND player_id IS NOT NULL)",
             name="player_required",
         ),
         Index("ix_match_events_fixture_id_sequence", "fixture_id", "sequence"),
@@ -89,6 +89,10 @@ class MatchEvent(TimestampMixin, Base):
     )
     event_type: Mapped[EventType] = mapped_column(String(20))
     minute: Mapped[int | None] = mapped_column(Integer)
+    # Which half/quarter it happened in. The period is the time axis at this age group -
+    # nobody needs "33'", they need "in the second quarter". NULL on anything recorded
+    # before periods existed, and on post-match entry where it isn't asked for.
+    period: Mapped[int | None] = mapped_column(Integer)
     sequence: Mapped[int] = mapped_column(Integer, default=0)  # ordering when minute unknown
     related_event_id: Mapped[int | None] = mapped_column(
         ForeignKey("match_events.id", ondelete="CASCADE"), index=True
