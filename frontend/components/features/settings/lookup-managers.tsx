@@ -17,6 +17,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Field } from "@/components/features/fixtures/fixture-form";
 
 const TYPES: Schema["CompetitionType"][] = ["league", "cup", "friendly", "tournament"];
+/** How a match is split. The timeline's dividers come from this. */
+export const PERIODS = [
+  { value: "2", label: "Halves" },
+  { value: "4", label: "Quarters" },
+  { value: "3", label: "Thirds" },
+  { value: "1", label: "One period" },
+];
 
 export function CompetitionsManager() {
   const qc = useQueryClient();
@@ -27,15 +34,25 @@ export function CompetitionsManager() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [type, setType] = useState<Schema["CompetitionType"]>("league");
+  const [periods, setPeriods] = useState("2");
   const invalidate = () => qc.invalidateQueries({ queryKey: ["get", "/api/v1/competitions"] });
 
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
     try {
-      await create.mutateAsync({ body: { name: name.trim(), type } });
+      await create.mutateAsync({ body: { name: name.trim(), type, period_count: Number(periods) } });
       invalidate();
       setOpen(false);
       setName("");
+    } catch (err) {
+      toast.error(errorMessage(err));
+    }
+  }
+
+  async function setPeriodCount(id: number, period_count: number) {
+    try {
+      await update.mutateAsync({ params: { path: { competition_id: id } }, body: { period_count } });
+      invalidate();
     } catch (err) {
       toast.error(errorMessage(err));
     }
@@ -70,6 +87,10 @@ export function CompetitionsManager() {
             <span className={c.is_active ? "font-medium" : "text-muted-foreground line-through"}>{c.name}</span>
             <Badge variant="outline" className="capitalize">{c.type}</Badge>
             <span className="flex-1" />
+            <Select value={String(c.period_count)} onValueChange={(v) => setPeriodCount(c.id, Number(v))}>
+              <SelectTrigger className="h-9 w-28" aria-label={`${c.name} format`}><SelectValue /></SelectTrigger>
+              <SelectContent>{PERIODS.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}</SelectContent>
+            </Select>
             <Switch checked={c.is_active} onCheckedChange={(v) => toggleActive(c.id, v)} aria-label="Active" />
             <button type="button" onClick={() => onDelete(c.id)} className="flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-destructive" aria-label="Delete">
               <Trash2 className="size-4" />
@@ -77,7 +98,10 @@ export function CompetitionsManager() {
           </div>
         ))}
       </Card>
-      <p className="mt-2 text-xs text-muted-foreground">League-only stats use every competition of type &ldquo;league&rdquo;.</p>
+      <p className="mt-2 text-xs text-muted-foreground">
+        League-only stats use every competition of type &ldquo;league&rdquo;. Halves or quarters sets how the
+        match timeline is split; a one-off is overridden on the fixture.
+      </p>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
@@ -88,6 +112,12 @@ export function CompetitionsManager() {
               <Select value={type} onValueChange={(v) => setType(v as Schema["CompetitionType"])}>
                 <SelectTrigger className="h-11 w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>{TYPES.map((t) => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}</SelectContent>
+              </Select>
+            </Field>
+            <Field label="Played in">
+              <Select value={periods} onValueChange={setPeriods}>
+                <SelectTrigger className="h-11 w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>{PERIODS.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}</SelectContent>
               </Select>
             </Field>
             <Button type="submit" className="h-11 w-full" disabled={create.isPending}>Add</Button>

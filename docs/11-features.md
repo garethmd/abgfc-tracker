@@ -83,9 +83,11 @@ A second way to record a match, alongside the post-match screen (which is unchan
   with `appearances` (all `started`) and a 0-0 score. No new tables: the result is
   written into its usual columns as it happens.
 - **Goal** opens the same scorer → assist bottom sheet as the result screen and writes a
-  `match_events` row (+ assist) immediately; **Against** bumps `their_score` (opposition
-  goals have no event type); **Undo** reverses the last of either, and any goal row can be
-  removed. Each write returns the whole `FixtureDetail`, which the screen drops into the
+  `match_events` row (+ assist) immediately; **Against** writes an `opp_goal` row (no
+  player — we never record their names) and moves the score; **Undo** reverses the last of
+  either, and any goal row can be removed.
+- **Half time / End of Q1** advances `fixtures.current_period`; every event after it is
+  stamped with the new period. There is still no clock. Each write returns the whole `FixtureDetail`, which the screen drops into the
   query cache - nothing is held only in the browser, so a locked phone or a reload just
   shows the server's state. Goals carry a client `sequence`, so a retried request can't
   double-count. The page also polls every 15s while live, for a second phone watching.
@@ -100,7 +102,27 @@ A second way to record a match, alongside the post-match screen (which is unchan
   a red *Live* badge and the running score; the stats engine ignores `live` (only `played`
   counts).
 
-No clock and no minutes: that's the *time on pitch* item on the [roadmap](12-roadmap.md).
+No clock and no minutes: periods are the time axis (nobody at U10 needs "33'", they need
+"in the second quarter"), and `match_events.minute` stays NULL unless something fills it.
+Minutes are the *time on pitch* item on the [roadmap](12-roadmap.md).
+
+## Match timeline
+
+`components/features/fixtures/match-timeline.tsx`, used by both the live screen (building
+as the coach taps, each row removable) and a played fixture's page (with links to the
+players). Our goals down one side, theirs down the other, the running score between them,
+a divider at each half or quarter.
+
+- **Periods** come from `competitions.period_count` (Settings → Leagues: Halves or
+  Quarters) with a per-fixture override on the fixture form, because some matches in the
+  same league are played in quarters.
+- **The running score is hidden** when the events don't account for the stored score -
+  matches recorded before `opp_goal` existed have our goals only, and a score climbing to
+  2-0 in a game that finished 2-2 is worse than no score at all. Those rows get a plain
+  rail dot instead, and `score_warnings` already flags the mismatch on the page.
+- Events with no period (all history) render in sequence order with no dividers.
+- A minute is shown only when one was recorded, so the layout is ready if minutes ever
+  arrive.
 
 ## Availability and the parents' message
 

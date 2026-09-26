@@ -114,7 +114,8 @@ don't. Resolved per request into `services/access.py::Access`.
 ### Competition
 
 **`competitions`** — global lookup. `name` (unique), `type` (`league` | `cup` |
-`friendly` | `tournament`), `is_active`. League-only stats filter on `type`, so a second
+`friendly` | `tournament`), `period_count` (2 = halves, 4 = quarters — whether a league
+plays quarters is a property of the league), `is_active`. League-only stats filter on `type`, so a second
 league competition ("Conference League" and "Zidane League" both exist) needs no code.
 
 **`teams`** — opposition. `name` (unique), `short_name`, `colours`, `notes`,
@@ -126,7 +127,8 @@ We are never "the home team" in a row; fixtures are always us-vs-opposition.
 `venue` (`home` | `away` | `neutral`), `venue_notes` (ground), `status` (`scheduled` |
 `live` | `played` | `postponed` | `cancelled` | `abandoned` — `live` is a match being
 recorded from the pitch, see [Features](11-features.md#live-match-entry)), `our_score`,
-`their_score` (NULL until played or live; CHECK ≥ 0), `duration_minutes` (overrides the team season's default),
+`their_score` (NULL until played or live; CHECK ≥ 0), `period_count` (overrides the
+competition's), `current_period` (which half/quarter a live match is in), `duration_minutes` (overrides the team season's default),
 `notes` (one-line admin). Index on (team_season_id, kickoff_at).
 Scores are **stored** as well as derivable from events; `stats.score_warnings()` reports
 disagreements instead of blocking entry.
@@ -142,12 +144,16 @@ the UI**. `appearance_id` (so a stint can't exist for someone who didn't play),
 `on_minute`, `off_minute` (NULL = until the final whistle), `position_id`. CHECK
 `off > on`. `stats.minutes_for_appearance()` sums them, clipped to the match length.
 
-**`match_events`** — `fixture_id`, `player_id` (NULL only for `opp_own_goal`, enforced by
-CHECK), `event_type` (`goal` | `assist` | `own_goal` | `opp_own_goal`), `minute`,
+**`match_events`** — `fixture_id`, `player_id` (NULL only for `opp_own_goal` and
+`opp_goal`, enforced by CHECK), `event_type` (`goal` | `assist` | `own_goal` |
+`opp_own_goal` | `opp_goal`), `minute`, `period` (the half/quarter — the time axis for
+the match timeline; NULL on anything recorded before periods existed),
 `sequence` (ordering when minutes are unknown), `related_event_id` (self-FK: **an assist
 points at its goal**), `notes`. Goals and assists are `COUNT(*)`s. A goal is therefore an
 addressable row a clip can attach to. `own_goal` counts against us and appears on the
-player's record; `opp_own_goal` counts for us with no player.
+player's record; `opp_own_goal` counts for us with no player; `opp_goal` is "they scored"
+with no player either — we never record the opposition's names, but it is a row so the
+timeline can place it and the score can climb.
 
 **`match_notes`** — free text on a fixture, typically a WhatsApp report. `body`,
 `author` (who wrote the message), `sent_at` (when), `created_by_user_id` (the coach who
@@ -202,6 +208,9 @@ media row + a link with `role='profile_photo'`.
 20260920_1127_live_fixture_status.py  adds 'live' to the fixtures.status CHECK
 20260920_1233_squad_selection.py  fixture_selections, fixture_unavailable_players,
                                   team_seasons.arrival_lead_minutes
+20260926_2330_match_periods_and_opposition_goals.py
+                                  competitions.period_count, fixtures.period_count +
+                                  current_period, match_events.period, 'opp_goal'
 ```
 
 - Alembic runs in **batch mode** (`render_as_batch=True`) because SQLite can't `ALTER`

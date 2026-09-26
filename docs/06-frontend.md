@@ -107,7 +107,8 @@ qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });   // prefix mat
 | Availability | `SquadSelection` | everyone in by default; tap a chip to mark out (tap again to put back); arrival card; coaching + notes; sticky save |
 | Message parents | `MessageSheet` | bottom sheet: server-rendered text (editable), *Add the date* toggle, `navigator.share` on phones, copy fallback |
 | Result entry | `ResultEntry`, `GoalSheet`, `Chip`, `ScoreStepper` | squad preselected (the players marked available, when recorded); bottom sheet scorer→assist; sticky save |
-| Live match | `LineUp`, `LiveMatch` (+ `GoalSheet`/`Chip` from result entry) | line-up → sticky score card, Goal/Against/Undo bar, Full time → entry screen for awards |
+| Live match | `LineUp`, `LiveMatch` (+ `GoalSheet`/`Chip` from result entry) | line-up → sticky score card with the period pill, Goal/Against/Undo bar, Half time / End of Qn, Full time → entry screen for awards |
+| Match timeline | `MatchTimeline` | shared by the live screen and a played fixture: goals either side of a running score, dividers per half/quarter |
 | Fixture new/edit | `FixtureForm` | inline "+ New team…" creates opposition |
 | Squad | `PlayerAvatar`, `PlayerForm` (sheet) | "Already at the club" mode picks from the cohort pool |
 | Player | `PhotoPicker`, `PlayerAvatar`, `Stat` | season stats, history across teams |

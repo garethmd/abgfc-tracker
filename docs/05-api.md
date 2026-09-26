@@ -110,7 +110,8 @@ Full rules in [Security](08-security.md).
 | PUT | `/fixtures/{id}/live/squad` | coach | `LiveSquad`; 422 if it drops someone with a goal/assist |
 | POST | `/fixtures/{id}/live/goals` | coach | `LiveGoal` = `GoalInput` + `sequence`; bumps the score; same `sequence` again = same goal (retry-safe), other goal at a used `sequence` = 409 |
 | DELETE | `/fixtures/{id}/live/goals/{event_id}` | coach | undo: removes goal + assist, decrements the score |
-| POST/DELETE | `/fixtures/{id}/live/against` | coach | opposition goal (`their_score` ± 1; no event) |
+| POST/DELETE | `/fixtures/{id}/live/against` | coach | opposition goal: writes/removes an `opp_goal` event (no player) and moves `their_score` |
+| POST | `/fixtures/{id}/live/period` | coach | half time / end of a quarter: later events get the next period |
 | POST | `/fixtures/{id}/live/finish` | coach | `status=played`; the fixture is now exactly what `PUT /result` produces |
 | DELETE | `/fixtures/{id}/live` | coach | started by mistake: clears everything, back to `scheduled` |
 | GET | `/fixtures/{id}/selection` | viewer | `SelectionRead` or `null` — pre-match availability (below) |
@@ -137,6 +138,11 @@ can't assist their own goal; own goals can't be assisted; `opp_own_goal` has no 
 award types must be match-scoped and visible to the team. Replaces the fixture's whole
 result and sets `status=played`. Score/scorer disagreements come back as `warnings` on
 the detail, not errors.
+
+`FixtureRead` carries `periods` (the effective split: the fixture's `period_count`, else
+the competition's), `period_count` (the override) and `current_period` (while live);
+`GoalRead` carries `period`. `GoalInput` accepts `opp_goal` and a `period`, so the
+post-match screen round-trips a live match's timeline without losing it.
 
 **Live entry** (`/fixtures/{id}/live/*`, `services/live.py`) writes the same result one
 tap at a time. Every call returns the full `FixtureDetail`. While a fixture is `live`,

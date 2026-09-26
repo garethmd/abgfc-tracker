@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Flag, MoreHorizontal, Trash2, Undo2, Users, X } from "lucide-react";
+import { Flag, MoreHorizontal, Timer, Trash2, Undo2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { $api, errorMessage, type Schema } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import {
 import { Card } from "@/components/stat-card";
 import { SectionTitle } from "@/components/page-header";
 import { Chip, GoalSheet, type Goal } from "@/components/features/fixtures/result-entry";
-import { cn } from "@/lib/utils";
+import { MatchTimeline, periodLabel } from "@/components/features/fixtures/match-timeline";
 
 type Fixture = Schema["FixtureDetail"];
 type Member = Schema["SquadMemberRead"];
@@ -115,9 +115,10 @@ export function LiveMatch({ fixture, squad, teamName, base }: { fixture: Fixture
   const against = $api.useMutation("post", "/api/v1/fixtures/{fixture_id}/live/against");
   const removeAgainst = $api.useMutation("delete", "/api/v1/fixtures/{fixture_id}/live/against");
   const setSquad = $api.useMutation("put", "/api/v1/fixtures/{fixture_id}/live/squad", { retry: 2 });
+  const nextPeriod = $api.useMutation("post", "/api/v1/fixtures/{fixture_id}/live/period");
   const finish = $api.useMutation("post", "/api/v1/fixtures/{fixture_id}/live/finish");
   const abandon = $api.useMutation("delete", "/api/v1/fixtures/{fixture_id}/live");
-  const busy = [addGoal, removeGoal, against, removeAgainst, setSquad, finish, abandon].some((m) => m.isPending);
+  const busy = [addGoal, removeGoal, against, removeAgainst, setSquad, nextPeriod, finish, abandon].some((m) => m.isPending);
 
   function apply(d: Fixture) {
     qc.setQueryData(fixtureKey(fixture.id), d);
@@ -173,6 +174,10 @@ export function LiveMatch({ fixture, squad, teamName, base }: { fixture: Fixture
     run(() => setSquad.mutateAsync({ ...path, body: { player_ids: playerIds } }), apply);
   }
 
+  function onNextPeriod() {
+    run(() => nextPeriod.mutateAsync(path), apply);
+  }
+
   function onFinish() {
     setConfirming(null);
     run(() => finish.mutateAsync(path), (d) => {
@@ -194,8 +199,14 @@ export function LiveMatch({ fixture, squad, teamName, base }: { fixture: Fixture
     });
   }
 
-  const ourGoals = fixture.goals.filter((g) => g.event_type !== "own_goal").length;
-  const oppGoals = (fixture.their_score ?? 0) - fixture.goals.filter((g) => g.event_type === "own_goal").length;
+  const ourGoals = fixture.our_score ?? 0;
+  const oppGoals = fixture.their_score ?? 0;
+  const current = fixture.current_period ?? 1;
+  const period = periodLabel(current, fixture.periods);
+  // "Half time" after the first of two, "End of Q1" in quarters; after the last one
+  // the match is over, so the button goes away and Full time is the only way on.
+  const nextLabel =
+    fixture.periods === 2 ? "Half time" : `End of ${period}`;
 
   return (
     <div className="space-y-8 pb-28">
@@ -219,6 +230,7 @@ export function LiveMatch({ fixture, squad, teamName, base }: { fixture: Fixture
               </span>
               Live
             </span>
+            <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">{period}</span>
             <DropdownMenu>
               <DropdownMenuTrigger className="flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground">
                 <MoreHorizontal className="size-4" />
@@ -242,32 +254,15 @@ export function LiveMatch({ fixture, squad, teamName, base }: { fixture: Fixture
           <span className="tnum text-xs text-muted-foreground">{ourGoals} for · {oppGoals} against</span>
         </div>
         {fixture.goals.length > 0 ? (
-          <Card className="divide-y divide-border/40">
-            {fixture.goals.map((g, i) => (
-              <div key={g.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
-                <span className="tnum w-5 text-xs text-muted-foreground">{i + 1}</span>
-                <div className="flex-1">
-                  {g.event_type === "opp_own_goal" ? (
-                    <span className="font-medium">Opposition own goal</span>
-                  ) : (
-                    <span className={cn("font-medium", g.event_type === "own_goal" && "text-rose-600 dark:text-rose-400")}>
-                      {g.scorer?.display_name}{g.event_type === "own_goal" && " (OG)"}
-                    </span>
-                  )}
-                  {g.assisted_by && <span className="ml-1.5 text-xs text-muted-foreground">assist {g.assisted_by.display_name}</span>}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onRemoveGoal(g.id)}
-                  disabled={busy}
-                  className="flex size-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
-                  aria-label="Remove goal"
-                >
-                  <X className="size-4" />
-                </button>
-              </div>
-            ))}
-          </Card>
+          <MatchTimeline
+            goals={fixture.goals}
+            periods={fixture.periods}
+            teamName={teamName}
+            oppositionName={fixture.opposition.short_name ?? fixture.opposition.name}
+            ourScore={fixture.our_score}
+            theirScore={fixture.their_score}
+            onRemove={(g) => onRemoveGoal(g.id)}
+          />
         ) : (
           <p className="text-sm text-muted-foreground">No goals yet. Tap <span className="font-medium text-foreground">Goal</span> when one goes in.</p>
         )}
@@ -300,6 +295,11 @@ export function LiveMatch({ fixture, squad, teamName, base }: { fixture: Fixture
           <Button type="button" variant="outline" className="h-14 px-3" onClick={onUndo} disabled={busy || !last} aria-label="Undo last">
             <Undo2 className="size-5" />
           </Button>
+          {current < fixture.periods && (
+            <Button type="button" variant="outline" className="col-span-3 h-11" onClick={onNextPeriod} disabled={busy}>
+              <Timer className="size-4" /> {nextLabel}
+            </Button>
+          )}
           <Button type="button" variant="secondary" className="col-span-3 h-11" onClick={() => setConfirming("finish")} disabled={busy}>
             <Flag className="size-4" /> Full time
           </Button>

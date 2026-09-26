@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Award, FileDown, MapPin, MoreHorizontal, Pencil, Radio, Trash2 } from "lucide-react";
 import { matchdaySheetUrl } from "@/lib/reports";
 import { toast } from "sonner";
-import { $api, errorMessage, type Schema } from "@/lib/api/client";
+import { $api, errorMessage } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
 import { formatLongDate, formatTime, STATUS_LABEL, VENUE_LABEL } from "@/lib/format";
 import { PageHeader, SectionTitle } from "@/components/page-header";
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { MatchNotes } from "@/components/features/fixtures/match-notes";
+import { MatchTimeline } from "@/components/features/fixtures/match-timeline";
 import { SelectionCard } from "@/components/features/fixtures/selection-card";
 
 export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixtures/[id]">) {
@@ -172,9 +173,15 @@ export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixture
           <section>
             <SectionTitle>Goals</SectionTitle>
             {f.goals.length ? (
-              <Card className="divide-y divide-border/40">
-                {f.goals.map((g) => <GoalLine key={g.id} goal={g} base={base} />)}
-              </Card>
+              <MatchTimeline
+                goals={f.goals}
+                periods={f.periods}
+                teamName={team.name}
+                oppositionName={f.opposition.short_name ?? f.opposition.name}
+                ourScore={f.our_score}
+                theirScore={f.their_score}
+                base={base}
+              />
             ) : (
               <p className="text-sm text-muted-foreground">No goals recorded.</p>
             )}
@@ -227,26 +234,5 @@ export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixture
 function TeamName({ name, align }: { name: string; align: "left" | "right" }) {
   return (
     <span className={cn("min-w-0 flex-1 text-sm font-medium leading-tight", align === "right" ? "text-right" : "text-left")}>{name}</span>
-  );
-}
-
-function GoalLine({ goal: g, base }: { goal: Schema["GoalRead"]; base: string }) {
-  const label =
-    g.event_type === "opp_own_goal" ? "Own goal (opposition)" : g.event_type === "own_goal" ? "Own goal" : null;
-  return (
-    <div className="flex items-center gap-3 px-4 py-3 text-sm">
-      <span className="tnum w-8 shrink-0 text-xs text-muted-foreground">{g.minute != null ? `${g.minute}'` : ""}</span>
-      <div className="min-w-0 flex-1">
-        {g.scorer ? (
-          <Link href={`${base}/players/${g.scorer.id}`} className={cn("font-medium hover:underline", g.event_type === "own_goal" && "text-rose-600 dark:text-rose-400")}>
-            {g.scorer.display_name}
-          </Link>
-        ) : (
-          <span className="font-medium">{label}</span>
-        )}
-        {label && g.scorer && <span className="ml-1.5 text-xs text-muted-foreground">({label})</span>}
-        {g.assisted_by && <span className="ml-1.5 text-xs text-muted-foreground">assist {g.assisted_by.display_name}</span>}
-      </div>
-    </div>
   );
 }

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { $api, errorMessage, type Schema } from "@/lib/api/client";
+import { PERIODS } from "@/components/features/settings/lookup-managers";
 import { useTeam } from "@/lib/team-context";
 import { toLocalInput, VENUE_LABEL, STATUS_LABEL } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ export function FixtureForm({ fixture }: { fixture?: Fixture }) {
   const [status, setStatus] = useState<Schema["FixtureStatus"]>(fixture?.status ?? "scheduled");
   const [matchNumber, setMatchNumber] = useState(fixture?.match_number ? String(fixture.match_number) : "");
   const [venueNotes, setVenueNotes] = useState(fixture?.venue_notes ?? "");
+  const [periodCount, setPeriodCount] = useState(fixture?.period_count ? String(fixture.period_count) : "");
   const [notes, setNotes] = useState(fixture?.notes ?? "");
 
   const create = $api.useMutation("post", "/api/v1/fixtures");
@@ -67,6 +69,7 @@ export function FixtureForm({ fixture }: { fixture?: Fixture }) {
         venue_notes: venueNotes || null,
         notes: notes || null,
         match_number: matchNumber ? Number(matchNumber) : null,
+        period_count: periodCount ? Number(periodCount) : null,
       };
       let saved: Fixture;
       if (fixture) {
@@ -167,6 +170,15 @@ export function FixtureForm({ fixture }: { fixture?: Fixture }) {
             </Field>
           )}
         </div>
+        <Field label="Played in" hint="Only if this match differs from the competition's usual format">
+          <Select value={periodCount || "default"} onValueChange={(v) => setPeriodCount(v === "default" ? "" : v)}>
+            <SelectTrigger className="h-11 w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="default">Same as the competition</SelectItem>
+              {PERIODS.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </Field>
         <Field label="Notes">
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Anything worth remembering" />
         </Field>
@@ -181,11 +193,12 @@ export function FixtureForm({ fixture }: { fixture?: Fixture }) {
   );
 }
 
-export function Field({ label, children }: { label: string; children: React.ReactNode }) {
+export function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
       <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</Label>
       {children}
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
 }
