@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { MatchNotes } from "@/components/features/fixtures/match-notes";
+import { FixtureVideos } from "@/components/features/fixtures/fixture-videos";
 import { SelectionCard } from "@/components/features/fixtures/selection-card";
 
 export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixtures/[id]">) {
@@ -212,6 +213,7 @@ export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixture
         </div>
       )}
 
+      {played && <FixtureVideos fixtureId={f.id} canEdit={canEdit} />}
       {played && <MatchNotes fixtureId={f.id} canEdit={canEdit} />}
 
       {f.notes && (

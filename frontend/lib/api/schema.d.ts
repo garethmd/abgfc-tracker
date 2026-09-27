@@ -458,6 +458,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/fixtures/{fixture_id}/media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Videos */
+        get: operations["list_videos_api_v1_fixtures__fixture_id__media_get"];
+        put?: never;
+        /** Add Video */
+        post: operations["add_video_api_v1_fixtures__fixture_id__media_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fixtures/{fixture_id}/media/{media_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Video */
+        delete: operations["delete_video_api_v1_fixtures__fixture_id__media__media_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Video */
+        patch: operations["update_video_api_v1_fixtures__fixture_id__media__media_id__patch"];
+        trace?: never;
+    };
     "/api/v1/fixtures/{fixture_id}/notes": {
         parameters: {
             query?: never;
@@ -1485,6 +1521,46 @@ export interface components {
             venue?: components["schemas"]["Venue"] | null;
             /** Venue Notes */
             venue_notes?: string | null;
+        };
+        /**
+         * FixtureVideoCreate
+         * @description A YouTube link pasted from the phone's share sheet, in whatever form it takes.
+         */
+        FixtureVideoCreate: {
+            /**
+             * Title
+             * @example Second half
+             */
+            title?: string | null;
+            /**
+             * Url
+             * @example https://youtu.be/dQw4w9WgXcQ
+             */
+            url: string;
+        };
+        /** FixtureVideoRead */
+        FixtureVideoRead: {
+            /** Fixture Id */
+            fixture_id: number;
+            /** Id */
+            id: number;
+            /** Sort Order */
+            sort_order: number;
+            /** Title */
+            title: string | null;
+            /** Url */
+            url: string;
+            /** Video Id */
+            video_id: string;
+        };
+        /** FixtureVideoUpdate */
+        FixtureVideoUpdate: {
+            /** Sort Order */
+            sort_order?: number | null;
+            /** Title */
+            title?: string | null;
+            /** Url */
+            url?: string | null;
         };
         /** FormEntry */
         FormEntry: {
@@ -3558,6 +3634,146 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FixtureDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_videos_api_v1_fixtures__fixture_id__media_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureVideoRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_video_api_v1_fixtures__fixture_id__media_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FixtureVideoCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureVideoRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_video_api_v1_fixtures__fixture_id__media__media_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
+                media_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_video_api_v1_fixtures__fixture_id__media__media_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
+                media_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FixtureVideoUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureVideoRead"];
                 };
             };
             /** @description Validation Error */

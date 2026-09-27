@@ -149,6 +149,33 @@ under `/fixtures/{id}/selection`, UI at `/[team]/fixtures/[id]/selection`
 - Times: `kickoff_at` is UK wall-clock; `arrival_time()` goes through Europe/London so a
   kick-off just after midnight or on a clock-change morning still comes out right.
 
+## Fixture video
+
+Matches that get filmed and posted to YouTube are watched on the fixture page, next to
+the stats. `services/fixture_media.py`, routes under `/fixtures/{id}/media`, UI is
+`FixtureVideos` on a played fixture.
+
+**No new tables.** A `media` row (`kind='youtube'`, canonical `url`) plus a `media_links`
+row carrying `fixture_id` and `role='match_video'` - exactly what `media_links` was built
+for. Several per fixture (first half / second half / highlights), ordered by `sort_order`.
+
+- **Pasting.** `parse_youtube_id()` takes whatever the coach pastes - `youtu.be/…` from
+  the phone's share sheet, `watch?v=…&t=42s`, `/shorts/`, `/embed/`, `/live/`, or a bare
+  id - and stores the canonical `https://www.youtube.com/watch?v=<id>`. Anything that
+  isn't YouTube is a 422 while pasting, rather than a card that fails to play a week
+  later. The same video twice on one fixture is refused.
+- **Click to play.** The card shows a play button and title; the `youtube-nocookie.com`
+  iframe is only mounted when someone taps it, so a page about children makes **no request
+  to Google at all** until a viewer asks for the video (verified: zero iframes and zero
+  requests to any Google domain before the tap). There is also an "open on YouTube" link.
+- **Access** follows the fixture, like match notes: anyone who can see the fixture can
+  watch, only coaches can add, retitle or remove.
+- **Deleting a fixture** removes its videos. `media_links` cascades with the fixture, but
+  the `media` rows it points at are its parents, not its children, so `FixtureService.delete`
+  removes them explicitly - otherwise every deleted fixture left an orphan behind.
+- What gets posted to YouTube, and whether it is public or unlisted, is between the club
+  and the parents; the app only stores the link.
+
 ## Player profile photos
 
 `PUT /players/{id}/photo` (multipart `file`), `GET /players/{id}/photo?size=full|thumb`,

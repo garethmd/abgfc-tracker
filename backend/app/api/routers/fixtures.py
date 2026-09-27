@@ -9,8 +9,10 @@ from app.schemas.fixture import (
     FixtureUpdate,
     ResultSubmit,
 )
+from app.schemas.media import FixtureVideoCreate, FixtureVideoRead, FixtureVideoUpdate
 from app.schemas.note import MatchNoteCreate, MatchNoteRead, MatchNoteUpdate
 from app.schemas.selection import ParentsMessage, SelectionRead, SelectionSubmit
+from app.services.fixture_media import FixtureVideoService
 from app.services.fixtures import FixtureService
 from app.services.notes import MatchNoteService
 from app.services.selections import SelectionService
@@ -58,6 +60,29 @@ def delete_fixture(fixture_id: int, db: DB, access: Access):
 def submit_result(fixture_id: int, data: ResultSubmit, db: DB, access: Access):
     """Post-match entry: appearances, goals/assists, awards and score in one write."""
     return FixtureService(db, access).submit_result(fixture_id, data)
+
+
+# --- videos (YouTube links on the fixture) ------------------------------------------
+
+
+@router.get("/{fixture_id}/media", response_model=list[FixtureVideoRead])
+def list_videos(fixture_id: int, db: DB, access: Access):
+    return FixtureVideoService(db, access).list_for(fixture_id)
+
+
+@router.post("/{fixture_id}/media", response_model=FixtureVideoRead, status_code=201)
+def add_video(fixture_id: int, data: FixtureVideoCreate, db: DB, access: Access):
+    return FixtureVideoService(db, access).add(fixture_id, data)
+
+
+@router.patch("/{fixture_id}/media/{media_id}", response_model=FixtureVideoRead)
+def update_video(fixture_id: int, media_id: int, data: FixtureVideoUpdate, db: DB, access: Access):
+    return FixtureVideoService(db, access).update(fixture_id, media_id, data)
+
+
+@router.delete("/{fixture_id}/media/{media_id}", status_code=204)
+def delete_video(fixture_id: int, media_id: int, db: DB, access: Access):
+    FixtureVideoService(db, access).delete(fixture_id, media_id)
 
 
 # --- match notes (reports pasted from WhatsApp) -------------------------------------

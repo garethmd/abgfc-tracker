@@ -1434,6 +1434,130 @@
         "title": "FixtureUpdate",
         "type": "object"
       },
+      "FixtureVideoCreate": {
+        "additionalProperties": false,
+        "description": "A YouTube link pasted from the phone's share sheet, in whatever form it takes.",
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "examples": [
+              "Second half"
+            ],
+            "title": "Title"
+          },
+          "url": {
+            "examples": [
+              "https://youtu.be/dQw4w9WgXcQ"
+            ],
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "FixtureVideoCreate",
+        "type": "object"
+      },
+      "FixtureVideoRead": {
+        "properties": {
+          "fixture_id": {
+            "title": "Fixture Id",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "sort_order": {
+            "title": "Sort Order",
+            "type": "integer"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "video_id": {
+            "title": "Video Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "fixture_id",
+          "video_id",
+          "url",
+          "title",
+          "sort_order"
+        ],
+        "title": "FixtureVideoRead",
+        "type": "object"
+      },
+      "FixtureVideoUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "sort_order": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sort Order"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "title": "FixtureVideoUpdate",
+        "type": "object"
+      },
       "FormEntry": {
         "properties": {
           "fixture_id": {
@@ -6604,6 +6728,269 @@
         "summary": "Start Live",
         "tags": [
           "live"
+        ]
+      }
+    },
+    "/api/v1/fixtures/{fixture_id}/media": {
+      "get": {
+        "operationId": "list_videos_api_v1_fixtures__fixture_id__media_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fixture_id",
+            "required": true,
+            "schema": {
+              "title": "Fixture Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FixtureVideoRead"
+                  },
+                  "title": "Response List Videos Api V1 Fixtures  Fixture Id  Media Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Videos",
+        "tags": [
+          "fixtures"
+        ]
+      },
+      "post": {
+        "operationId": "add_video_api_v1_fixtures__fixture_id__media_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fixture_id",
+            "required": true,
+            "schema": {
+              "title": "Fixture Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FixtureVideoCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixtureVideoRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Video",
+        "tags": [
+          "fixtures"
+        ]
+      }
+    },
+    "/api/v1/fixtures/{fixture_id}/media/{media_id}": {
+      "delete": {
+        "operationId": "delete_video_api_v1_fixtures__fixture_id__media__media_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fixture_id",
+            "required": true,
+            "schema": {
+              "title": "Fixture Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "media_id",
+            "required": true,
+            "schema": {
+              "title": "Media Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Video",
+        "tags": [
+          "fixtures"
+        ]
+      },
+      "patch": {
+        "operationId": "update_video_api_v1_fixtures__fixture_id__media__media_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fixture_id",
+            "required": true,
+            "schema": {
+              "title": "Fixture Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "media_id",
+            "required": true,
+            "schema": {
+              "title": "Media Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FixtureVideoUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixtureVideoRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Video",
+        "tags": [
+          "fixtures"
         ]
       }
     },

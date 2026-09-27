@@ -187,10 +187,13 @@ player) — so **joint winners are allowed**. Cascade with the fixture.
 `content_type`, `size_bytes`. CHECK: youtube rows have a url, others a storage_key.
 
 **`media_links`** — `media_id` plus **three nullable FKs** `fixture_id`, `player_id`,
-`match_event_id` with a CHECK that exactly one is set, `role` (e.g. `profile_photo`,
-later `full_match`, `highlights`, `goal_clip`), `sort_order`. Real FKs with cascades,
-unlike a `target_type/target_id` pair. In use: a player's profile photo is a `photo`
-media row + a link with `role='profile_photo'`.
+`match_event_id` with a CHECK that exactly one is set, `role` (`profile_photo`,
+`match_video`, later `goal_clip`), `sort_order`. Real FKs with cascades, unlike a
+`target_type/target_id` pair. In use: a player's profile photo is a `photo` media row + a
+link with `role='profile_photo'`, and a fixture's match video is a `youtube` row + a link
+with `fixture_id` and `role='match_video'` (see [Features](11-features.md#fixture-video)).
+Deleting a fixture cascades the link but **not** the media row it points at, so
+`FixtureService.delete` removes those explicitly.
 
 ## Migrations
 

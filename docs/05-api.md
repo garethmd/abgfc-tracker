@@ -104,6 +104,8 @@ Full rules in [Security](08-security.md).
 | PATCH | `/fixtures/{id}` | coach | 422 if set to `played` without both scores |
 | DELETE | `/fixtures/{id}` | coach | cascades appearances, events, awards, notes |
 | **PUT** | **`/fixtures/{id}/result`** | coach | **the post-match write** — see below |
+| GET/POST | `/fixtures/{id}/media` | viewer / coach | fixture videos; `{url, title?}` - any YouTube link shape, 422 if it isn't one |
+| PATCH/DELETE | `/fixtures/{id}/media/{media_id}` | coach | retitle, replace the link, reorder, remove |
 | GET/POST | `/fixtures/{id}/notes` | viewer / coach | `MatchNoteRead[]`; `{body, author?, sent_at?}` |
 | PATCH/DELETE | `/fixtures/{id}/notes/{note_id}` | coach | 404 if the note isn't on that fixture |
 | POST | `/fixtures/{id}/live/start` | coach | `LiveSquad {player_ids}` → `status=live`, 0-0; 409 unless `scheduled` |

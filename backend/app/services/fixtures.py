@@ -1,3 +1,5 @@
+from sqlalchemy import delete as sa_delete
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.errors import ConflictError, NotFoundError, ValidationError
@@ -9,6 +11,8 @@ from app.models import (
     Fixture,
     FixtureStatus,
     MatchEvent,
+    Media,
+    MediaLink,
     UserRole,
 )
 from app.repositories.club import TeamSeasonRepository
@@ -112,7 +116,14 @@ class FixtureService:
 
     def delete(self, id: int) -> None:
         fixture = self.get(id, UserRole.COACH)
-        self.repo.delete(fixture)  # appearances/events/awards cascade
+        # media_links cascade with the fixture, but the media rows they point at are
+        # their parents, not their children - without this they'd be left orphaned.
+        media_ids = list(
+            self.db.scalars(select(MediaLink.media_id).where(MediaLink.fixture_id == id))
+        )
+        self.repo.delete(fixture)  # appearances/events/awards/media links cascade
+        if media_ids:
+            self.db.execute(sa_delete(Media).where(Media.id.in_(media_ids)))
         self.db.commit()
 
     def submit_result(self, id: int, data: ResultSubmit) -> FixtureDetail:

@@ -47,10 +47,11 @@ season-by-season block (`GET /players/{id}/memberships` + stats per team season)
 milestones (first goal, 10th appearance — derive from events/appearances), form (last
 five appearances with G/A).
 
-**Fixture media and goal clips.** `media` + `media_links` handle `fixture_id` and
-`match_event_id` already. Add `POST /fixtures/{id}/media` (YouTube URL or file via the
-same `PlayerPhotoService` pipeline generalised), list on the fixture page, and a "clip"
-link on each goal row (`GoalLine`). Keep files behind the authenticated endpoint.
+**Fixture photos and goal clips.** YouTube video on a fixture is **done** (see
+[Features](11-features.md#fixture-video)). Still open: photo/file uploads on a fixture
+(generalise the `PlayerPhotoService` pipeline, keep files behind the authenticated
+endpoint) and a "clip" link per goal, which is a `media_links` row with `match_event_id`
+plus a button on each goal row.
 
 **Month/season awards.** `award_types.scope` and `awards.period_label` support "Goal of
 the month" without a fixture. Needs a small UI to award them and a place to show them.
