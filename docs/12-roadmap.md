@@ -42,6 +42,14 @@ captaincies column, and a one-off script that converts the existing Captain awar
 into `appearances.captain` and deactivates the award type. Until then, keep the award
 convention - don't write `appearances.captain` from one path and not the other.
 
+**Backfilling opposition goals onto old matches.** The match timeline shows a running
+score only when the event log accounts for the stored score, so matches entered after the
+game (every one played before the timeline existed) show goals without a score. A one-off
+script could insert `their_score - own_goals` `opp_goal` rows per played fixture with
+`period = NULL`. Deliberately not done: it invents ordering nobody recorded, and the
+alternative - asking coaches to retro-fit old matches - is exactly the upkeep the feature
+avoids. Only worth it if someone wants complete history for a season review.
+
 **Player cards.** Photos, memberships history and per-season stats exist. Add: a
 season-by-season block (`GET /players/{id}/memberships` + stats per team season),
 milestones (first goal, 10th appearance — derive from events/appearances), form (last

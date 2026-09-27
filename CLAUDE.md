@@ -144,7 +144,10 @@ queued offline later. **Live entry** (`/fixtures/{id}/live/start|squad|goals|aga
 makes it `played` and the UI hands over to the entry screen for awards. `PUT /result` is
 409 while live, so a fixture is only ever on one path. `POST …/live/period` advances the
 half/quarter; `MatchTimeline` renders the result on both screens and hides the running
-score when the events don't add up to the stored one (history has no `opp_goal` rows). Errors are `{"detail": "..."}` with
+score when the events don't add up to the stored one (history has no `opp_goal` rows).
+**Old matches need no attention and there is no UI to retro-fit periods or opposition
+goals onto them** - the timeline is a by-product of live entry, not a thing coaches
+maintain; the period button is optional and skipping it only costs the dividers. Errors are `{"detail": "..."}` with
 404/409/422/401.
 
 Times are naive UK wall-clock (`kickoff_at`, `sent_at`): forms send the `datetime-local`

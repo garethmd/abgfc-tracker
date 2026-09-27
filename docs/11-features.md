@@ -108,21 +108,57 @@ Minutes are the *time on pitch* item on the [roadmap](12-roadmap.md).
 
 ## Match timeline
 
-`components/features/fixtures/match-timeline.tsx`, used by both the live screen (building
-as the coach taps, each row removable) and a played fixture's page (with links to the
-players). Our goals down one side, theirs down the other, the running score between them,
-a divider at each half or quarter.
+`components/features/fixtures/match-timeline.tsx`, one component used by both the live
+screen (building as the coach taps, each row removable) and a played fixture's page (with
+links to the players). A continuous rail with a node at every goal: our goals down one
+side, theirs down the other, the running score beside each, and the rail breaking for
+*Kick off*, *Half time* / *Q2* and *Full time*.
 
-- **Periods** come from `competitions.period_count` (Settings → Leagues: Halves or
-  Quarters) with a per-fixture override on the fixture form, because some matches in the
-  same league are played in quarters.
-- **The running score is hidden** when the events don't account for the stored score -
-  matches recorded before `opp_goal` existed have our goals only, and a score climbing to
-  2-0 in a game that finished 2-2 is worse than no score at all. Those rows get a plain
-  rail dot instead, and `score_warnings` already flags the mismatch on the page.
-- Events with no period (all history) render in sequence order with no dividers.
-- A minute is shown only when one was recorded, so the layout is ready if minutes ever
-  arrive.
+### What a coach has to do
+
+Almost nothing, and nothing at all for matches already in the app. This is the design
+constraint, not an accident - the timeline is a by-product of recording a match live, so
+it must not turn into a second job.
+
+| Setting | Who, how often | If they never touch it |
+|---|---|---|
+| Halves or quarters, per competition (Settings → Leagues) | once per league | defaults to halves |
+| *Played in*, per fixture (fixture form) | only for the odd match that differs | follows the competition |
+| *Half time* / *End of Q1* button on the live screen | one tap per break, optional | every goal lands in period 1, so the timeline has no dividers - nothing else changes |
+| Entering a result after the game | unchanged | unchanged |
+
+No clock, no minutes, no substitutions, no cards. The period is the whole time axis.
+
+### How much timeline a match gets
+
+Three tiers, depending only on how the match was recorded. Nothing has to be maintained
+to move between them.
+
+1. **Recorded live, period button used** - the full thing: period dividers, opposition
+   goals in the right place, the score climbing down the middle.
+2. **Recorded live, period button ignored** - the same minus the dividers (everything is
+   period 1). The running score still works, because *Against* wrote `opp_goal` rows.
+3. **Entered after the game, or played before this feature existed** - our goals on the
+   rail between *Kick off* and *Full time*, with no dividers and **no running score**.
+   The post-match screen records the opposition's score as a number, never as events, so
+   the timeline cannot know when they scored. A score climbing to 2-0 in a match that
+   finished 2-2 would be worse than showing none, so `MatchTimeline` hides it whenever the
+   events don't add up to the stored score (`score_warnings` already flags the mismatch
+   on the page). Those rows show a plain rail dot.
+
+### Existing historical matches
+
+**They need no attention.** Every match played before this feature renders as tier 3
+above: a readable goal list on the rail, correct scorer and assist, no invented data.
+
+There is deliberately **no UI for retro-fitting** periods or opposition goals onto an old
+match - it would be data entry with no benefit at this age group, and it is exactly the
+kind of upkeep this feature is meant to avoid. If complete history is ever wanted, it is a
+one-off script run by whoever maintains the app, not a coach task: for each played
+fixture, insert `their_score - (own goals)` `opp_goal` rows with `period = NULL` and
+sequence numbers after the existing events. That would make the running score reconcile;
+the goals would sit at the end of each match's list, because nobody knows when they went
+in. It is not built, and `12-roadmap.md` records why.
 
 ## Availability and the parents' message
 
