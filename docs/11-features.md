@@ -290,8 +290,13 @@ Park). Both are plain text in the same shape as `fixtures.venue_notes`.
     first: the name as written, the **postcode on its own** when the text contains one, and
     the name shorn of its postcode and trailing word. That is what rescues the two shapes
     Nominatim gives up on - an abbreviation glued to a postcode ("Grayshott Rec, GU26 6LS")
-    and a trailing generic word ("Zebon Copse Centre") - and it stops at the first hit, with
-    a second between requests as Nominatim asks.
+    a trailing generic word ("Zebon Copse Centre"), and a bracketed wing followed by the
+    pitch's nickname ("South Camberley Primary School (Junior Campus) La Bombonera", findable
+    only as the school) - and it stops at the first hit, with a second between requests as
+    Nominatim asks. Searches are **bounded to the area** the age group plays in (`VIEWBOX`,
+    Hampshire and the Surrey/Sussex borders), because a shortened name otherwise finds its
+    namesake anywhere: unbounded, "Kennels Lane" is a road in Leeds. 17 of the 21 grounds on
+    record resolve; the rest show the name and the directions link without a map.
 
 ## Opposition head-to-head
 

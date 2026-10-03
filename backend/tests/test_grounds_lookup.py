@@ -98,5 +98,34 @@ def test_the_geocoder_being_down_is_not_an_error(auth_client: TestClient, monkey
     assert r.status_code == 200 and r.json()["found"] is False
 
 
+def test_what_gets_tried(auth_client: TestClient):
+    """The shapes coaches actually write, and what makes each of them findable."""
+    from app.services.grounds import candidates
+
+    # A bracketed wing and a pitch nickname: only the plain school name lands.
+    assert "south camberley primary school" in candidates(
+        "South Camberley Primary School (Junior Campus) La Bombonera"
+    )
+    # A postcode is tried on its own, ahead of picking the name apart.
+    assert candidates("Grayshott Rec, GU26 6LS")[1] == "gu26 6ls"
+    # A plain name is one request, not four.
+    assert candidates("Aldershot Park") == ["aldershot park"]
+
+
+def test_the_search_is_bounded_to_the_area(auth_client: TestClient, monkeypatch):
+    """Unbounded, a shortened name finds its namesake anywhere - "Kennels Lane" is a road
+    in Leeds. Every ground the age group plays at is within an hour of Aldershot."""
+    sent = {}
+
+    def fake_get(url, **kwargs):
+        sent.update(kwargs["params"])
+        return httpx.Response(200, json=[], request=httpx.Request("GET", url))
+
+    monkeypatch.setattr(grounds_module.httpx, "get", fake_get)
+    auth_client.get(f"{API}/grounds/lookup", params={"q": "Kennels Lane #3"})
+    assert sent["bounded"] == 1 and sent["viewbox"] == grounds_module.VIEWBOX
+    assert sent["countrycodes"] == "gb"
+
+
 def test_lookup_needs_a_login(client: TestClient, osm):
     assert client.get(f"{API}/grounds/lookup", params={"q": "Aldershot Park"}).status_code == 401

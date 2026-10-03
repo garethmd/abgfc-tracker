@@ -24,6 +24,10 @@ NOMINATIM = "https://nominatim.openstreetmap.org/search"
 POSTCODE = re.compile(r"\b([A-Z]{1,2}\d[A-Z\d]?)\s*(\d[A-Z]{2})\b", re.I)
 USER_AGENT = "abgfc-tracker (https://abgfc.neuralaspect.com)"
 TIMEOUT = 5.0
+# Everywhere the age group plays is within an hour of Aldershot - Hampshire and the Surrey
+# and Sussex borders. Searching only in that box stops a shortened name landing on its
+# namesake elsewhere: unbounded, "Kennels Lane" is a road in Leeds.
+VIEWBOX = "-1.6,51.7,0.1,50.7"  # left,top,right,bottom
 
 
 def normalise(name: str) -> str:
@@ -40,6 +44,11 @@ def candidates(name: str) -> list[str]:
     m = POSTCODE.search(name)
     if m:
         tries.append(normalise(f"{m.group(1)} {m.group(2)}"))
+    # Anything in brackets is a wing of the place, and whatever follows is usually the
+    # pitch's nickname: "South Camberley Primary School (Junior Campus) La Bombonera" is
+    # findable only as the school.
+    if "(" in full:
+        tries.append(normalise(full.split("(")[0]))
     without = normalise(POSTCODE.sub("", full).strip().strip(",").strip())
     if without and without != full:
         tries.append(without)
@@ -50,7 +59,7 @@ def candidates(name: str) -> list[str]:
     for t in tries:
         if t and t not in seen:
             seen.append(t)
-    return seen[:3]  # three requests at most, and only ever once per ground
+    return seen[:4]  # four requests at most, and only ever once per ground
 
 
 class GroundService:
@@ -83,7 +92,14 @@ class GroundService:
         try:
             r = httpx.get(
                 NOMINATIM,
-                params={"q": query, "countrycodes": "gb", "format": "json", "limit": 1},
+                params={
+                    "q": query,
+                    "countrycodes": "gb",
+                    "viewbox": VIEWBOX,
+                    "bounded": 1,
+                    "format": "json",
+                    "limit": 1,
+                },
                 headers={"User-Agent": USER_AGENT},
                 timeout=TIMEOUT,
             )
