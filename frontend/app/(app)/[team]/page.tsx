@@ -34,6 +34,9 @@ export default function DashboardPage() {
     { enabled: !!teamSeason },
   );
 
+  const guests = (board.data?.rows ?? []).filter((r) => r.is_guest);
+  const guestIds = new Set(guests.map((r) => r.player.id));
+
   if (!seasonPending && !teamSeason) {
     return (
       <>
@@ -96,7 +99,7 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : summary.data ? (
-            <HighlightTiles tiles={summary.data.highlights} base={base} />
+            <HighlightTiles tiles={summary.data.highlights} base={base} guestIds={guestIds} />
           ) : null}
           {summary.data && summary.data.overall.played === 0 && (
             <p className="mt-3 text-sm text-muted-foreground">Highlights fill in after the first result is entered.</p>
@@ -106,7 +109,14 @@ export default function DashboardPage() {
 
       <section className="mt-8">
         <div className="mb-3 flex items-center justify-between">
-          <SectionTitle className="mb-0">Squad</SectionTitle>
+          <SectionTitle className="mb-0">
+            Squad
+            {guests.length > 0 && (
+              <span className="ml-2 font-normal normal-case tracking-normal text-muted-foreground">
+                + {guests.length} guest{guests.length > 1 ? "s" : ""}
+              </span>
+            )}
+          </SectionTitle>
           <div className="flex rounded-lg bg-muted p-0.5 text-xs font-medium">
             {(["all", "league"] as const).map((s) => (
               <button

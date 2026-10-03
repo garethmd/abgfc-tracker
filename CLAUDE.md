@@ -80,7 +80,7 @@ not spreadsheet columns. Full DDL is in `backend/alembic/versions/`; rationale h
 | `competitions` | Global lookup with `type` (league/cup/friendly/tournament). "League-only" stats filter on the type, so a second league competition needs no code. |
 | `teams` | Opposition. We are not a row; fixtures are always us-vs-them. **Head-to-head**: `GET /teams/{id}/head-to-head?club_team_id=` returns our record, form, results, upcoming and postponed fixtures against them across seasons, scoped to the teams the caller can see (`FixtureRepository.list_v_opposition`). UI: `/[team]/opposition` list and `/[team]/opposition/[id]`, linked from the fixture page and Settings → Opposition; multi-team users get a "this team / all ABGFC" toggle. |
 | `fixtures` | Keyed by `team_season_id`. `status` includes `live` (being recorded from the pitch; only `played` counts for stats). `our_score`/`their_score` are **stored** as well as derivable — at pitchside you know the score before the scorers. `stats.score_warnings()` reports mismatches instead of blocking. A derby (Blues v Blacks) is two rows, one per team; `teams.club_team_id` links the opposition row to our own team. |
-| `appearances` | One row per player per fixture (`started`, `position_id`, `shirt_number`, `captain`). Unique (fixture, player). This is what the app writes today. |
+| `appearances` | One row per player per fixture (`started`, `position_id`, `shirt_number`, `captain`). Unique (fixture, player). This is what the app writes today. **No squad row is required**: a child guesting for another team in the age group (Noah, a Blues player, turning out for the Blacks) is just an appearance on that team's fixture, so their goals count for the team that fielded them and still show on their own page. `is_guest` is derived (not in this team season's squad), guests keep their own squad number, and the result/live flows refuse a player from a different age group. A player's page shows the season across **all** teams in the age group (`GET /players/{id}/season-stats?season_id=` -> `{totals, teams}`) with a per-team breakdown, so one child reads as one footballer. See `docs/11-features.md`. |
 | `player_stints` | Rolling-sub detail: `(appearance_id, on_minute, off_minute NULL=to the end, position_id)`. Hangs off the appearance so a stint can't exist for someone who didn't play. `stats.minutes_for_appearance()` already computes minutes; nothing writes stints yet. |
 | `match_events` | `goal` / `assist` / `own_goal` / `opp_own_goal` with `player_id` (NULL only for `opp_own_goal`), `minute`, `sequence`. **An assist is its own row pointing at its goal via `related_event_id`.** Goals and assists are `COUNT(*)`s. A goal is therefore an addressable thing a YouTube clip can attach to. |
 | `award_types` / `awards` | Two club-wide rows today (`coaches_potm`, `parents_potm`, `club_team_id NULL`). A team's own award ("Blues most improved") is a row with `club_team_id` set - only that team sees it. `scope` (match/month/season) + nullable `fixture_id` + `period_label` cover "goal of the month". Awards are keyed by `team_season_id`. Joint winners allowed. |
@@ -124,7 +124,9 @@ deterministic constraint names (`db/base.py`).
 totals for the demo season in `services/bootstrap.py` — the docstring there is the
 answer key. If you change aggregation, change both.
 
-Rules worth knowing: only `status='played'` fixtures with both scores count; form is
+Rules worth knowing: `player_rows` starts from the squad and adds anyone else with an
+appearance - that is how a guest appears, flagged `is_guest` and keeping their own number;
+only `status='played'` fixtures with both scores count; form is
 the last five played, chronological; leaderboard sorts goals → assists → apps → name;
 highlight tiles list every tied name and show `—` at zero; league-only filters
 `competition.type == 'league'`; minutes are `None` until every appearance has stints.

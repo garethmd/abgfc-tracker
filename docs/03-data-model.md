@@ -95,6 +95,10 @@ hard-deleted: appearances and events reference the player, so history survives a
 leaving or moving teams. `photo_key` is a Python property derived from the profile-photo
 media link.
 
+An appearance does **not** require a squad row: a child guesting for another team in the
+age group is recorded on that team's fixture and counts for them (see
+[Features](11-features.md#guest-appearances)).
+
 **`squad_members`** — player ↔ team season. `team_season_id`, `player_id` (unique
 together), `squad_number` (partial unique per team season where not null),
 `primary_position_id`, `joined_at`, `left_at`. A mid-season move between teams sets

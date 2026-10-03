@@ -695,6 +695,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/players/{player_id}/season-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Player Season Stats
+         * @description The player's season across every team in the age group - totals plus the split by
+         *     team, so a child who guests for another team is counted once as a footballer.
+         */
+        get: operations["player_season_stats_api_v1_players__player_id__season_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/players/{player_id}/stats": {
         parameters: {
             query?: never;
@@ -1994,6 +2015,17 @@ export interface components {
             /** Photo Key */
             photo_key?: string | null;
         };
+        /**
+         * PlayerSeasonStats
+         * @description The headline (every team) plus the split by team, for one player in one season.
+         */
+        PlayerSeasonStats: {
+            /** Season Id */
+            season_id: number;
+            /** Teams */
+            teams: components["schemas"]["PlayerTeamStats"][];
+            totals: components["schemas"]["PlayerTotals"];
+        };
         /** PlayerStatsRow */
         PlayerStatsRow: {
             /** Appearances */
@@ -2006,6 +2038,11 @@ export interface components {
             goals: number;
             /** Goals Per Game */
             goals_per_game: number;
+            /**
+             * Is Guest
+             * @default false
+             */
+            is_guest?: boolean;
             /** Minutes */
             minutes: number | null;
             /** Own Goals */
@@ -2027,6 +2064,52 @@ export interface components {
             id: number;
             /** Photo Key */
             photo_key?: string | null;
+        };
+        /**
+         * PlayerTeamStats
+         * @description One team a player has turned out for in a season - their own or as a guest.
+         */
+        PlayerTeamStats: {
+            /** Appearances */
+            appearances: number;
+            /** Assists */
+            assists: number;
+            /** Club Team Id */
+            club_team_id: number;
+            /** Goals */
+            goals: number;
+            /** Is Guest */
+            is_guest: boolean;
+            /** Squad Number */
+            squad_number: number | null;
+            /** Starts */
+            starts: number;
+            /** Team Name */
+            team_name: string;
+            /** Team Season Id */
+            team_season_id: number;
+            /** Team Slug */
+            team_slug: string;
+        };
+        /**
+         * PlayerTotals
+         * @description A player's season across every team in the age group they turned out for.
+         */
+        PlayerTotals: {
+            /** Appearances */
+            appearances: number;
+            /** Assists */
+            assists: number;
+            /** Awards */
+            awards: components["schemas"]["AwardCount"][];
+            /** Goals */
+            goals: number;
+            /** Goals Per Game */
+            goals_per_game: number;
+            /** Own Goals */
+            own_goals: number;
+            /** Starts */
+            starts: number;
         };
         /** PlayerUpdate */
         PlayerUpdate: {
@@ -4400,6 +4483,41 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    player_season_stats_api_v1_players__player_id__season_stats_get: {
+        parameters: {
+            query: {
+                season_id: number;
+            };
+            header?: never;
+            path: {
+                player_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayerSeasonStats"];
+                };
             };
             /** @description Validation Error */
             422: {

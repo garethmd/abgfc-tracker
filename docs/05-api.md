@@ -75,7 +75,8 @@ Full rules in [Security](08-security.md).
 | POST | `/players` | cohort or team coach | `{first_name, …, cohort_id? \| team_season_id?, squad_number?}`; `team_season_id` also adds to the squad |
 | GET/PATCH | `/players/{id}` | cohort viewer / coach of a squad they're in | PATCH incl. `left_date` |
 | GET | `/players/{id}/memberships` | viewer | `MembershipRead[]` — team/season history you can see |
-| GET | `/players/{id}/stats?team_season_id=` | team viewer | `PlayerStatsRow` |
+| GET | `/players/{id}/stats?team_season_id=` | team viewer | `PlayerStatsRow` (`is_guest` when they weren't in that squad) |
+| GET | `/players/{id}/season-stats?season_id=` | viewer | `PlayerSeasonStats` — `totals` across every team in the age group, plus `teams[]` broken down |
 | POST | `/players/{id}/move` | cohort coach | `{from_team_season_id, to_team_season_id, left_at?, squad_number?}` |
 | PUT | `/players/{id}/photo` | coach | multipart `file`; returns `PlayerRead` with new `photo_key` |
 | GET | `/players/{id}/photo?size=full\|thumb` | viewer | `image/jpeg`, `Cache-Control: private` |

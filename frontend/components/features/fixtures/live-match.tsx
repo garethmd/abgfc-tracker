@@ -19,6 +19,7 @@ import {
 import { Card } from "@/components/stat-card";
 import { SectionTitle } from "@/components/page-header";
 import { Chip, GoalSheet, type Goal } from "@/components/features/fixtures/result-entry";
+import { GuestPicker } from "@/components/features/fixtures/guest-picker";
 import { cn } from "@/lib/utils";
 
 type Fixture = Schema["FixtureDetail"];
@@ -41,7 +42,13 @@ function availablePlayers(squad: Member[], fixture: Fixture): Player[] {
 
 export function LineUp({ fixture, squad, preselect }: { fixture: Fixture; squad: Member[]; preselect?: number[] }) {
   const qc = useQueryClient();
-  const players = useMemo(() => availablePlayers(squad, fixture), [squad, fixture]);
+  // Someone guesting from another team in the age group, added at the side of the pitch.
+  const [guests, setGuests] = useState<Player[]>([]);
+  const squadIds = useMemo(() => new Set(squad.map((m) => m.player.id)), [squad]);
+  const players = useMemo(
+    () => [...availablePlayers(squad, fixture), ...guests.filter((g) => !squadIds.has(g.id))],
+    [squad, fixture, guests, squadIds],
+  );
   // Starts from the players marked available beforehand, when that was recorded.
   const [picked, setPicked] = useState<number[]>(() => (preselect ?? []).filter((id) => players.some((p) => p.id === id)));
   const start = $api.useMutation("post", "/api/v1/fixtures/{fixture_id}/live/start");
@@ -73,12 +80,19 @@ export function LineUp({ fixture, squad, preselect }: { fixture: Fixture; squad:
         </div>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
           {players.map((p) => (
-            <Chip key={p.id} selected={picked.includes(p.id)} onClick={() => toggle(p.id)}>
+            <Chip key={p.id} selected={picked.includes(p.id)} onClick={() => toggle(p.id)} guest={!squadIds.has(p.id)}>
               {p.display_name}
             </Chip>
           ))}
         </div>
         {players.length === 0 && <p className="text-sm text-muted-foreground">No players in this season&apos;s squad.</p>}
+        <GuestPicker
+          exclude={players.map((p) => p.id)}
+          onAdd={(p) => {
+            setGuests((g) => [...g, p]);
+            setPicked((prev) => [...prev, p.id]);
+          }}
+        />
       </section>
 
       <div className="fixed inset-x-0 bottom-16 z-20 border-t border-border/60 bg-background/90 p-3 backdrop-blur md:static md:border-0 md:bg-transparent md:p-0">

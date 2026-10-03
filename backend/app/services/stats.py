@@ -36,7 +36,10 @@ from app.schemas.stats import (
     FormEntry,
     HighlightTile,
     Leaderboard,
+    PlayerSeasonStats,
     PlayerStatsRow,
+    PlayerTeamStats,
+    PlayerTotals,
     SeasonSummary,
     TeamRecord,
 )
@@ -167,10 +170,15 @@ def player_rows(
     award_types: Sequence[AwardType],
     squad_numbers: dict[int, int | None] | None = None,
     durations: dict[int, int] | None = None,
+    member_ids: set[int] | None = None,
 ) -> list[PlayerStatsRow]:
     """One row per player. `players` is the base set (so a fresh squad shows zeros);
-    anyone else with an appearance/event/award in the data is added too."""
+    anyone else with an appearance/event/award in the data is added too - that is how a
+    guest from another team in the age group appears. `member_ids` says who is actually in
+    the squad (everyone else is flagged a guest); it defaults to whoever has a number entry,
+    which is the squad when `squad_numbers` is built from the squad alone."""
     squad_numbers = squad_numbers or {}
+    members = member_ids if member_ids is not None else set(squad_numbers)
     durations = durations or {}
     tallies: dict[int, _Tally] = defaultdict(_Tally)
     by_id: dict[int, Player] = {p.id: p for p in players}
@@ -226,6 +234,7 @@ def player_rows(
                     for at in award_types
                 ],
                 minutes=t.minutes if (t.appearances and t.minutes_complete) else None,
+                is_guest=pid not in members,
             )
         )
     rows.sort(key=lambda r: (-r.goals, -r.assists, -r.appearances, r.player.display_name.lower()))
@@ -311,6 +320,63 @@ class StatsService:
         rows, _ = self._rows(team_season_id, None)
         return next((r for r in rows if r.player.id == player_id), None)
 
+    def player_teams(self, player_id: int, season_id: int) -> PlayerSeasonStats:
+        """A player's season: the headline across every team in the age group they turned
+        out for (their own squad and any they guested for), plus the split by team. A child
+        who plays up for another team is one footballer, so the totals say so."""
+        from app.repositories.players import PlayerRepository
+
+        player = PlayerRepository(self.db).get_or_404(player_id)
+        if self.access is not None:
+            self.access.require_player(self.db, player)
+        team_ids = {t.id for t in ClubTeamRepository(self.db).list_all(cohort_id=player.cohort_id)}
+        if self.access is not None:
+            visible = self.access.visible_team_ids()
+            if visible is not None:
+                team_ids &= visible
+
+        teams: list[PlayerTeamStats] = []
+        totals = PlayerTotals(
+            appearances=0, starts=0, goals=0, assists=0, own_goals=0, goals_per_game=0.0, awards=[]
+        )
+        awards: dict[int, AwardCount] = {}
+        for ts in self.team_seasons.list_for_season(season_id, team_ids):
+            row = next((r for r in self._rows(ts.id, None)[0] if r.player.id == player_id), None)
+            if row is None or (row.is_guest and row.appearances == 0):
+                continue
+            teams.append(
+                PlayerTeamStats(
+                    team_season_id=ts.id,
+                    club_team_id=ts.club_team_id,
+                    team_name=ts.club_team.name,
+                    team_slug=ts.club_team.slug,
+                    squad_number=row.squad_number,
+                    is_guest=row.is_guest,
+                    appearances=row.appearances,
+                    starts=row.starts,
+                    goals=row.goals,
+                    assists=row.assists,
+                )
+            )
+            totals.appearances += row.appearances
+            totals.starts += row.starts
+            totals.goals += row.goals
+            totals.assists += row.assists
+            totals.own_goals += row.own_goals
+            for a in row.awards:
+                got = awards.get(a.award_type_id)
+                if got is None:
+                    awards[a.award_type_id] = a.model_copy()
+                else:
+                    got.count += a.count
+        totals.awards = list(awards.values())
+        totals.goals_per_game = (
+            round(totals.goals / totals.appearances, 2) if totals.appearances else 0.0
+        )
+        # Their own team first, then whoever they guested for, most games first.
+        teams.sort(key=lambda r: (r.is_guest, -r.appearances, r.team_name))
+        return PlayerSeasonStats(season_id=season_id, totals=totals, teams=teams)
+
     def cohort_overview(self, cohort_id: int, season_id: int) -> CohortOverview:
         """The age-group coach's view: every team's record, and every player's game time
         across the whole cohort."""
@@ -372,13 +438,23 @@ class StatsService:
             f.id: f.duration_minutes or ts.match_minutes
             for f in self.fixtures.list_played(team_season_id)
         }
+        appearances = self.stats.appearances_for(fixture_ids)
+        member_ids = {m.player_id for m in members}
+        numbers: dict[int, int | None] = {m.player_id: m.squad_number for m in members}
+        # Guests wear their own number, so look it up on their own team's squad row.
+        guests = {a.player_id for a in appearances} - member_ids
+        if guests:
+            for m in self.squad.list_for_cohort_season(ts.club_team.cohort_id, ts.season_id):
+                if m.player_id in guests and m.squad_number is not None:
+                    numbers[m.player_id] = m.squad_number
         rows = player_rows(
             players=[m.player for m in members],
-            appearances=self.stats.appearances_for(fixture_ids),
+            appearances=appearances,
             events=self.stats.events_for(fixture_ids),
             awards=self.stats.match_awards_for(fixture_ids),
             award_types=award_types,
-            squad_numbers={m.player_id: m.squad_number for m in members},
+            squad_numbers=numbers,
             durations=durations,
+            member_ids=member_ids,
         )
         return rows, award_types

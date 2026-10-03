@@ -6,12 +6,14 @@ import { joinNames } from "@/lib/format";
 
 const ICONS = [Crosshair, Handshake, Award, Star];
 
-export function HighlightTiles({ tiles, base = "" }: { tiles: Schema["HighlightTile"][]; base?: string }) {
+/** `guestIds` are players who turned out for us from another team in the age group - their
+ *  goals count for us, so they can hold a tile, but the tile says whose player they are. */
+export function HighlightTiles({ tiles, base = "", guestIds }: { tiles: Schema["HighlightTile"][]; base?: string; guestIds?: Set<number> }) {
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       {tiles.map((t, i) => {
         const Icon = ICONS[i % ICONS.length];
-        const names = t.players.map((p) => p.display_name);
+        const names = t.players.map((p) => (guestIds?.has(p.id) ? `${p.display_name} (guest)` : p.display_name));
         const empty = t.players.length === 0;
         return (
           <Card key={t.label} className="flex flex-col p-4">

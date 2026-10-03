@@ -204,6 +204,41 @@ library) on the player page for coaches. The upload uses `fetchClient.PUT` with 
 
 Backups: **not** covered by the SQLite backup — see [Roadmap](12-roadmap.md).
 
+## Guest appearances
+
+A child playing for another team in the age group ("Noah played for the Blacks today").
+There is **no squad row**: a guest appearance is just an `appearances` row — plus any
+`match_events` — on that team's fixture, which is all the schema ever needed, since both
+reference the player, not the squad.
+
+- **Recording.** *Add a guest* on *Enter result* and on the live line-up
+  (`components/features/fixtures/guest-picker.tsx`) lists the age-group pool
+  (`GET /players?cohort_id=`) minus whoever is already on the list, and ticks them as
+  playing. The result and live flows accept any player **in the fixture's age group** —
+  outside it is a mistake and 422s (`FixtureService.submit_result`, `LiveService._check_players`).
+- **`is_guest` is derived, not stored**: `player_rows()` takes `member_ids` (the squad) and
+  flags everyone else. A player who later joins the squad is not retrospectively a guest,
+  because the flag is computed per team season from the squad as it is now.
+- **Their own number travels with them.** Numbers belong to the player across the age group,
+  so `StatsService._rows` fills a guest's `squad_number` from their own team's squad row
+  (`SquadRepository.list_for_cohort_season`, one extra query and only when a guest played).
+- **Where it shows.** The team's leaderboard (a `guest` chip, and "Squad + 1 guest" above
+  the table) and the highlight tiles (a guest's goals count for the team that fielded them -
+  the name reads "Noah (guest)").
+- **The player's page is the footballer, not the team.** `GET /players/{id}/season-stats?season_id=`
+  returns `{totals, teams}`: the headline adds up every appearance across every team in the
+  age group (awards summed by type), and *By team* breaks it down a row per team, their own
+  squad first, guest spells after. The page is therefore the same wherever you reach it from -
+  opening Noah from the Blacks shows his whole season, not just the game he guested in.
+  Memberships (`/memberships`) are now shown only for *earlier* seasons, since the breakdown
+  covers the current one. The age-group overview already totalled across teams and still does.
+- **Where it deliberately doesn't.** The Squad page (that's membership), the matchday
+  sheet's squad table (it plans our own players, and a guest would skew the
+  appearances-out-of-played fairness column), and availability - see below.
+- **Not built: availability.** A selection stores only who is *out*, with "available" derived
+  as squad minus out, so a guest cannot be marked available in advance without a new table.
+  The parents' message therefore won't list a guest. Decide before building it.
+
 ## Opposition head-to-head
 
 `GET /teams/{id}/head-to-head?club_team_id=` — `TeamService.head_to_head`. Every fixture

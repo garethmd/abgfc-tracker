@@ -10,6 +10,7 @@ import { useTeam } from "@/lib/team-context";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Card } from "@/components/stat-card";
+import { GuestPicker } from "@/components/features/fixtures/guest-picker";
 import { SectionTitle } from "@/components/page-header";
 import { cn } from "@/lib/utils";
 
@@ -41,12 +42,19 @@ export function ResultEntry({
   const router = useRouter();
   const { team } = useTeam();
   const qc = useQueryClient();
+  // Guests added in this session (someone from another team in the age group).
+  const [guests, setGuests] = useState<Schema["PlayerSummary"][]>([]);
+  const squadIds = useMemo(() => new Set(squad.map((m) => m.player.id)), [squad]);
   const players = useMemo(() => {
     const fromSquad = squad.filter((m) => !m.left_at && !m.player.left_date).map((m) => m.player);
-    // Anyone recorded on this fixture but no longer in the squad still needs to be selectable.
-    const extra = fixture.appearances.map((a) => a.player).filter((p) => !fromSquad.some((s) => s.id === p.id));
+    // Anyone recorded on this fixture but no longer in the squad - or guesting from another
+    // team in the age group - still needs to be selectable.
+    const seen = new Set(fromSquad.map((p) => p.id));
+    const extra = [...fixture.appearances.map((a) => a.player), ...guests].filter(
+      (p) => !seen.has(p.id) && seen.add(p.id),
+    );
     return [...fromSquad, ...extra];
-  }, [squad, fixture.appearances]);
+  }, [squad, fixture.appearances, guests]);
 
   const isEdit = fixture.status === "played";
   // Fresh entry: preselect the whole squad — most kids play every week, so deselecting is fewer
@@ -148,12 +156,19 @@ export function ResultEntry({
         </div>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
           {players.map((p) => (
-            <Chip key={p.id} selected={playing.has(p.id)} onClick={() => togglePlaying(p.id)}>
+            <Chip key={p.id} selected={playing.has(p.id)} onClick={() => togglePlaying(p.id)} guest={!squadIds.has(p.id)}>
               {p.display_name}
             </Chip>
           ))}
         </div>
         {players.length === 0 && <p className="text-sm text-muted-foreground">No players in this season&apos;s squad.</p>}
+        <GuestPicker
+          exclude={players.map((p) => p.id)}
+          onAdd={(p) => {
+            setGuests((g) => [...g, p]);
+            setPlaying((prev) => new Set(prev).add(p.id));
+          }}
+        />
       </section>
 
       {/* Goals */}
@@ -248,22 +263,24 @@ function StepButton(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   );
 }
 
-export function Chip({ selected, onClick, children, accent }: { selected: boolean; onClick: () => void; children: React.ReactNode; accent?: boolean }) {
+export function Chip({ selected, onClick, children, accent, guest }: { selected: boolean; onClick: () => void; children: React.ReactNode; accent?: boolean; guest?: boolean }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={selected}
       className={cn(
-        "h-12 truncate rounded-xl px-2 text-sm font-medium ring-1 transition-all active:scale-[0.97]",
+        "flex h-12 flex-col items-center justify-center truncate rounded-xl px-2 text-sm font-medium ring-1 transition-all active:scale-[0.97]",
         selected
           ? accent
             ? "bg-primary text-primary-foreground ring-primary"
             : "bg-foreground text-background ring-foreground"
           : "bg-card text-muted-foreground ring-border/60 hover:text-foreground",
+        guest && !selected && "ring-dashed",
       )}
     >
-      {children}
+      <span className="max-w-full truncate">{children}</span>
+      {guest && <span className="text-[10px] font-normal uppercase tracking-wider opacity-70">guest</span>}
     </button>
   );
 }

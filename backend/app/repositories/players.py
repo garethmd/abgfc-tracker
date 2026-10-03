@@ -47,6 +47,20 @@ class SquadRepository(BaseRepository[SquadMember]):
         )
         return list(self.db.scalars(stmt))
 
+    def list_for_cohort_season(self, cohort_id: int, season_id: int) -> list[SquadMember]:
+        """Every squad row in one age group for one season, across all its teams. Used to
+        give a guest the number they wear for their own team."""
+        from app.models import ClubTeam, TeamSeason
+
+        stmt = (
+            select(SquadMember)
+            .join(SquadMember.team_season)
+            .join(TeamSeason.club_team)
+            .where(ClubTeam.cohort_id == cohort_id, TeamSeason.season_id == season_id)
+            .options(selectinload(SquadMember.player))
+        )
+        return list(self.db.scalars(stmt))
+
     def get_member(self, team_season_id: int, player_id: int) -> SquadMember | None:
         return self.db.scalar(
             select(SquadMember).where(

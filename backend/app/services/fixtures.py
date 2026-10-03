@@ -142,8 +142,13 @@ class FixtureService:
         }
 
         played_ids = {a.player_id for a in data.appearances}
+        cohort_id = fixture.team_season.club_team.cohort_id
         for a in data.appearances:
-            players.get_or_404(a.player_id)
+            # Not necessarily in this squad: a player can guest for another team in the
+            # age group (their stats still count). Outside the age group is a mistake.
+            player = players.get_or_404(a.player_id)
+            if player.cohort_id != cohort_id:
+                raise ValidationError(f"{player.display_name} isn't in this team's age group")
             if a.position_id is not None:
                 positions.get_or_404(a.position_id)
         for g in data.goals:

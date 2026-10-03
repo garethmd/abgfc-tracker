@@ -288,7 +288,9 @@ def render(data: MatchdayData) -> bytes:
 
     # --- squad table ------------------------------------------------------------------
     rows = sorted(
-        data.rows,
+        # Guests played for us but aren't ours to plan around, and their appearance count
+        # would skew the fairness shading below.
+        [r for r in data.rows if not r.is_guest],
         key=lambda r: (r.squad_number is None, r.squad_number or 0, r.player.display_name),
     )
     played_n = len(data.played)

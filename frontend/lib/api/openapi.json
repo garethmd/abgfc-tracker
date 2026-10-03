@@ -3127,6 +3127,32 @@
         "title": "PlayerRead",
         "type": "object"
       },
+      "PlayerSeasonStats": {
+        "description": "The headline (every team) plus the split by team, for one player in one season.",
+        "properties": {
+          "season_id": {
+            "title": "Season Id",
+            "type": "integer"
+          },
+          "teams": {
+            "items": {
+              "$ref": "#/components/schemas/PlayerTeamStats"
+            },
+            "title": "Teams",
+            "type": "array"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/PlayerTotals"
+          }
+        },
+        "required": [
+          "season_id",
+          "totals",
+          "teams"
+        ],
+        "title": "PlayerSeasonStats",
+        "type": "object"
+      },
       "PlayerStatsRow": {
         "properties": {
           "appearances": {
@@ -3151,6 +3177,11 @@
           "goals_per_game": {
             "title": "Goals Per Game",
             "type": "number"
+          },
+          "is_guest": {
+            "default": false,
+            "title": "Is Guest",
+            "type": "boolean"
           },
           "minutes": {
             "anyOf": [
@@ -3229,6 +3260,119 @@
           "display_name"
         ],
         "title": "PlayerSummary",
+        "type": "object"
+      },
+      "PlayerTeamStats": {
+        "description": "One team a player has turned out for in a season - their own or as a guest.",
+        "properties": {
+          "appearances": {
+            "title": "Appearances",
+            "type": "integer"
+          },
+          "assists": {
+            "title": "Assists",
+            "type": "integer"
+          },
+          "club_team_id": {
+            "title": "Club Team Id",
+            "type": "integer"
+          },
+          "goals": {
+            "title": "Goals",
+            "type": "integer"
+          },
+          "is_guest": {
+            "title": "Is Guest",
+            "type": "boolean"
+          },
+          "squad_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Squad Number"
+          },
+          "starts": {
+            "title": "Starts",
+            "type": "integer"
+          },
+          "team_name": {
+            "title": "Team Name",
+            "type": "string"
+          },
+          "team_season_id": {
+            "title": "Team Season Id",
+            "type": "integer"
+          },
+          "team_slug": {
+            "title": "Team Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_season_id",
+          "club_team_id",
+          "team_name",
+          "team_slug",
+          "squad_number",
+          "is_guest",
+          "appearances",
+          "starts",
+          "goals",
+          "assists"
+        ],
+        "title": "PlayerTeamStats",
+        "type": "object"
+      },
+      "PlayerTotals": {
+        "description": "A player's season across every team in the age group they turned out for.",
+        "properties": {
+          "appearances": {
+            "title": "Appearances",
+            "type": "integer"
+          },
+          "assists": {
+            "title": "Assists",
+            "type": "integer"
+          },
+          "awards": {
+            "items": {
+              "$ref": "#/components/schemas/AwardCount"
+            },
+            "title": "Awards",
+            "type": "array"
+          },
+          "goals": {
+            "title": "Goals",
+            "type": "integer"
+          },
+          "goals_per_game": {
+            "title": "Goals Per Game",
+            "type": "number"
+          },
+          "own_goals": {
+            "title": "Own Goals",
+            "type": "integer"
+          },
+          "starts": {
+            "title": "Starts",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "appearances",
+          "starts",
+          "goals",
+          "assists",
+          "own_goals",
+          "goals_per_game",
+          "awards"
+        ],
+        "title": "PlayerTotals",
         "type": "object"
       },
       "PlayerUpdate": {
@@ -8145,6 +8289,74 @@
           }
         },
         "summary": "Set Photo",
+        "tags": [
+          "players"
+        ]
+      }
+    },
+    "/api/v1/players/{player_id}/season-stats": {
+      "get": {
+        "description": "The player's season across every team in the age group - totals plus the split by\nteam, so a child who guests for another team is counted once as a footballer.",
+        "operationId": "player_season_stats_api_v1_players__player_id__season_stats_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "player_id",
+            "required": true,
+            "schema": {
+              "title": "Player Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "season_id",
+            "required": true,
+            "schema": {
+              "title": "Season Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerSeasonStats"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Player Season Stats",
         "tags": [
           "players"
         ]

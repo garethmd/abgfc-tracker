@@ -36,7 +36,7 @@ class LiveMatchService:
             # A scheduled fixture shouldn't have a result on it; if one does (someone
             # PATCHed a played match back), never throw it away from here.
             raise ConflictError("This fixture already has a result recorded - use Enter result")
-        self._check_players(data.player_ids)
+        self._check_players(fixture, data.player_ids)
 
         fixture.status = FixtureStatus.LIVE
         fixture.our_score = 0
@@ -49,7 +49,7 @@ class LiveMatchService:
     def set_squad(self, fixture_id: int, data: LiveSquad) -> FixtureDetail:
         """Late arrival or a no-show. Anyone with a goal or assist stays."""
         fixture = self._live(fixture_id)
-        self._check_players(data.player_ids)
+        self._check_players(fixture, data.player_ids)
         keep = set(data.player_ids)
         for e in fixture.events:
             if e.player_id is not None and e.player_id not in keep:
@@ -165,10 +165,14 @@ class LiveMatchService:
             raise ConflictError("This match isn't being tracked live")
         return fixture
 
-    def _check_players(self, player_ids: list[int]) -> None:
+    def _check_players(self, fixture: Fixture, player_ids: list[int]) -> None:
+        """A guest from another team in the age group is fine; another age group is not."""
         players = PlayerRepository(self.db)
+        cohort_id = fixture.team_season.club_team.cohort_id
         for pid in player_ids:
-            players.get_or_404(pid)
+            player = players.get_or_404(pid)
+            if player.cohort_id != cohort_id:
+                raise ValidationError(f"{player.display_name} isn't in this team's age group")
 
     @staticmethod
     def _same_goal(existing: MatchEvent, fixture: Fixture, data: LiveGoal) -> bool:

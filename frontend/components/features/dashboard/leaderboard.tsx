@@ -51,12 +51,20 @@ export function Leaderboard({ board, base = "" }: { board: Schema["Leaderboard"]
                     <span
                       className={cn(
                         "flex size-6 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold",
-                        i === 0 && r.goals > 0 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+                        i === 0 && r.goals > 0 && !r.is_guest ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
                       )}
                     >
                       {r.squad_number ?? "–"}
                     </span>
                     <span className="whitespace-nowrap">{r.player.display_name}</span>
+                    {r.is_guest && (
+                      <span
+                        className="rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground ring-1 ring-border/60"
+                        title="Played for us from another team in the age group"
+                      >
+                        guest
+                      </span>
+                    )}
                   </Link>
                 </td>
                 <Td>{r.appearances}</Td>

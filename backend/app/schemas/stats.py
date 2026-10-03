@@ -34,6 +34,7 @@ class AwardCount(BaseModel):
 
 class PlayerStatsRow(BaseModel):
     player: PlayerSummary
+    # The player's own number - a guest keeps the one they wear for their own team.
     squad_number: int | None
     appearances: int
     starts: int
@@ -43,6 +44,43 @@ class PlayerStatsRow(BaseModel):
     goals_per_game: float
     awards: list[AwardCount]
     minutes: int | None  # None until stints are recorded
+    # Played for this team without being in its squad (guesting from another team).
+    is_guest: bool = False
+
+
+class PlayerTeamStats(BaseModel):
+    """One team a player has turned out for in a season - their own or as a guest."""
+
+    team_season_id: int
+    club_team_id: int
+    team_name: str
+    team_slug: str
+    squad_number: int | None
+    is_guest: bool
+    appearances: int
+    starts: int
+    goals: int
+    assists: int
+
+
+class PlayerTotals(BaseModel):
+    """A player's season across every team in the age group they turned out for."""
+
+    appearances: int
+    starts: int
+    goals: int
+    assists: int
+    own_goals: int
+    goals_per_game: float
+    awards: list[AwardCount]
+
+
+class PlayerSeasonStats(BaseModel):
+    """The headline (every team) plus the split by team, for one player in one season."""
+
+    season_id: int
+    totals: PlayerTotals
+    teams: list[PlayerTeamStats]
 
 
 class HighlightTile(BaseModel):

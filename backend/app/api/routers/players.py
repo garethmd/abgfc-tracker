@@ -12,7 +12,7 @@ from app.schemas.player import (
     PlayerUpdate,
     SquadMemberRead,
 )
-from app.schemas.stats import PlayerStatsRow
+from app.schemas.stats import PlayerSeasonStats, PlayerStatsRow
 from app.services.media import PlayerPhotoService
 from app.services.players import PlayerService
 from app.services.stats import StatsService
@@ -67,6 +67,13 @@ def player_stats(player_id: int, team_season_id: int, db: DB, access: Access):
     if row is None:
         raise NotFoundError("Player has no record in this team season")
     return row
+
+
+@router.get("/{player_id}/season-stats", response_model=PlayerSeasonStats)
+def player_season_stats(player_id: int, season_id: int, db: DB, access: Access):
+    """The player's season across every team in the age group - totals plus the split by
+    team, so a child who guests for another team is counted once as a footballer."""
+    return StatsService(db, access).player_teams(player_id, season_id)
 
 
 @router.post("/{player_id}/move", response_model=SquadMemberRead)
