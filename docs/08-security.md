@@ -80,8 +80,15 @@ Admin password reset is the "forgot password" path — there is no email flow.
 - **Match notes** are verbatim WhatsApp text; readable by anyone with access to the
   fixture's team, writable by coaches. Don't add parsing that writes to results without
   a human confirming (see roadmap).
-- Names only: no addresses, no medical info, `date_of_birth` optional and shown only on
-  the edit form.
+- **No dates of birth.** The app used to collect one per player and never read it -
+  nothing displayed it, no report carried it, and age-group eligibility is decided by the
+  cohort's birth-year window rather than per child. Children's PII with no purpose, so the
+  column was dropped (migration `a1d0b17hdrop`, Oct 2026) and the 22 stored dates erased
+  with it. **Don't add it back** without a use that actually needs it; if an age check is
+  ever wanted, the cohort window answers it and the club's registration records live with
+  the FA.
+- Names only: no addresses, no medical info. `players.notes` is free text with no
+  guidance on it - worth a look if coaches start putting anything sensitive there.
 - Backups (`/data/backups`, `data/backups/` locally) contain everything the database
   does; treat them accordingly. Password hashes are argon2id.
 - The public GitHub repository contains the seed with first names and the fixture list;

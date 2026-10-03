@@ -25,7 +25,6 @@ class Player(TimestampMixin, Base):
     first_name: Mapped[str] = mapped_column(String(50))
     last_name: Mapped[str | None] = mapped_column(String(50))
     display_name: Mapped[str] = mapped_column(String(50))
-    date_of_birth: Mapped[date | None] = mapped_column(Date)
     joined_date: Mapped[date | None] = mapped_column(Date)
     left_date: Mapped[date | None] = mapped_column(Date)
     notes: Mapped[str | None] = mapped_column(Text)

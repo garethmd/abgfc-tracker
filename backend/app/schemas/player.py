@@ -10,7 +10,6 @@ class PlayerCreate(InputModel):
     first_name: str = Field(min_length=1, max_length=50)
     last_name: str | None = Field(default=None, max_length=50)
     display_name: str | None = Field(default=None, max_length=50)
-    date_of_birth: date | None = None
     joined_date: date | None = None
     notes: str | None = None
     # Which age group; defaults to the team-season's cohort when adding to a squad.
@@ -24,7 +23,6 @@ class PlayerUpdate(InputModel):
     first_name: str | None = Field(default=None, min_length=1, max_length=50)
     last_name: str | None = Field(default=None, max_length=50)
     display_name: str | None = Field(default=None, max_length=50)
-    date_of_birth: date | None = None
     joined_date: date | None = None
     left_date: date | None = None
     notes: str | None = None
@@ -37,7 +35,6 @@ class PlayerRead(ORMModel):
     first_name: str
     last_name: str | None
     display_name: str
-    date_of_birth: date | None
     joined_date: date | None
     left_date: date | None
     notes: str | None

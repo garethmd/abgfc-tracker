@@ -42,7 +42,6 @@ export function PlayerForm({ player, member, onSaved }: { player?: Player; membe
   const [firstName, setFirstName] = useState(player?.first_name ?? "");
   const [lastName, setLastName] = useState(player?.last_name ?? "");
   const [displayName, setDisplayName] = useState(player?.display_name ?? "");
-  const [dob, setDob] = useState(player?.date_of_birth ?? "");
   const [notes, setNotes] = useState(player?.notes ?? "");
   const [hasLeft, setHasLeft] = useState(!!player?.left_date);
   const [leftDate, setLeftDate] = useState(player?.left_date ?? new Date().toISOString().slice(0, 10));
@@ -75,7 +74,6 @@ export function PlayerForm({ player, member, onSaved }: { player?: Player; membe
           first_name: firstName.trim(),
           last_name: lastName.trim() || null,
           display_name: displayName.trim() || null,
-          date_of_birth: dob || null,
           notes: notes || null,
         };
         if (player) {
@@ -142,9 +140,6 @@ export function PlayerForm({ player, member, onSaved }: { player?: Player; membe
           </div>
           <Field label="Shown as">
             <Input className="h-11" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder={firstName || "Defaults to first name"} />
-          </Field>
-          <Field label="Date of birth">
-            <Input type="date" className="h-11" value={dob} onChange={(e) => setDob(e.target.value)} />
           </Field>
         </>
       )}

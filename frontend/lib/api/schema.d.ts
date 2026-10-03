@@ -2009,8 +2009,6 @@ export interface components {
         PlayerCreate: {
             /** Cohort Id */
             cohort_id?: number | null;
-            /** Date Of Birth */
-            date_of_birth?: string | null;
             /** Display Name */
             display_name?: string | null;
             /** First Name */
@@ -2044,8 +2042,6 @@ export interface components {
         PlayerRead: {
             /** Cohort Id */
             cohort_id: number | null;
-            /** Date Of Birth */
-            date_of_birth: string | null;
             /** Display Name */
             display_name: string;
             /** First Name */
@@ -2161,8 +2157,6 @@ export interface components {
         };
         /** PlayerUpdate */
         PlayerUpdate: {
-            /** Date Of Birth */
-            date_of_birth?: string | null;
             /** Display Name */
             display_name?: string | null;
             /** First Name */

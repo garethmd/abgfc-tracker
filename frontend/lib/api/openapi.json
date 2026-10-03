@@ -2971,18 +2971,6 @@
             ],
             "title": "Cohort Id"
           },
-          "date_of_birth": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Date Of Birth"
-          },
           "display_name": {
             "anyOf": [
               {
@@ -3125,18 +3113,6 @@
             ],
             "title": "Cohort Id"
           },
-          "date_of_birth": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Date Of Birth"
-          },
           "display_name": {
             "title": "Display Name",
             "type": "string"
@@ -3213,7 +3189,6 @@
           "first_name",
           "last_name",
           "display_name",
-          "date_of_birth",
           "joined_date",
           "left_date",
           "notes"
@@ -3472,18 +3447,6 @@
       "PlayerUpdate": {
         "additionalProperties": false,
         "properties": {
-          "date_of_birth": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Date Of Birth"
-          },
           "display_name": {
             "anyOf": [
               {
