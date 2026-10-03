@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { CalendarDays, ClipboardList, FileDown, MessageCircle, Plus, Radio, Upload } from "lucide-react";
-import { matchdaySheetUrl } from "@/lib/reports";
+import { CalendarDays, ClipboardList, MessageCircle, Plus, Radio, Upload } from "lucide-react";
 import { $api } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
 import { PageHeader, SectionTitle } from "@/components/page-header";
@@ -14,7 +13,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { MessageSheet } from "@/components/features/fixtures/message-sheet";
-import { availabilitySummary } from "@/components/features/fixtures/squad-selection";
 
 export default function FixturesPage() {
   const { teamSeason, canEdit, base } = useTeam();
@@ -96,25 +94,14 @@ export default function FixturesPage() {
                     </Button>
                   </div>
                 )}
-                {nextUp.status === "scheduled" && (nextUp.availability || canEdit) && (
-                  <div className="flex items-center gap-2 border-t border-border/60 px-4 py-2.5 text-xs text-muted-foreground">
-                    <ClipboardList className="size-3.5 shrink-0" />
-                    <span className="tnum">{nextUp.availability ? availabilitySummary(nextUp.availability) : "Availability not recorded yet"}</span>
-                  </div>
-                )}
                 {canEdit && teamSeason && nextUp.status === "scheduled" && (
                   <div className="space-y-2 border-t border-border/60 p-3">
-                    <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       <Button asChild className="h-11 w-full">
                         <Link href={`${base}/fixtures/${nextUp.id}/live`}><Radio className="size-4" /> Start match</Link>
                       </Button>
                       <Button asChild variant="outline" className="h-11 w-full">
                         <Link href={`${base}/fixtures/${nextUp.id}/entry`}>Enter result</Link>
-                      </Button>
-                      <Button asChild variant="outline" className="h-11" title="Download the matchday sheet (PDF)">
-                        <a href={matchdaySheetUrl(teamSeason.id, nextUp.id)} download>
-                          <FileDown className="size-4" /> Sheet
-                        </a>
                       </Button>
                     </div>
                     <div className={nextUp.availability ? "grid grid-cols-2 gap-2" : ""}>
@@ -135,27 +122,7 @@ export default function FixturesPage() {
               {later.length > 0 && (
                 <Card className="mt-3 divide-y divide-border/40 overflow-hidden">
                   {later.map((f) => (
-                    <div key={f.id}>
-                      <FixtureRow fixture={f} base={base} />
-                      {(f.availability || canEdit) && (
-                        <div className="flex min-h-10 items-center gap-2 border-t border-border/40 bg-muted/30 px-4 py-1.5 text-xs text-muted-foreground">
-                          <ClipboardList className="size-3.5 shrink-0" />
-                          <span className="tnum min-w-0 flex-1 truncate">
-                            {f.availability ? availabilitySummary(f.availability) : "Availability not recorded"}
-                          </span>
-                          {canEdit && f.availability && (
-                            <button type="button" className="flex h-8 items-center gap-1 rounded-md px-2 font-medium text-primary hover:bg-accent" onClick={() => setMessage(f.id)}>
-                              <MessageCircle className="size-3.5" /> Message
-                            </button>
-                          )}
-                          {canEdit && (
-                            <Link href={`${base}/fixtures/${f.id}/selection`} className="flex h-8 items-center rounded-md px-2 font-medium text-primary hover:bg-accent">
-                              {f.availability ? "Edit" : "Availability"}
-                            </Link>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                    <FixtureRow key={f.id} fixture={f} base={base} />
                   ))}
                 </Card>
               )}

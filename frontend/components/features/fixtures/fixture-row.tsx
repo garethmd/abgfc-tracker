@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ClipboardList } from "lucide-react";
 import type { Schema } from "@/lib/api/client";
 import { formatDate, STATUS_LABEL } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
@@ -57,7 +57,20 @@ export function FixtureRow({ fixture: f, base = "" }: { fixture: Schema["Fixture
           {f.our_score ?? 0}<span className="mx-0.5 text-muted-foreground">–</span>{f.their_score ?? 0}
         </span>
       ) : (
-        <ChevronRight className="size-4 text-muted-foreground" />
+        <>
+          {/* Who can play, where a played fixture shows its score - a number worth seeing
+              down the list, without a row of its own. */}
+          {f.availability && f.status === "scheduled" && (
+            <span
+              className="tnum flex shrink-0 items-center gap-1 text-xs text-muted-foreground"
+              title={`${f.availability.available} available${f.availability.unavailable ? `, ${f.availability.unavailable} not` : ""}`}
+            >
+              <ClipboardList className="size-3.5" />
+              {f.availability.available}
+            </span>
+          )}
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+        </>
       )}
     </Link>
   );

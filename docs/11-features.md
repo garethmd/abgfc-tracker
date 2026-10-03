@@ -139,9 +139,10 @@ under `/fixtures/{id}/selection`, UI at `/[team]/fixtures/[id]/selection`
   example above and every variant.
 - **Every upcoming fixture, not just the next.** `FixtureRead.availability`
   (`{available, unavailable}` or null; filled in by the list route only, squad size counted
-  once per team season) gives the Fixtures page a strip under each upcoming row - the
-  headline plus *Availability*/*Edit* and *Message* for coaches - so a coach can plan and
-  message parents for a game two or three weeks out.
+  once per team season) is shown on a fixture row as a compact count where a played fixture
+  shows its score, so you can see down the list who has been sorted. Setting it is on the
+  fixture itself - a strip of buttons under every row made the Fixtures page unreadable,
+  and the fixture page is one tap away, the same as everything else about a match.
 - **Downstream defaults.** *Enter result* and the live *Start match* line-up start with the
   available players ticked instead of the whole squad — a default, not a change in
   behaviour; with nothing recorded they are as before. The matchday PDF pre-ticks the
@@ -269,6 +270,10 @@ replay, and nothing that moves a fixture's date - don't add one.
 A played or live match can't be postponed (409); the result flows own those. The fixtures
 list gives postponed matches their own section, since they are not results and would
 otherwise sit under Results looking like a game nobody scored in.
+
+The Fixtures page keeps the *Next up* card to the four actions a coach uses in a week -
+*Start match* and *Enter result*, then *Edit availability* and *Message parents* - and the
+matchday sheet is on the fixture page rather than duplicated here.
 
 *Postpone* lives in the fixture page's overflow menu with Edit and Delete, not beside
 *Start match*: it is a rare action and the card is a coach's matchday card. That card holds
