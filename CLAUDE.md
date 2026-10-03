@@ -104,6 +104,10 @@ deterministic constraint names (`db/base.py`).
 - Cohort overview and player moves between teams: cohort-level coach+.
 - Users: an admin sees/creates users only within scopes they administer; the last club
   admin can't demote themselves.
+- Club-wide lookups (opposition `teams`, `competitions`) are not team-scoped, so they get
+  no check for free: every write calls `access.require_any_coach()` - any coach may maintain
+  them (they create an opposition when adding a fixture), a viewer may not. Award types are
+  stricter: club-wide ones need a club admin.
 - The frontend hides what you can't do (`canEdit`, `isAdminSomewhere`), but the API is
   the enforcement point - every test in `tests/test_access.py` hits the API directly.
 

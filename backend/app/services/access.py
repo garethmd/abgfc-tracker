@@ -107,6 +107,16 @@ class Access:
             raise ForbiddenError(f"You don't have {minimum.value} access to this age group")
         return role
 
+    def require_any_coach(self, minimum: UserRole = COACH) -> UserRole:
+        """For the club-wide lookups - opposition teams, competitions, award types - which
+        belong to no single team. A coach of any team may maintain them, because they create
+        an opposition the moment they add a fixture against a new one; a viewer may not,
+        since renaming or deleting one reaches into every team's fixtures."""
+        best = _max(self.club_role, *self.cohort_roles.values(), *self.team_roles.values())
+        if best is None or best.level < minimum.level:
+            raise ForbiddenError(f"{minimum.value.title()} access is needed to change this")
+        return best
+
     def require_club(self, minimum: UserRole = ADMIN) -> UserRole:
         if self.club_role is None or self.club_role.level < minimum.level:
             raise ForbiddenError("Club-level access required")

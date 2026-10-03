@@ -20,6 +20,9 @@ const TYPES: Schema["CompetitionType"][] = ["league", "cup", "friendly", "tourna
 
 export function CompetitionsManager() {
   const qc = useQueryClient();
+  // These lookups are shared by every team, so maintaining them is a coach's job - the API
+  // refuses a viewer either way (`require_any_coach`), this just doesn't dangle the buttons.
+  const { canEdit } = useTeam();
   const list = $api.useQuery("get", "/api/v1/competitions");
   const create = $api.useMutation("post", "/api/v1/competitions");
   const update = $api.useMutation("patch", "/api/v1/competitions/{competition_id}");
@@ -61,19 +64,27 @@ export function CompetitionsManager() {
 
   return (
     <>
-      <div className="mb-3 flex justify-end">
-        <Button size="sm" variant="outline" onClick={() => setOpen(true)}><Plus className="size-4" /> New competition</Button>
-      </div>
+      {canEdit && (
+        <div className="mb-3 flex justify-end">
+          <Button size="sm" variant="outline" onClick={() => setOpen(true)}><Plus className="size-4" /> New competition</Button>
+        </div>
+      )}
       <Card className="divide-y divide-border/40">
         {(list.data ?? []).map((c) => (
           <div key={c.id} className="flex min-h-14 items-center gap-3 px-4 py-2 text-sm">
             <span className={c.is_active ? "font-medium" : "text-muted-foreground line-through"}>{c.name}</span>
             <Badge variant="outline" className="capitalize">{c.type}</Badge>
             <span className="flex-1" />
-            <Switch checked={c.is_active} onCheckedChange={(v) => toggleActive(c.id, v)} aria-label="Active" />
-            <button type="button" onClick={() => onDelete(c.id)} className="flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-destructive" aria-label="Delete">
-              <Trash2 className="size-4" />
-            </button>
+            {canEdit ? (
+              <>
+                <Switch checked={c.is_active} onCheckedChange={(v) => toggleActive(c.id, v)} aria-label="Active" />
+                <button type="button" onClick={() => onDelete(c.id)} className="flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-destructive" aria-label="Delete">
+                  <Trash2 className="size-4" />
+                </button>
+              </>
+            ) : (
+              !c.is_active && <span className="text-xs text-muted-foreground">inactive</span>
+            )}
           </div>
         ))}
       </Card>
@@ -100,7 +111,7 @@ export function CompetitionsManager() {
 
 export function TeamsManager() {
   const qc = useQueryClient();
-  const { base } = useTeam();
+  const { base, canEdit } = useTeam();
   const list = $api.useQuery("get", "/api/v1/teams");
   const create = $api.useMutation("post", "/api/v1/teams");
   const update = $api.useMutation("patch", "/api/v1/teams/{team_id}");
@@ -164,9 +175,11 @@ export function TeamsManager() {
 
   return (
     <>
-      <div className="mb-3 flex justify-end">
-        <Button size="sm" variant="outline" onClick={() => openFor("new")}><Plus className="size-4" /> New team</Button>
-      </div>
+      {canEdit && (
+        <div className="mb-3 flex justify-end">
+          <Button size="sm" variant="outline" onClick={() => openFor("new")}><Plus className="size-4" /> New team</Button>
+        </div>
+      )}
       <Card className="divide-y divide-border/40">
         {(list.data ?? []).map((t) => (
           <div key={t.id} className="flex min-h-14 items-center gap-3 px-4 py-2 text-sm">
@@ -175,10 +188,14 @@ export function TeamsManager() {
               {t.short_name && <span className="ml-2 text-xs text-muted-foreground">{t.short_name}</span>}
               {t.home_ground && <span className="ml-2 truncate text-xs text-muted-foreground">· {t.home_ground}</span>}
             </Link>
-            <button type="button" onClick={() => openFor(t)} className="text-xs text-muted-foreground hover:text-foreground">Edit</button>
-            <button type="button" onClick={() => onDelete(t.id)} className="flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-destructive" aria-label="Delete">
-              <Trash2 className="size-4" />
-            </button>
+            {canEdit && (
+              <>
+                <button type="button" onClick={() => openFor(t)} className="text-xs text-muted-foreground hover:text-foreground">Edit</button>
+                <button type="button" onClick={() => onDelete(t.id)} className="flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-destructive" aria-label="Delete">
+                  <Trash2 className="size-4" />
+                </button>
+              </>
+            )}
           </div>
         ))}
         {list.data && !list.data.length && <p className="p-4 text-sm text-muted-foreground">Opposition teams appear here as you add fixtures.</p>}

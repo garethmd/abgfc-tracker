@@ -46,17 +46,20 @@ def list_competitions(db: DB, _: Access):
 
 
 @router.post("/competitions", response_model=CompetitionRead, status_code=201)
-def create_competition(data: CompetitionCreate, db: DB, _: Access):
+def create_competition(data: CompetitionCreate, db: DB, access: Access):
+    access.require_any_coach()
     return CompetitionService(db).create(data)
 
 
 @router.patch("/competitions/{competition_id}", response_model=CompetitionRead)
-def update_competition(competition_id: int, data: CompetitionUpdate, db: DB, _: Access):
+def update_competition(competition_id: int, data: CompetitionUpdate, db: DB, access: Access):
+    access.require_any_coach()
     return CompetitionService(db).update(competition_id, data)
 
 
 @router.delete("/competitions/{competition_id}", status_code=204)
-def delete_competition(competition_id: int, db: DB, _: Access):
+def delete_competition(competition_id: int, db: DB, access: Access):
+    access.require_any_coach()
     CompetitionService(db).delete(competition_id)
 
 
@@ -66,7 +69,8 @@ def list_teams(db: DB, _: Access):
 
 
 @router.post("/teams", response_model=TeamRead, status_code=201)
-def create_team(data: TeamCreate, db: DB, _: Access):
+def create_team(data: TeamCreate, db: DB, access: Access):
+    access.require_any_coach()
     return TeamService(db).create(data)
 
 
@@ -90,10 +94,12 @@ def merge_team(team_id: int, data: TeamMerge, db: DB, access: Access):
 
 
 @router.patch("/teams/{team_id}", response_model=TeamRead)
-def update_team(team_id: int, data: TeamUpdate, db: DB, _: Access):
+def update_team(team_id: int, data: TeamUpdate, db: DB, access: Access):
+    access.require_any_coach()
     return TeamService(db).update(team_id, data)
 
 
 @router.delete("/teams/{team_id}", status_code=204)
-def delete_team(team_id: int, db: DB, _: Access):
+def delete_team(team_id: int, db: DB, access: Access):
+    access.require_any_coach()
     TeamService(db).delete(team_id)

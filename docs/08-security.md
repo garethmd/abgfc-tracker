@@ -94,6 +94,19 @@ Admin password reset is the "forgot password" path — there is no email flow.
 - The public GitHub repository contains the seed with first names and the fixture list;
   the owner accepted that. No other personal data is in the repo.
 
+### Club-wide lookups
+
+Opposition teams, competitions and award types belong to no single team, so the per-team
+checks never applied to them - and for a while nothing else did either: **any signed-in
+user, including a viewer, could create, rename or delete an opposition or a competition**,
+which reaches into every team's fixtures. Fixed Oct 2026 by `Access.require_any_coach()`
+on every write (`api/routers/lookups.py`); award types were already guarded (club-wide ones
+need a club admin, a team's own needs a coach on that team). `tests/test_access.py` pins a
+viewer out of all of them.
+
+The lesson for anything added later: a resource that isn't team-scoped gets **no** access
+check by default. Say explicitly who may write it.
+
 ## Production hardening (`ABGFC_ENV=production`)
 
 - Refuses to start with the development `secret_key` or `coach_password`.

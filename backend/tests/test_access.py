@@ -109,6 +109,51 @@ def test_viewer_can_read_but_not_write(client: TestClient, club, demo: DemoSeaso
     )
 
 
+def test_a_viewer_cannot_touch_the_club_wide_lookups(client: TestClient, club, demo: DemoSeason):
+    """Opposition teams and competitions are shared by every team in the club, so a viewer -
+    a parent, once access widens - must not be able to rename or delete them. They are not
+    team-scoped, so none of the per-team checks apply and these need their own."""
+    login_as(client, "viewer")
+    comp = next(iter(demo.competitions.values()))
+    opp, other = (demo.teams[k] for k in list(demo.teams)[:2])
+
+    assert client.get(f"{API}/competitions").status_code == 200  # reading is fine
+    assert client.get(f"{API}/teams").status_code == 200
+
+    assert (
+        client.post(f"{API}/competitions", json={"name": "Made Up", "type": "cup"}).status_code
+        == 403
+    )
+    assert (
+        client.patch(f"{API}/competitions/{comp.id}", json={"name": "Renamed"}).status_code == 403
+    )
+    assert client.delete(f"{API}/competitions/{comp.id}").status_code == 403
+
+    assert client.post(f"{API}/teams", json={"name": "Made Up FC"}).status_code == 403
+    assert client.patch(f"{API}/teams/{opp.id}", json={"name": "Renamed"}).status_code == 403
+    assert client.delete(f"{API}/teams/{opp.id}").status_code == 403
+    assert (
+        client.post(f"{API}/teams/{opp.id}/merge", json={"into_team_id": other.id}).status_code
+        == 403
+    )
+
+    # Award types are club-wide too.
+    at = demo.award_types["coaches_potm"]
+    assert client.patch(f"{API}/award-types/{at.id}", json={"name": "Renamed"}).status_code == 403
+
+
+def test_a_coach_can_maintain_the_lookups(client: TestClient, club, demo: DemoSeason):
+    """Any coach may: they create an opposition when they add a fixture against a new one."""
+    login_as(client, "blues_coach")
+    r = client.post(f"{API}/teams", json={"name": "Brand New FC"})
+    assert r.status_code == 201, r.text
+    assert (
+        client.patch(f"{API}/teams/{r.json()['id']}", json={"short_name": "BNFC"}).status_code
+        == 200
+    )
+    assert client.delete(f"{API}/teams/{r.json()['id']}").status_code == 204
+
+
 def test_cohort_coach_sees_every_team(client: TestClient, club, demo: DemoSeason):
     login_as(client, "stuart")
     me = client.get(f"{API}/auth/me").json()
