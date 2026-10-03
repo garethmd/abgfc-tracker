@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { use } from "react";
 import { $api } from "@/lib/api/client";
-import { pickedIds } from "@/components/features/fixtures/squad-selection";
+import { guestPlayers, pickedIds } from "@/components/features/fixtures/squad-selection";
 import { useTeam } from "@/lib/team-context";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
@@ -77,6 +77,7 @@ export default function LiveMatchPage({ params }: PageProps<"/[team]/fixtures/[i
             fixture={f}
             squad={squad.data}
             preselect={pickedIds(selection.data)}
+            guests={guestPlayers(selection.data)}
           />
         </>
       ) : (

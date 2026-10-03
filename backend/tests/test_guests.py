@@ -123,6 +123,76 @@ def test_a_player_from_another_age_group_is_refused(auth_client: TestClient, dem
     assert live.status_code == 422 and "age group" in live.json()["detail"]
 
 
+def test_a_guest_can_be_named_in_advance_on_availability(auth_client: TestClient, demo: DemoSeason):
+    """The coach knows on Thursday that Noah is playing up: name him then, and he flows
+    through the parents' message, the team sheet and the result screen."""
+    reds = _reds_ts(auth_client)
+    for name in ("Jackson", "Adrian"):
+        auth_client.post(f"{API}/players", json={"first_name": name, "team_season_id": reds})
+    fx = _fixture_for(auth_client, reds, demo, "Guest City")
+    archie = demo.players["Archie"]
+    url = f"{API}/fixtures/{fx}/selection"
+
+    r = auth_client.put(url, json={"unavailable_player_ids": [], "guest_player_ids": [archie.id]})
+    assert r.status_code == 200, r.text
+    sel = r.json()
+    guest = next(p for p in sel["available"] if p["player"]["id"] == archie.id)
+    assert guest["is_guest"] is True
+    # He keeps his own number, and comes after the squad.
+    assert guest["squad_number"] is not None
+    assert sel["available"][-1]["player"]["id"] == archie.id
+    assert len(sel["available"]) == 3
+
+    # The parents' message lists him like anyone else who is playing.
+    text = auth_client.get(f"{url}/message").json()["text"]
+    assert text.splitlines()[-1] == "Archie"
+
+    # Someone already in the squad is not a guest.
+    jackson = next(p for p in sel["available"] if p["player"]["display_name"] == "Jackson")
+    bad = auth_client.put(
+        url,
+        json={"unavailable_player_ids": [], "guest_player_ids": [jackson["player"]["id"]]},
+    )
+    assert bad.status_code == 422 and "already in this squad" in bad.json()["detail"]
+
+    # A guest can be marked unavailable again - the plan changed.
+    r = auth_client.put(
+        url, json={"unavailable_player_ids": [archie.id], "guest_player_ids": [archie.id]}
+    )
+    assert archie.id not in [p["player"]["id"] for p in r.json()["available"]]
+    assert [p["player"]["id"] for p in r.json()["unavailable"]] == [archie.id]
+    assert r.json()["unavailable"][0]["is_guest"] is True
+
+    # Saving without them drops the guest, like the unavailable list.
+    r = auth_client.put(url, json={"unavailable_player_ids": []})
+    assert all(not p["is_guest"] for p in r.json()["available"])
+
+
+def test_an_advance_guest_is_on_the_matchday_sheet(auth_client: TestClient, demo: DemoSeason):
+    from io import BytesIO
+
+    from pypdf import PdfReader
+
+    reds = _reds_ts(auth_client)
+    for name in ("Jackson", "Adrian"):
+        auth_client.post(f"{API}/players", json={"first_name": name, "team_season_id": reds})
+    fx = _fixture_for(auth_client, reds, demo, "Guest County")
+    archie = demo.players["Archie"]
+    auth_client.put(
+        f"{API}/fixtures/{fx}/selection",
+        json={"unavailable_player_ids": [], "guest_player_ids": [archie.id]},
+    )
+
+    r = auth_client.get(
+        f"{API}/team-seasons/{reds}/reports/matchday.pdf", params={"fixture_id": fx}
+    )
+    assert r.status_code == 200, r.text
+    text = "\n".join(p.extract_text() for p in PdfReader(BytesIO(r.content)).pages)
+    assert "SQUAD  ·  2 PLAYERS  +  1 GUEST" in text
+    assert "Archie (guest)" in text
+    assert "Available: 3" in text
+
+
 def test_the_matchday_sheet_leaves_guests_out(auth_client: TestClient, demo: DemoSeason):
     """The sheet plans this team's own squad - a guest would skew the fairness shading."""
     from io import BytesIO

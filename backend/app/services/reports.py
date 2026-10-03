@@ -25,8 +25,10 @@ from app.models import (
 )
 from app.repositories.club import TeamSeasonRepository
 from app.repositories.fixtures import FixtureRepository
+from app.repositories.players import SquadRepository
 from app.schemas.fixture import FixtureDetail
-from app.schemas.stats import PlayerStatsRow
+from app.schemas.player import PlayerSummary
+from app.schemas.stats import AwardCount, PlayerStatsRow
 from app.services.access import Access
 from app.services.fixtures import FixtureService
 from app.services.messages import arrival_time, format_arrival
@@ -77,6 +79,9 @@ class MatchdayData:
     # Pre-match availability, if recorded: the player ids marked unavailable (None = not
     # recorded, so the boxes are left blank)
     unavailable: set[int] | None
+    # Guests named on that selection - children from other teams in the age group playing
+    # for us this week. They belong on the team sheet even though they aren't in the squad.
+    guest_ids: set[int]
 
 
 def gather(
@@ -111,12 +116,46 @@ def gather(
     )
     last = FixtureService(db, access).detail(played[-1].id) if played else None
     rows = StatsService(db, access).leaderboard(ts.id).rows
-    unavailable = (
-        {u.player_id for u in fixture.selection.unavailable}
-        if fixture and fixture.selection
-        else None
+    selection = fixture.selection if fixture else None
+    unavailable = {u.player_id for u in selection.unavailable} if selection else None
+    guest_ids = {g.player_id for g in selection.guests} if selection else set()
+    # A guest playing for us for the first time has no stats row yet, so make an empty one -
+    # the sheet still needs their name and number.
+    missing = [
+        g
+        for g in (selection.guests if selection else [])
+        if g.player_id not in {r.player.id for r in rows}
+    ]
+    if missing:
+        numbers = {
+            m.player_id: m.squad_number
+            for m in SquadRepository(db).list_for_cohort_season(
+                ts.club_team.cohort_id, ts.season_id
+            )
+        }
+        blank_awards = [
+            AwardCount(award_type_id=a.award_type_id, award_type_code=a.award_type_code, count=0)
+            for a in (rows[0].awards if rows else [])
+        ]
+        rows = rows + [
+            PlayerStatsRow(
+                player=PlayerSummary.model_validate(g.player),
+                squad_number=numbers.get(g.player_id),
+                appearances=0,
+                starts=0,
+                goals=0,
+                assists=0,
+                own_goals=0,
+                goals_per_game=0.0,
+                awards=blank_awards,
+                minutes=None,
+                is_guest=True,
+            )
+            for g in missing
+        ]
+    return MatchdayData(
+        ts, fixture, previous, played, last, rows, datetime.now(), unavailable, guest_ids
     )
-    return MatchdayData(ts, fixture, previous, played, last, rows, datetime.now(), unavailable)
 
 
 # --- layout ------------------------------------------------------------------------
@@ -229,7 +268,11 @@ def render(data: MatchdayData) -> bytes:
             pdf.text_line(f.notes.replace("\n", " "), 9, "I", colour=MUTED, h=5)
         if data.unavailable is not None:
             n_out = len(data.unavailable)
-            n_avail = len(data.rows) - n_out
+            # The squad plus this week's guests; a guest from an earlier week isn't playing.
+            n_avail = (
+                len([r for r in data.rows if not r.is_guest or r.player.id in data.guest_ids])
+                - n_out
+            )
             arrive = format_arrival(arrival_time(f.kickoff_at, ts.arrival_lead_minutes))
             bits = [
                 f"Available: {n_avail}" + (f" ({n_out} not available)" if n_out else ""),
@@ -287,15 +330,21 @@ def render(data: MatchdayData) -> bytes:
     pdf.ln(3)
 
     # --- squad table ------------------------------------------------------------------
-    rows = sorted(
-        # Guests played for us but aren't ours to plan around, and their appearance count
-        # would skew the fairness shading below.
-        [r for r in data.rows if not r.is_guest],
-        key=lambda r: (r.squad_number is None, r.squad_number or 0, r.player.display_name),
-    )
+    def order(r: PlayerStatsRow) -> tuple:
+        return (r.squad_number is None, r.squad_number or 0, r.player.display_name)
+
+    # Our own squad plans the week. A past guest isn't ours to plan around and their
+    # appearance count would skew the fairness shading, so they are left out - but a guest
+    # named on this week's availability is playing, so they go on the sheet, last.
+    rows = sorted((r for r in data.rows if not r.is_guest), key=order)
+    guests = sorted((r for r in data.rows if r.player.id in data.guest_ids), key=order)
     played_n = len(data.played)
     min_apps = min((r.appearances for r in rows), default=0)
-    pdf.label(f"Squad  ·  {len(rows)} players")
+    rows = rows + guests
+    pdf.label(
+        f"Squad  ·  {len(rows) - len(guests)} players"
+        + (f"  +  {len(guests)} guest" + ("s" if len(guests) > 1 else "") if guests else "")
+    )
     award_codes = [a.award_type_code for a in rows[0].awards] if rows else []
     # columns: #, Player, Pos, Apps, Goals, Assists, awards..., Avail, Start, Sub
     fixed = {"#": 8, "Apps": 13, "Goals": 11, "Assists": 13, "Avail": 14}
@@ -331,7 +380,10 @@ def render(data: MatchdayData) -> bytes:
     positions = _positions(data)
     for r in rows:
         y = pdf.get_y()
-        short = played_n > 0 and r.appearances == min_apps and r.appearances < played_n
+        is_guest = r.player.id in data.guest_ids
+        short = (
+            played_n > 0 and not is_guest and r.appearances == min_apps and r.appearances < played_n
+        )
         if short:  # fewest games so far - the fairness nudge
             pdf.set_fill_color(*TINT)
             pdf.rect(pdf.l_margin, y, W, row_h, style="F")
@@ -339,7 +391,7 @@ def render(data: MatchdayData) -> bytes:
         cells = (
             [
                 str(r.squad_number) if r.squad_number is not None else "",
-                r.player.display_name,
+                r.player.display_name + (" (guest)" if is_guest else ""),
                 positions.get(r.player.id, ""),
                 f"{r.appearances}/{played_n}" if played_n else "0",
                 str(r.goals),
@@ -361,7 +413,10 @@ def render(data: MatchdayData) -> bytes:
         pdf.ln(row_h)
         pdf.rule()
     footnotes = []
-    if played_n and any(r.appearances == min_apps and r.appearances < played_n for r in rows):
+    if played_n and any(
+        r.player.id not in data.guest_ids and r.appearances == min_apps and r.appearances < played_n
+        for r in rows
+    ):
         footnotes.append("Shaded = fewest appearances so far")
     if data.unavailable is not None:
         footnotes.append("Ticked = available, crossed = not available")

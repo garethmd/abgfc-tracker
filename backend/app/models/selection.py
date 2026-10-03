@@ -13,8 +13,9 @@ if TYPE_CHECKING:
 
 class FixtureSelection(TimestampMixin, Base):
     """Availability for an upcoming match: everyone in the squad is assumed available
-    unless listed in `unavailable`, plus the bits parents need to know. A plan, not a
-    record - appearances (who actually played) are only ever written by the result
+    unless listed in `unavailable`, plus anyone in `guests` (a child from another team in
+    the age group, playing for us this week), plus the bits parents need to know. A plan,
+    not a record - appearances (who actually played) are only ever written by the result
     flows. One per fixture; goes with it."""
 
     __tablename__ = "fixture_selections"
@@ -34,6 +35,9 @@ class FixtureSelection(TimestampMixin, Base):
     unavailable: Mapped[list["UnavailablePlayer"]] = relationship(
         back_populates="selection", cascade="all, delete-orphan", order_by="UnavailablePlayer.id"
     )
+    guests: Mapped[list["GuestPlayer"]] = relationship(
+        back_populates="selection", cascade="all, delete-orphan", order_by="GuestPlayer.id"
+    )
 
 
 class UnavailablePlayer(Base):
@@ -50,4 +54,22 @@ class UnavailablePlayer(Base):
     player_id: Mapped[int] = mapped_column(ForeignKey("players.id", ondelete="RESTRICT"))
 
     selection: Mapped[FixtureSelection] = relationship(back_populates="unavailable")
+    player: Mapped["Player"] = relationship()
+
+
+class GuestPlayer(Base):
+    """A player from another team in the age group turning out for us this match. Not a
+    squad member - this is availability only, and says nothing about who played; the
+    result flows write that. Available = (squad + guests) - unavailable."""
+
+    __tablename__ = "fixture_selection_guests"
+    __table_args__ = (UniqueConstraint("selection_id", "player_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    selection_id: Mapped[int] = mapped_column(
+        ForeignKey("fixture_selections.id", ondelete="CASCADE"), index=True
+    )
+    player_id: Mapped[int] = mapped_column(ForeignKey("players.id", ondelete="RESTRICT"))
+
+    selection: Mapped[FixtureSelection] = relationship(back_populates="guests")
     player: Mapped["Player"] = relationship()

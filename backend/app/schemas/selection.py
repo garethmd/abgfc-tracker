@@ -8,9 +8,12 @@ from app.schemas.player import PlayerSummary
 
 class SelectionSubmit(InputModel):
     """Availability for a match in one write - replaces what was there, like PUT /result.
-    Everyone in the squad is available unless listed here."""
+    Everyone in the squad is available unless listed in `unavailable_player_ids`;
+    `guest_player_ids` adds children from other teams in the age group who are playing for
+    us this week (they aren't in the squad, so they have to be named)."""
 
     unavailable_player_ids: list[int] = []
+    guest_player_ids: list[int] = []
     coaching: str | None = Field(default=None, max_length=200, examples=["Adam & Dan"])
     notes: str | None = Field(default=None, max_length=5000)
 
@@ -18,11 +21,12 @@ class SelectionSubmit(InputModel):
 class SelectionPlayerRead(ORMModel):
     player: PlayerSummary
     squad_number: int | None
+    is_guest: bool = False
 
 
 class SelectionRead(ORMModel):
-    """Who can play (the squad minus those marked unavailable) and who can't, both in
-    squad-number then name order."""
+    """Who can play (the squad plus named guests, minus those marked unavailable) and who
+    can't, both in squad-number then name order."""
 
     fixture_id: int
     available: list[SelectionPlayerRead]

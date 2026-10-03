@@ -117,7 +117,7 @@ Full rules in [Security](08-security.md).
 | POST | `/fixtures/{id}/live/finish` | coach | `status=played`; the fixture is now exactly what `PUT /result` produces |
 | DELETE | `/fixtures/{id}/live` | coach | started by mistake: clears everything, back to `scheduled` |
 | GET | `/fixtures/{id}/selection` | viewer | `SelectionRead` or `null` — pre-match availability (below) |
-| PUT | `/fixtures/{id}/selection` | coach | `SelectionSubmit` = who's out (+ coaching, notes); replaces the whole thing; 409 unless `scheduled`/`postponed`; 422 for a player outside the team's cohort |
+| PUT | `/fixtures/{id}/selection` | coach | `SelectionSubmit` = who's out and any guests from other teams in the age group (+ coaching, notes); replaces the whole thing; 409 unless `scheduled`/`postponed`; 422 for a player outside the team's cohort, or a guest already in the squad |
 | DELETE | `/fixtures/{id}/selection` | coach | 404 if there isn't one |
 | GET | `/fixtures/{id}/selection/message?date_line=` | coach | `{text}` — the parents' message in the house style listing the available players; 404 until availability is recorded |
 

@@ -20,7 +20,7 @@ from app.models.media import Media, MediaLink
 from app.models.note import MatchNote
 from app.models.player import Player, SquadMember
 from app.models.season import Season
-from app.models.selection import FixtureSelection, UnavailablePlayer
+from app.models.selection import FixtureSelection, GuestPlayer, UnavailablePlayer
 from app.models.team import Team
 from app.models.user import User
 from app.models.user import UserRole as UserRoleAssignment
@@ -50,6 +50,7 @@ __all__ = [
     "Position",
     "PositionCategory",
     "Season",
+    "GuestPlayer",
     "UnavailablePlayer",
     "FixtureSelection",
     "SquadMember",

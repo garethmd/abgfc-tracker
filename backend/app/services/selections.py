@@ -1,5 +1,6 @@
 """Pre-match availability: who can't play in an upcoming fixture. Everyone else in the
-squad can.
+squad can, plus any guest named on the selection - a child from another team in the age
+group turning out for us this week.
 
 A plan, not a record. `appearances` (who played) are only ever written by the result
 flows; this never touches them. The selection is one aggregate - a header row with the
@@ -10,7 +11,14 @@ so a retried PUT is harmless.
 from sqlalchemy.orm import Session
 
 from app.core.errors import ConflictError, NotFoundError, ValidationError
-from app.models import Fixture, FixtureSelection, FixtureStatus, UnavailablePlayer, UserRole
+from app.models import (
+    Fixture,
+    FixtureSelection,
+    FixtureStatus,
+    GuestPlayer,
+    UnavailablePlayer,
+    UserRole,
+)
 from app.repositories.players import PlayerRepository, SquadRepository
 from app.schemas.player import PlayerSummary
 from app.schemas.selection import (
@@ -43,7 +51,14 @@ class SelectionService:
         if fixture.status not in EDITABLE:
             raise ConflictError("Availability can only be set before the match is played")
         ids = list(dict.fromkeys(data.unavailable_player_ids))  # de-duplicated, order kept
-        self._check_players(fixture, ids)
+        guest_ids = list(dict.fromkeys(data.guest_player_ids))
+        self._check_players(fixture, ids + guest_ids)
+        squad = SquadRepository(self.db).list_for_team_season(fixture.team_season_id)
+        squad_ids = {m.player_id for m in squad}
+        for pid in guest_ids:
+            if pid in squad_ids:
+                name = PlayerRepository(self.db).get_or_404(pid).display_name
+                raise ValidationError(f"{name} is already in this squad")
 
         selection = fixture.selection
         if selection is None:
@@ -52,9 +67,12 @@ class SelectionService:
         selection.coaching = _clean(data.coaching)
         selection.notes = _clean(data.notes)
         selection.unavailable.clear()
+        selection.guests.clear()
         self.db.flush()
         for pid in ids:
             selection.unavailable.append(UnavailablePlayer(player_id=pid))
+        for pid in guest_ids:
+            selection.guests.append(GuestPlayer(player_id=pid))
         self.db.commit()
         self.db.refresh(fixture)
         return self._read(fixture)
@@ -117,11 +135,32 @@ class SelectionService:
             for m in squad
             if m.player_id not in out_ids
         ]
+        # Guests come after the squad, keeping the number they wear for their own team.
+        if sel.guests:
+            ts = fixture.team_season
+            elsewhere = {
+                m.player_id: m.squad_number
+                for m in SquadRepository(self.db).list_for_cohort_season(
+                    ts.club_team.cohort_id, ts.season_id
+                )
+            }
+            numbers.update({g.player_id: elsewhere.get(g.player_id) for g in sel.guests})
+            available.extend(
+                SelectionPlayerRead(
+                    player=PlayerSummary.model_validate(g.player),
+                    squad_number=elsewhere.get(g.player_id),
+                    is_guest=True,
+                )
+                for g in sel.guests
+                if g.player_id not in out_ids
+            )
+        guest_ids = {g.player_id for g in sel.guests}
         unavailable = sorted(
             (
                 SelectionPlayerRead(
                     player=PlayerSummary.model_validate(u.player),
                     squad_number=numbers.get(u.player_id),
+                    is_guest=u.player_id in guest_ids,
                 )
                 for u in sel.unavailable
             ),

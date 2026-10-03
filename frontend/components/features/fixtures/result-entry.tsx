@@ -31,19 +31,22 @@ export function ResultEntry({
   awardTypes,
   base,
   preselect,
+  guests: namedGuests,
 }: {
   fixture: Fixture;
   squad: Member[];
   awardTypes: AwardType[];
   base: string;
+  /** Guests named on the availability for this match, so they're already on the list. */
+  guests?: Schema["PlayerSummary"][];
   /** Player ids to start with ticked (those marked available beforehand); default is the whole squad. */
   preselect?: number[];
 }) {
   const router = useRouter();
   const { team } = useTeam();
   const qc = useQueryClient();
-  // Guests added in this session (someone from another team in the age group).
-  const [guests, setGuests] = useState<Schema["PlayerSummary"][]>([]);
+  // Guests: named on the availability beforehand, plus any added here.
+  const [guests, setGuests] = useState<Schema["PlayerSummary"][]>(() => namedGuests ?? []);
   const squadIds = useMemo(() => new Set(squad.map((m) => m.player.id)), [squad]);
   const players = useMemo(() => {
     const fromSquad = squad.filter((m) => !m.left_at && !m.player.left_date).map((m) => m.player);

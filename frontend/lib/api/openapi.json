@@ -3789,6 +3789,11 @@
       },
       "SelectionPlayerRead": {
         "properties": {
+          "is_guest": {
+            "default": false,
+            "title": "Is Guest",
+            "type": "boolean"
+          },
           "player": {
             "$ref": "#/components/schemas/PlayerSummary"
           },
@@ -3812,7 +3817,7 @@
         "type": "object"
       },
       "SelectionRead": {
-        "description": "Who can play (the squad minus those marked unavailable) and who can't, both in\nsquad-number then name order.",
+        "description": "Who can play (the squad plus named guests, minus those marked unavailable) and who\ncan't, both in squad-number then name order.",
         "properties": {
           "arrival_at": {
             "format": "date-time",
@@ -3884,7 +3889,7 @@
       },
       "SelectionSubmit": {
         "additionalProperties": false,
-        "description": "Availability for a match in one write - replaces what was there, like PUT /result.\nEveryone in the squad is available unless listed here.",
+        "description": "Availability for a match in one write - replaces what was there, like PUT /result.\nEveryone in the squad is available unless listed in `unavailable_player_ids`;\n`guest_player_ids` adds children from other teams in the age group who are playing for\nus this week (they aren't in the squad, so they have to be named).",
         "properties": {
           "coaching": {
             "anyOf": [
@@ -3900,6 +3905,14 @@
               "Adam & Dan"
             ],
             "title": "Coaching"
+          },
+          "guest_player_ids": {
+            "default": [],
+            "items": {
+              "type": "integer"
+            },
+            "title": "Guest Player Ids",
+            "type": "array"
           },
           "notes": {
             "anyOf": [

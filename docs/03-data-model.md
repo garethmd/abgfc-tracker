@@ -95,6 +95,9 @@ hard-deleted: appearances and events reference the player, so history survives a
 leaving or moving teams. `photo_key` is a Python property derived from the profile-photo
 media link.
 
+`fixture_selection_guests` names children from other teams in the age group who are playing
+for us this week, so pre-match availability is *(squad + guests) - unavailable*.
+
 An appearance does **not** require a squad row: a child guesting for another team in the
 age group is recorded on that team's fixture and counts for them (see
 [Features](11-features.md#guest-appearances)).

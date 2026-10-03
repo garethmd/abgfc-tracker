@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card } from "@/components/stat-card";
+import { GuestPicker } from "@/components/features/fixtures/guest-picker";
 import { SectionTitle } from "@/components/page-header";
 import { Field } from "@/components/features/fixtures/fixture-form";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,12 @@ export function selectionSummary(sel: Selection): string {
 /** The same line from the headline the fixtures list carries (`FixtureRead.availability`). */
 export function availabilitySummary(a: { available: number; unavailable: number }): string {
   return `Available ${a.available}${a.unavailable ? ` · Not available ${a.unavailable}` : ""}`;
+}
+
+/** Guests named on the selection - they aren't in the squad, so the result and live
+ *  screens need them handed over or the coach would have to add them a second time. */
+export function guestPlayers(sel: Selection | null | undefined): Player[] {
+  return (sel?.available ?? []).filter((p) => p.is_guest).map((p) => p.player);
 }
 
 /** The available players, as a default for "who played" / the live line-up. undefined
@@ -66,12 +73,22 @@ export function SquadSelection({
 }) {
   const router = useRouter();
   const qc = useQueryClient();
+  // Guests named on the selection, and any added in this session: children from other
+  // teams in the age group playing for us this week. They aren't in the squad, so unlike
+  // everyone else they have to be named before they can be marked available.
+  const [guests, setGuests] = useState<Player[]>(
+    () => [...(selection?.available ?? []), ...(selection?.unavailable ?? [])].filter((p) => p.is_guest).map((p) => p.player),
+  );
+  const squadIds = useMemo(() => new Set(squad.map((m) => m.player.id)), [squad]);
   const players = useMemo<Player[]>(() => {
     const fromSquad = squad.filter((m) => !m.left_at && !m.player.left_date).map((m) => m.player);
     // Anyone marked out but no longer in the squad still needs to be visible.
-    const extra = (selection?.unavailable ?? []).map((p) => p.player).filter((p) => !fromSquad.some((s) => s.id === p.id));
+    const seen = new Set(fromSquad.map((p) => p.id));
+    const extra = [...(selection?.unavailable ?? []).map((p) => p.player), ...guests].filter(
+      (p) => !seen.has(p.id) && seen.add(p.id),
+    );
     return [...fromSquad, ...extra];
-  }, [squad, selection]);
+  }, [squad, selection, guests]);
 
   // Everyone is available unless the coach taps them out.
   const [out, setOut] = useState<Set<number>>(() => new Set((selection?.unavailable ?? []).map((p) => p.player.id)));
@@ -100,7 +117,12 @@ export function SquadSelection({
     try {
       const d = await save.mutateAsync({
         params: { path: { fixture_id: fixture.id } },
-        body: { unavailable_player_ids: [...out], coaching: coaching.trim() || null, notes: notes.trim() || null },
+        body: {
+          unavailable_player_ids: [...out],
+          guest_player_ids: guests.map((g) => g.id),
+          coaching: coaching.trim() || null,
+          notes: notes.trim() || null,
+        },
       });
       qc.setQueryData(selectionKey(fixture.id), d);
       invalidate();
@@ -137,10 +159,21 @@ export function SquadSelection({
         <p className="mb-3 text-xs text-muted-foreground">Everyone is in. Tap anyone who can&apos;t make it.</p>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
           {players.map((p) => (
-            <SelectionChip key={p.id} name={p.display_name} out={out.has(p.id)} onClick={() => toggle(p.id)} />
+            <SelectionChip key={p.id} name={p.display_name} out={out.has(p.id)} guest={!squadIds.has(p.id)} onClick={() => toggle(p.id)} />
           ))}
         </div>
         {players.length === 0 && <p className="text-sm text-muted-foreground">No players in this season&apos;s squad.</p>}
+        <GuestPicker
+          exclude={players.map((p) => p.id)}
+          onAdd={(p) => {
+            setGuests((g) => [...g, p]);
+            setOut((prev) => {
+              const next = new Set(prev);
+              next.delete(p.id);
+              return next;
+            });
+          }}
+        />
       </section>
       <section>
         <SectionTitle>Arrival</SectionTitle>
@@ -209,20 +242,24 @@ export function SquadSelection({
 }
 
 /** Same footprint as the result-entry Chip: in (default) or out. */
-function SelectionChip({ name, out, onClick }: { name: string; out: boolean; onClick: () => void }) {
+function SelectionChip({ name, out, guest, onClick }: { name: string; out: boolean; guest?: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={out}
-      aria-label={`${name}: ${out ? "not available" : "available"}`}
+      aria-label={`${name}${guest ? " (guest)" : ""}: ${out ? "not available" : "available"}`}
       className={cn(
         "flex h-12 flex-col items-center justify-center rounded-xl px-2 text-sm font-medium leading-tight ring-1 transition-all active:scale-[0.97]",
         out ? "bg-card text-muted-foreground/70 ring-border/40" : "bg-foreground text-background ring-foreground",
       )}
     >
       <span className={cn("max-w-full truncate", out && "line-through decoration-muted-foreground/60")}>{name}</span>
-      {out && <span className="text-[10px] uppercase tracking-wider">Out</span>}
+      {out ? (
+        <span className="text-[10px] uppercase tracking-wider">Out</span>
+      ) : guest ? (
+        <span className="text-[10px] uppercase tracking-wider opacity-70">guest</span>
+      ) : null}
     </button>
   );
 }

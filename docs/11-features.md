@@ -235,9 +235,16 @@ reference the player, not the squad.
 - **Where it deliberately doesn't.** The Squad page (that's membership), the matchday
   sheet's squad table (it plans our own players, and a guest would skew the
   appearances-out-of-played fairness column), and availability - see below.
-- **Not built: availability.** A selection stores only who is *out*, with "available" derived
-  as squad minus out, so a guest cannot be marked available in advance without a new table.
-  The parents' message therefore won't list a guest. Decide before building it.
+- **Named in advance on availability.** `fixture_selection_guests` (selection_id, player_id)
+  holds the guests for one match, so **available = (squad + guests) - unavailable**.
+  `PUT /fixtures/{id}/selection` takes `guest_player_ids` alongside `unavailable_player_ids`
+  (both replaced whole); a player already in the squad is refused, and the age-group check
+  is the same as everywhere else. `SelectionPlayerRead.is_guest` marks them, and they sort
+  after the squad. Everything downstream then follows on its own: the **parents' message**
+  lists them, the **matchday sheet** gives them a row at the bottom marked "(guest)" -
+  outside the appearances-out-of-played shading, with the heading reading "Squad · N players
+  + 1 guest" - and *Enter result* and the live line-up hand them over pre-ticked
+  (`guestPlayers(selection)`), so nobody is added twice.
 
 ## Opposition head-to-head
 

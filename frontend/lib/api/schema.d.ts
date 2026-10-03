@@ -2231,14 +2231,19 @@ export interface components {
         };
         /** SelectionPlayerRead */
         SelectionPlayerRead: {
+            /**
+             * Is Guest
+             * @default false
+             */
+            is_guest?: boolean;
             player: components["schemas"]["PlayerSummary"];
             /** Squad Number */
             squad_number: number | null;
         };
         /**
          * SelectionRead
-         * @description Who can play (the squad minus those marked unavailable) and who can't, both in
-         *     squad-number then name order.
+         * @description Who can play (the squad plus named guests, minus those marked unavailable) and who
+         *     can't, both in squad-number then name order.
          */
         SelectionRead: {
             /**
@@ -2267,7 +2272,9 @@ export interface components {
         /**
          * SelectionSubmit
          * @description Availability for a match in one write - replaces what was there, like PUT /result.
-         *     Everyone in the squad is available unless listed here.
+         *     Everyone in the squad is available unless listed in `unavailable_player_ids`;
+         *     `guest_player_ids` adds children from other teams in the age group who are playing for
+         *     us this week (they aren't in the squad, so they have to be named).
          */
         SelectionSubmit: {
             /**
@@ -2275,6 +2282,11 @@ export interface components {
              * @example Adam & Dan
              */
             coaching?: string | null;
+            /**
+             * Guest Player Ids
+             * @default []
+             */
+            guest_player_ids?: number[];
             /** Notes */
             notes?: string | null;
             /**

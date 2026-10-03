@@ -40,10 +40,10 @@ function availablePlayers(squad: Member[], fixture: Fixture): Player[] {
 
 // --- Before kick-off: who's playing ---------------------------------------------------
 
-export function LineUp({ fixture, squad, preselect }: { fixture: Fixture; squad: Member[]; preselect?: number[] }) {
+export function LineUp({ fixture, squad, preselect, guests: namedGuests }: { fixture: Fixture; squad: Member[]; preselect?: number[]; guests?: Player[] }) {
   const qc = useQueryClient();
-  // Someone guesting from another team in the age group, added at the side of the pitch.
-  const [guests, setGuests] = useState<Player[]>([]);
+  // Guests: named on the availability beforehand, plus anyone added at the side of the pitch.
+  const [guests, setGuests] = useState<Player[]>(() => namedGuests ?? []);
   const squadIds = useMemo(() => new Set(squad.map((m) => m.player.id)), [squad]);
   const players = useMemo(
     () => [...availablePlayers(squad, fixture), ...guests.filter((g) => !squadIds.has(g.id))],
