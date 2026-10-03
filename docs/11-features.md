@@ -286,8 +286,12 @@ Park). Both are plain text in the same shape as `fixtures.venue_notes`.
     directions link carries on.
   - `map_query()` (backend, mirrored in the frontend link) drops the pitch off the end
     ("Hook Junior School 7v7" is searched as "Hook Junior School"), since the pitch matters
-    on the day but not to a geocoder. Of the grounds in use, all but *Zebon Copse Centre*
-    resolve.
+    on the day but not to a geocoder. `candidates()` then tries up to three things, best
+    first: the name as written, the **postcode on its own** when the text contains one, and
+    the name shorn of its postcode and trailing word. That is what rescues the two shapes
+    Nominatim gives up on - an abbreviation glued to a postcode ("Grayshott Rec, GU26 6LS")
+    and a trailing generic word ("Zebon Copse Centre") - and it stops at the first hit, with
+    a second between requests as Nominatim asks.
 
 ## Opposition head-to-head
 
