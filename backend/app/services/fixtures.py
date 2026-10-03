@@ -7,13 +7,16 @@ from app.models import (
     Appearance,
     Award,
     AwardScope,
+    ClubTeam,
     EventType,
     Fixture,
     FixtureStatus,
     MatchEvent,
     Media,
     MediaLink,
+    Team,
     UserRole,
+    Venue,
 )
 from app.repositories.club import TeamSeasonRepository
 from app.repositories.fixtures import FixtureRepository
@@ -34,6 +37,28 @@ from app.schemas.fixture import (
 from app.schemas.player import PlayerSummary
 from app.services.access import Access
 from app.services.stats import score_warnings
+
+
+def map_query(ground: str) -> str:
+    """What to look up on a map. Grounds carry the pitch on the end ("Hook Junior School
+    7v7", "Headley Playing Fields 4") - needed on the day, meaningless to a geocoder."""
+    import re
+
+    trimmed = re.sub(r"\s*[-\u2013]\s*\d+v\d+\s*$", "", ground)
+    trimmed = re.sub(r"\s+(?:pitch\s*)?#?\d+\s*$", "", trimmed, flags=re.I)
+    trimmed = re.sub(r"\s+\d+v\d+\s*$", "", trimmed, flags=re.I).strip()
+    return trimmed or ground
+
+
+def default_ground(venue: Venue | str, club_team: ClubTeam, opposition: Team) -> str | None:
+    """Where a fixture is played when nobody says otherwise: our ground at home, theirs
+    away. Copied onto the fixture when it is created, never looked up afterwards, so
+    changing a team's ground never rewrites a match that has already been arranged."""
+    if Venue(venue) == Venue.HOME:
+        return club_team.home_ground
+    if Venue(venue) == Venue.AWAY:
+        return opposition.home_ground
+    return None  # neutral: nobody's home ground applies
 
 
 class FixtureService:
@@ -83,10 +108,12 @@ class FixtureService:
         return self._to_detail(self.get(id))
 
     def create(self, data: FixtureCreate) -> Fixture:
-        self._team_season(data.team_season_id, UserRole.COACH)
+        ts = self._team_season(data.team_season_id, UserRole.COACH)
         CompetitionRepository(self.db).get_or_404(data.competition_id)
-        TeamRepository(self.db).get_or_404(data.opposition_team_id)
+        opposition = TeamRepository(self.db).get_or_404(data.opposition_team_id)
         payload = data.model_dump()
+        if not payload.get("venue_notes"):
+            payload["venue_notes"] = default_ground(payload["venue"], ts.club_team, opposition)
         if payload["match_number"] is None:
             payload["match_number"] = self.repo.next_match_number(data.team_season_id)
         self._check_match_number(data.team_season_id, payload["match_number"], None)
@@ -107,6 +134,13 @@ class FixtureService:
             raise ValidationError("Use 'Start match' to take a fixture live")
         for k, v in changes.items():
             setattr(fixture, k, v)
+        # Switched to the other venue (or given an opponent) with no ground: fill it in,
+        # the same as creating it that way. An explicit ground - or an explicit blank - is
+        # left alone.
+        if ("venue" in changes or "opposition_team_id" in changes) and not fixture.venue_notes:
+            fixture.venue_notes = default_ground(
+                fixture.venue, fixture.team_season.club_team, fixture.opposition
+            )
         if fixture.status == FixtureStatus.PLAYED and (
             fixture.our_score is None or fixture.their_score is None
         ):

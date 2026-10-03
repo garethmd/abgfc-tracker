@@ -45,6 +45,9 @@ class ClubTeam(TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(50))
     slug: Mapped[str] = mapped_column(String(50), unique=True)  # used in URLs: /blues/...
     colour: Mapped[str | None] = mapped_column(String(30))  # CSS colour for the accent
+    # Our home ground (Aldershot Park). Copied onto a home fixture when it is created; a
+    # waterlogged-pitch switch is an override on that fixture, not a change here.
+    home_ground: Mapped[str | None] = mapped_column(String(200))
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
 

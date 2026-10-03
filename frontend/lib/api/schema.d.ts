@@ -595,6 +595,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/grounds/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lookup Ground
+         * @description Where a ground is, for the little map on a fixture. `found` is false when nobody
+         *     could place it - the page then just shows the name and a directions link.
+         */
+        get: operations["lookup_ground_api_v1_grounds_lookup_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/players": {
         parameters: {
             query?: never;
@@ -1281,6 +1302,8 @@ export interface components {
             cohort_id: number;
             /** Colour */
             colour: string | null;
+            /** Home Ground */
+            home_ground?: string | null;
             /** Id */
             id: number;
             /** Is Active */
@@ -1296,6 +1319,8 @@ export interface components {
         ClubTeamUpdate: {
             /** Colour */
             colour?: string | null;
+            /** Home Ground */
+            home_ground?: string | null;
             /** Is Active */
             is_active?: boolean | null;
             /** Name */
@@ -1643,6 +1668,22 @@ export interface components {
             /** Sequence */
             sequence: number;
         };
+        /**
+         * GroundRead
+         * @description A ground placed on the map, or not placeable.
+         */
+        GroundRead: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Found */
+            found: boolean;
+            /** Lat */
+            lat?: number | null;
+            /** Lon */
+            lon?: number | null;
+            /** Query */
+            query: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1734,6 +1775,11 @@ export interface components {
         ImportResult: {
             /** Created */
             created: number;
+            /**
+             * Grounds Learned
+             * @default []
+             */
+            grounds_learned?: string[];
             /** New Competitions */
             new_competitions: string[];
             /** New Teams */
@@ -1766,6 +1812,8 @@ export interface components {
             existing_fixture_id?: number | null;
             /** External Id */
             external_id?: string | null;
+            /** Ground Note */
+            ground_note?: string | null;
             /** Home */
             home: string;
             /** Line */
@@ -2349,6 +2397,8 @@ export interface components {
         TeamCreate: {
             /** Colours */
             colours?: string | null;
+            /** Home Ground */
+            home_ground?: string | null;
             /** Name */
             name: string;
             /** Notes */
@@ -2370,6 +2420,8 @@ export interface components {
             club_team_id?: number | null;
             /** Colours */
             colours: string | null;
+            /** Home Ground */
+            home_ground?: string | null;
             /** Id */
             id: number;
             /** Name */
@@ -2466,6 +2518,8 @@ export interface components {
             club_team_id?: number | null;
             /** Colours */
             colours?: string | null;
+            /** Home Ground */
+            home_ground?: string | null;
             /** Name */
             name?: string | null;
             /** Notes */
@@ -4182,6 +4236,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ParentsMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lookup_ground_api_v1_grounds_lookup_get: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroundRead"];
                 };
             };
             /** @description Validation Error */

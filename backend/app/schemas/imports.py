@@ -33,6 +33,8 @@ class ImportRow(ORMModel):
     venue_notes: str | None = None
     external_id: str | None = None
     status: FixtureStatus | None = None
+    # Set when the FA's venue disagrees with the ground we have for this opposition.
+    ground_note: str | None = None
     action: Literal["create", "existing", "conflict", "skip"]
     existing_fixture_id: int | None = None
     reason: str | None = None
@@ -74,3 +76,5 @@ class ImportResult(ORMModel):
     skipped: int
     new_teams: list[str]
     new_competitions: list[str]
+    # Oppositions we didn't have a ground for, filled in from the FA's venue
+    grounds_learned: list[str] = []

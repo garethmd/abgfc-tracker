@@ -445,6 +445,17 @@
             ],
             "title": "Colour"
           },
+          "home_ground": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Home Ground"
+          },
           "id": {
             "title": "Id",
             "type": "integer"
@@ -492,6 +503,18 @@
               }
             ],
             "title": "Colour"
+          },
+          "home_ground": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Home Ground"
           },
           "is_active": {
             "anyOf": [
@@ -1744,6 +1767,58 @@
         "title": "GoalRead",
         "type": "object"
       },
+      "GroundRead": {
+        "description": "A ground placed on the map, or not placeable.",
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "found": {
+            "title": "Found",
+            "type": "boolean"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query",
+          "found"
+        ],
+        "title": "GroundRead",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -2029,6 +2104,14 @@
             "title": "Created",
             "type": "integer"
           },
+          "grounds_learned": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Grounds Learned",
+            "type": "array"
+          },
           "new_competitions": {
             "items": {
               "type": "string"
@@ -2136,6 +2219,17 @@
               }
             ],
             "title": "External Id"
+          },
+          "ground_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ground Note"
           },
           "home": {
             "title": "Home",
@@ -4147,6 +4241,18 @@
             ],
             "title": "Colours"
           },
+          "home_ground": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Home Ground"
+          },
           "name": {
             "maxLength": 100,
             "minLength": 1,
@@ -4221,6 +4327,17 @@
               }
             ],
             "title": "Colours"
+          },
+          "home_ground": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Home Ground"
           },
           "id": {
             "title": "Id",
@@ -4539,6 +4656,18 @@
               }
             ],
             "title": "Colours"
+          },
+          "home_ground": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Home Ground"
           },
           "name": {
             "anyOf": [
@@ -7732,6 +7861,65 @@
         "summary": "Parents Message",
         "tags": [
           "fixtures"
+        ]
+      }
+    },
+    "/api/v1/grounds/lookup": {
+      "get": {
+        "description": "Where a ground is, for the little map on a fixture. `found` is false when nobody\ncould place it - the page then just shows the name and a directions link.",
+        "operationId": "lookup_ground_api_v1_grounds_lookup_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroundRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Lookup Ground",
+        "tags": [
+          "grounds"
         ]
       }
     },

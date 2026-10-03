@@ -102,6 +102,10 @@ An appearance does **not** require a squad row: a child guesting for another tea
 age group is recorded on that team's fixture and counts for them (see
 [Features](11-features.md#guest-appearances)).
 
+`club_teams.home_ground` and `teams.home_ground` hold the default grounds; they are copied
+onto a fixture's `venue_notes` at creation, never resolved at read time, so a fixture keeps
+the ground it was arranged at (see [Features](11-features.md#home-grounds)).
+
 **`squad_members`** — player ↔ team season. `team_season_id`, `player_id` (unique
 together), `squad_number` (partial unique per team season where not null),
 `primary_position_id`, `joined_at`, `left_at`. A mid-season move between teams sets

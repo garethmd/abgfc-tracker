@@ -10,6 +10,7 @@ class TeamCreate(InputModel):
     name: str = Field(min_length=1, max_length=100)
     short_name: str | None = Field(default=None, max_length=30)
     colours: str | None = Field(default=None, max_length=50)
+    home_ground: str | None = Field(default=None, max_length=200)
     notes: str | None = None
 
 
@@ -17,6 +18,7 @@ class TeamUpdate(InputModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     short_name: str | None = Field(default=None, max_length=30)
     colours: str | None = Field(default=None, max_length=50)
+    home_ground: str | None = Field(default=None, max_length=200)
     notes: str | None = None
     club_team_id: int | None = None  # link a derby opponent to our own team
 
@@ -33,6 +35,7 @@ class TeamRead(ORMModel):
     name: str
     short_name: str | None
     colours: str | None
+    home_ground: str | None = None  # prefilled onto away fixtures when they're created
     notes: str | None
 
 

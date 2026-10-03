@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Clock, Trash2 } from "lucide-react";
+import { Clock, MapPin, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { $api, errorMessage, type Schema } from "@/lib/api/client";
 import { formatTime } from "@/lib/format";
@@ -95,6 +95,10 @@ export function SquadSelection({
   // The FA's imported times are placeholders; the real one is known a week or so before,
   // which is exactly when the coach is on this screen. Blank for an unset (00:00) kick-off.
   const [kickoff, setKickoff] = useState(() => (isUnset(fixture.kickoff_at) ? "" : timePart(fixture.kickoff_at)));
+  // Where it's being played. Usually the default copied in when the fixture was created -
+  // the exception is a late switch (a waterlogged pitch), which is also when the coach is
+  // here telling the parents about it.
+  const [ground, setGround] = useState(fixture.venue_notes ?? "");
   const [coaching, setCoaching] = useState(selection?.coaching ?? "");
   const [notes, setNotes] = useState(selection?.notes ?? "");
   const [confirmRemove, setConfirmRemove] = useState(false);
@@ -120,13 +124,21 @@ export function SquadSelection({
 
   const kickoffAt = kickoff ? `${fixture.kickoff_at.slice(0, 10)}T${kickoff}:00` : fixture.kickoff_at;
   const kickoffChanged = kickoffAt !== fixture.kickoff_at;
+  const groundChanged = (ground.trim() || null) !== (fixture.venue_notes ?? null);
+  const fixtureChanged = kickoffChanged || groundChanged;
 
   async function onSave() {
     try {
       // The kick-off belongs to the fixture, availability to the selection - two writes,
       // the time first so a failure there doesn't leave the two disagreeing.
-      if (kickoffChanged) {
-        await setTime.mutateAsync({ params: { path: { fixture_id: fixture.id } }, body: { kickoff_at: kickoffAt } });
+      if (fixtureChanged) {
+        await setTime.mutateAsync({
+          params: { path: { fixture_id: fixture.id } },
+          body: {
+            ...(kickoffChanged ? { kickoff_at: kickoffAt } : {}),
+            ...(groundChanged ? { venue_notes: ground.trim() || null } : {}),
+          },
+        });
       }
       const d = await save.mutateAsync({
         params: { path: { fixture_id: fixture.id } },
@@ -139,7 +151,7 @@ export function SquadSelection({
       });
       qc.setQueryData(selectionKey(fixture.id), d);
       invalidate();
-      toast.success(kickoffChanged ? "Kick-off time and availability saved" : "Availability saved");
+      toast.success(fixtureChanged ? "Match details and availability saved" : "Availability saved");
       router.replace(`${base}/fixtures/${fixture.id}`);
     } catch (err) {
       toast.error(errorMessage(err));
@@ -189,7 +201,7 @@ export function SquadSelection({
         />
       </section>
       <section>
-        <SectionTitle>Kick-off and arrival</SectionTitle>
+        <SectionTitle>Where and when</SectionTitle>
         <Card className="divide-y divide-border/40 text-sm">
           <label className="flex items-center gap-3 p-4">
             <Clock className="size-4 shrink-0 text-muted-foreground" />
@@ -202,6 +214,17 @@ export function SquadSelection({
               aria-label="Kick-off time"
             />
           </label>
+          <label className="flex items-center gap-3 p-4">
+            <MapPin className="size-4 shrink-0 text-muted-foreground" />
+            <span className="min-w-0 flex-1 font-medium">Ground</span>
+            <Input
+              value={ground}
+              onChange={(e) => setGround(e.target.value)}
+              placeholder="Not set"
+              className="h-11 w-48 text-base"
+              aria-label="Ground"
+            />
+          </label>
           <div className="flex items-center gap-3 p-4">
             <span className="size-4 shrink-0" aria-hidden />
             <div className="min-w-0 flex-1">
@@ -210,7 +233,7 @@ export function SquadSelection({
                   <div className="font-medium">Arrive {arrivalTime(kickoffAt, leadMinutes)}</div>
                   <div className="text-xs text-muted-foreground">
                     {leadMinutes} min before the {formatTime(kickoffAt)} kick-off
-                    {kickoffChanged && <span className="text-primary"> · saves with availability</span>}
+                    {fixtureChanged && <span className="text-primary"> · saves with availability</span>}
                   </div>
                 </>
               ) : (

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { use, useState } from "react";
-import { ChevronRight, MapPin } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { $api, type Schema } from "@/lib/api/client";
 import { useMe } from "@/lib/me-context";
 import { useTeam } from "@/lib/team-context";
@@ -12,6 +12,8 @@ import { Card, Stat } from "@/components/stat-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
+import { GroundLink } from "@/components/ground-link";
+import { GroundMap } from "@/components/ground-map";
 import { cn } from "@/lib/utils";
 
 const RESULT_STYLE: Record<string, string> = {
@@ -59,6 +61,16 @@ export default function OppositionPage({ params }: PageProps<"/[team]/opposition
           ) : undefined
         }
       />
+
+      {d.team.home_ground && (
+        <>
+          <Card className="mb-3 flex items-center gap-2 p-4 text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">Home ground</span>
+            <GroundLink ground={d.team.home_ground} className="min-w-0 flex-1" />
+          </Card>
+          <GroundMap ground={d.team.home_ground} className="mb-4 overflow-hidden" />
+        </>
+      )}
 
       <Card className="p-5">
         <div className="flex items-center justify-between">
@@ -121,7 +133,7 @@ function Section({ title, items, empty, base, showTeam }: { title: string; items
                 <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
                   {showTeam && <span className="font-medium text-foreground">{f.club_team_name}</span>}
                   <span>{f.season_name}</span><span aria-hidden>·</span><span>{f.competition_name}</span>
-                  {f.venue_notes && (<><span aria-hidden>·</span><MapPin className="size-3" /><span className="truncate">{f.venue_notes}</span></>)}
+                  {f.venue_notes && (<><span aria-hidden>·</span><GroundLink ground={f.venue_notes} /></>)}
                   {f.status !== "played" && f.status !== "scheduled" && <span className="rounded bg-muted px-1 text-[10px]">{STATUS_LABEL[f.status]}</span>}
                 </span>
               </span>

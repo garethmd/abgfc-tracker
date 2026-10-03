@@ -27,6 +27,8 @@ import { cn } from "@/lib/utils";
 import { MatchNotes } from "@/components/features/fixtures/match-notes";
 import { FixtureVideos } from "@/components/features/fixtures/fixture-videos";
 import { SelectionCard } from "@/components/features/fixtures/selection-card";
+import { GroundLink } from "@/components/ground-link";
+import { GroundMap } from "@/components/ground-map";
 
 export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixtures/[id]">) {
   const { id } = use(params);
@@ -129,7 +131,13 @@ export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixture
               {result === "W" ? "Win" : result === "L" ? "Loss" : "Draw"}
             </span>
           )}
-          <span className="flex items-center gap-1"><MapPin className="size-3" />{VENUE_LABEL[f.venue]}{f.venue_notes ? ` · ${f.venue_notes}` : ""}</span>
+          {f.venue_notes ? (
+            <span className="flex min-w-0 items-center gap-1">
+              {VENUE_LABEL[f.venue]} · <GroundLink ground={f.venue_notes} />
+            </span>
+          ) : (
+            <span className="flex items-center gap-1"><MapPin className="size-3" />{VENUE_LABEL[f.venue]}</span>
+          )}
         </div>
         {!played && f.status === "scheduled" && canEdit && (
           <div className="mt-6 grid grid-cols-[1fr_1fr_auto] gap-2">
@@ -154,6 +162,8 @@ export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixture
           </div>
         )}
       </Card>
+
+      {f.venue_notes && <GroundMap ground={f.venue_notes} className="mt-6 overflow-hidden" />}
 
       {(f.status === "scheduled" || f.status === "postponed") && (
         <SelectionCard fixture={f} base={base} canEdit={canEdit} />

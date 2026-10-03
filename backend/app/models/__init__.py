@@ -14,6 +14,7 @@ from app.models.enums import (
     Venue,
 )
 from app.models.fixture import Fixture
+from app.models.ground import Ground
 from app.models.lookup import AwardType, Competition, Position
 from app.models.match import Appearance, MatchEvent, PlayerStint
 from app.models.media import Media, MediaLink
@@ -50,6 +51,7 @@ __all__ = [
     "Position",
     "PositionCategory",
     "Season",
+    "Ground",
     "GuestPlayer",
     "UnavailablePlayer",
     "FixtureSelection",

@@ -6,6 +6,7 @@ from app.api.routers import (
     auth,
     club,
     fixtures,
+    grounds,
     imports,
     live,
     lookups,
@@ -42,7 +43,20 @@ def create_app() -> FastAPI:
     async def app_error_handler(_: Request, exc: AppError) -> JSONResponse:
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
-    for r in (auth, club, seasons, players, lookups, fixtures, live, users, reports, imports):
+    routers = (
+        auth,
+        club,
+        seasons,
+        players,
+        lookups,
+        fixtures,
+        live,
+        users,
+        reports,
+        imports,
+        grounds,
+    )
+    for r in routers:
         app.include_router(r.router, prefix=API_PREFIX)
 
     @app.get("/api/health", tags=["meta"])

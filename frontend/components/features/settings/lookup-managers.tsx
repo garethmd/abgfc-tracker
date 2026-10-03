@@ -109,6 +109,7 @@ export function TeamsManager() {
   const [editing, setEditing] = useState<Schema["TeamRead"] | "new" | null>(null);
   const [name, setName] = useState("");
   const [shortName, setShortName] = useState("");
+  const [homeGround, setHomeGround] = useState("");
   const [mergeInto, setMergeInto] = useState("");
   const invalidate = () => qc.invalidateQueries({ queryKey: ["get", "/api/v1/teams"] });
 
@@ -116,11 +117,16 @@ export function TeamsManager() {
     setEditing(t);
     setName(t === "new" ? "" : t.name);
     setShortName(t === "new" ? "" : (t.short_name ?? ""));
+    setHomeGround(t === "new" ? "" : (t.home_ground ?? ""));
   }
 
   async function onSave(e: React.FormEvent) {
     e.preventDefault();
-    const body = { name: name.trim(), short_name: shortName.trim() || null };
+    const body = {
+      name: name.trim(),
+      short_name: shortName.trim() || null,
+      home_ground: homeGround.trim() || null,
+    };
     try {
       if (editing === "new") await create.mutateAsync({ body });
       else if (editing) await update.mutateAsync({ params: { path: { team_id: editing.id } }, body });
@@ -167,6 +173,7 @@ export function TeamsManager() {
             <Link href={`${base}/opposition/${t.id}`} className="min-w-0 flex-1 hover:underline">
               <span className="font-medium">{t.name}</span>
               {t.short_name && <span className="ml-2 text-xs text-muted-foreground">{t.short_name}</span>}
+              {t.home_ground && <span className="ml-2 truncate text-xs text-muted-foreground">· {t.home_ground}</span>}
             </Link>
             <button type="button" onClick={() => openFor(t)} className="text-xs text-muted-foreground hover:text-foreground">Edit</button>
             <button type="button" onClick={() => onDelete(t.id)} className="flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-destructive" aria-label="Delete">
@@ -186,6 +193,13 @@ export function TeamsManager() {
           <form onSubmit={onSave} className="space-y-4">
             <Field label="Name"><Input className="h-11" value={name} onChange={(e) => setName(e.target.value)} required autoFocus /></Field>
             <Field label="Short name"><Input className="h-11" value={shortName} onChange={(e) => setShortName(e.target.value)} placeholder="Shown in tight spaces" /></Field>
+            <Field label="Home ground">
+              <Input className="h-11" value={homeGround} onChange={(e) => setHomeGround(e.target.value)} placeholder="Where they play at home" />
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                Filled in on away fixtures against them as they&apos;re created. Changing it never
+                moves a fixture already arranged.
+              </p>
+            </Field>
             <Button type="submit" className="h-11 w-full" disabled={create.isPending || update.isPending}>Save</Button>
           </form>
           {editing !== "new" && editing && (

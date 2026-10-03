@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, FileSpreadsheet, Plus } from "lucide-react";
+import { Check, FileSpreadsheet, MapPin, Plus } from "lucide-react";
 import { seasonSpreadsheetUrl } from "@/lib/reports";
 import { toast } from "sonner";
 import { $api, errorMessage } from "@/lib/api/client";
@@ -35,6 +35,7 @@ export function SeasonsManager() {
   const [format, setFormat] = useState(latest?.format ?? "7v7");
   const [copySquad, setCopySquad] = useState(true);
   const start = $api.useMutation("post", "/api/v1/club-teams/{team_id}/seasons");
+  const updateTeam = $api.useMutation("patch", "/api/v1/club-teams/{team_id}");
   const makeCurrent = $api.useMutation("post", "/api/v1/team-seasons/{team_season_id}/make-current");
   const update = $api.useMutation("patch", "/api/v1/team-seasons/{team_season_id}");
 
@@ -86,6 +87,19 @@ export function SeasonsManager() {
     }
   }
 
+  async function onHomeGround(value: string) {
+    try {
+      await updateTeam.mutateAsync({
+        params: { path: { team_id: team.id } },
+        body: { home_ground: value.trim() || null },
+      });
+      invalidate();
+      toast.success(value.trim() ? `Home fixtures default to ${value.trim()}` : "Home ground cleared");
+    } catch (err) {
+      toast.error(errorMessage(err));
+    }
+  }
+
   async function onArrival(id: number, value: string) {
     const n = Number(value);
     if (!Number.isInteger(n) || n < 0 || n > 180) return;
@@ -100,6 +114,25 @@ export function SeasonsManager() {
 
   return (
     <>
+      <Card className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 p-4 text-sm">
+        <MapPin className="size-4 shrink-0 text-muted-foreground" />
+        <span className="font-medium">Home ground</span>
+        {canEdit ? (
+          <Input
+            defaultValue={team.home_ground ?? ""}
+            onBlur={(e) => e.target.value.trim() !== (team.home_ground ?? "") && onHomeGround(e.target.value)}
+            placeholder="Aldershot Park"
+            className="h-10 min-w-48 flex-1"
+            aria-label="Home ground"
+          />
+        ) : (
+          <span className="text-muted-foreground">{team.home_ground ?? "Not set"}</span>
+        )}
+        <p className="w-full text-xs text-muted-foreground">
+          Filled in on home fixtures as they&apos;re created. A one-off move - a waterlogged pitch -
+          is a change on that fixture, not here.
+        </p>
+      </Card>
       {canEdit && (
         <div className="mb-3 flex justify-end">
           <Button size="sm" variant="outline" onClick={() => setOpen(true)}><Plus className="size-4" /> Start next season</Button>

@@ -27,7 +27,7 @@ function defaultKickoff() {
 export function FixtureForm({ fixture }: { fixture?: Fixture }) {
   const router = useRouter();
   const qc = useQueryClient();
-  const { teamSeason, base } = useTeam();
+  const { team, teamSeason, base } = useTeam();
   const competitions = $api.useQuery("get", "/api/v1/competitions");
   const teams = $api.useQuery("get", "/api/v1/teams");
 
@@ -47,6 +47,13 @@ export function FixtureForm({ fixture }: { fixture?: Fixture }) {
   const pending = create.isPending || update.isPending || createTeam.isPending;
 
   const activeCompetitions = (competitions.data ?? []).filter((c) => c.is_active || c.id === fixture?.competition.id);
+  // What the server will fill in if the ground is left blank: ours at home, theirs away.
+  const defaultGround =
+    venue === "home"
+      ? team.home_ground
+      : venue === "away"
+        ? (teams.data ?? []).find((t) => String(t.id) === teamId)?.home_ground ?? null
+        : null;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -141,7 +148,17 @@ export function FixtureForm({ fixture }: { fixture?: Fixture }) {
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
-          <Input className="mt-2 h-11" placeholder="Pitch / meeting point (optional)" value={venueNotes} onChange={(e) => setVenueNotes(e.target.value)} />
+          <Input
+            className="mt-2 h-11"
+            placeholder={defaultGround ? `${defaultGround} (default)` : "Pitch / meeting point (optional)"}
+            value={venueNotes}
+            onChange={(e) => setVenueNotes(e.target.value)}
+          />
+          {defaultGround && !venueNotes && (
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Left blank, this match will be at {defaultGround}. Type a ground to use somewhere else.
+            </p>
+          )}
         </Field>
       </Card>
 

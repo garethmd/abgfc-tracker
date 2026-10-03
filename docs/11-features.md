@@ -254,6 +254,41 @@ reference the player, not the squad.
   + 1 guest" - and *Enter result* and the live line-up hand them over pre-ticked
   (`guestPlayers(selection)`), so nobody is added twice.
 
+## Home grounds
+
+`teams.home_ground` (where an opposition plays) and `club_teams.home_ground` (ours, Aldershot
+Park). Both are plain text in the same shape as `fixtures.venue_notes`.
+
+- **Copied, not looked up.** `default_ground()` in `services/fixtures.py` fills a fixture's
+  `venue_notes` when it is **created** with none - ours at home, theirs away, nothing at a
+  neutral - and when one is switched to the other venue while empty. After that the fixture
+  owns its ground: changing a team's default never rewrites a match already arranged, which
+  is what makes a one-off venue (a waterlogged pitch, a cup tie elsewhere) safe. An explicit
+  blank stays blank.
+- **The form shows what it will use**: the default appears as the ground field's placeholder
+  with a line saying so, and typing over it is the override.
+- **The FA import**: the FA's venue is for that match, so it wins; our stored ground only
+  fills a gap. When the FA gives a venue for an away match against an opposition we have no
+  ground for, the import **learns** it (fills a blank, never overwrites) and the result says
+  how many it set. If the FA venue disagrees with what we have, the preview row says so
+  (`ground_note`) - that is how an away fixture listed at our own ground gets spotted.
+- **Edited** in Settings → Seasons (ours, at the top) and Settings → Opposition (theirs).
+- **Maps.** Two halves, both keyless:
+  - *Directions*: `components/ground-link.tsx` makes a ground a Google Maps **search link**,
+    which opens the Maps app on a phone. No API key needed for a link.
+  - *The map itself*: `components/ground-map.tsx` embeds **OpenStreetMap**. OSM rather than
+    Google's Embed API because it needs no API key, no billing account and loads no
+    third-party tracker into an app full of children's names. `GET /grounds/lookup?q=`
+    (`services/grounds.py`) geocodes through Nominatim and caches the answer - misses
+    included - in `grounds`, keyed by the normalised search text, so a name is looked up
+    once ever and a one-off venue maps as readily as a league ground. A geocoder that is
+    down or a ground nobody can place is not an error: the map just doesn't appear and the
+    directions link carries on.
+  - `map_query()` (backend, mirrored in the frontend link) drops the pitch off the end
+    ("Hook Junior School 7v7" is searched as "Hook Junior School"), since the pitch matters
+    on the day but not to a geocoder. Of the grounds in use, all but *Zebon Copse Centre*
+    resolve.
+
 ## Opposition head-to-head
 
 `GET /teams/{id}/head-to-head?club_team_id=` — `TeamService.head_to_head`. Every fixture

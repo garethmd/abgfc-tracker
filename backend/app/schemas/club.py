@@ -34,6 +34,7 @@ class ClubTeamUpdate(InputModel):
     name: str | None = Field(default=None, min_length=1, max_length=50)
     slug: str | None = Field(default=None, pattern=r"^[a-z0-9-]{1,50}$")
     colour: str | None = Field(default=None, max_length=30)
+    home_ground: str | None = Field(default=None, max_length=200)
     sort_order: int | None = None
     is_active: bool | None = None
 
@@ -44,6 +45,7 @@ class ClubTeamRead(ORMModel):
     name: str
     slug: str
     colour: str | None
+    home_ground: str | None = None  # prefilled onto home fixtures when they're created
     sort_order: int
     is_active: bool
 

@@ -42,6 +42,7 @@ from app.schemas.imports import (
     Suggestion,
 )
 from app.services.access import Access
+from app.services.fixtures import default_ground
 
 DATE_RE = re.compile(r"^(\d{2})/(\d{2})/(\d{2,4})(?:\s+(\d{2}):(\d{2}))?$")
 AGE_TOKEN = re.compile(r"^u\d{1,2}[a-z]?$")
@@ -224,6 +225,10 @@ class _Ctx:
     existing: dict[date, list[Fixture]] = field(default_factory=dict)
     by_external: dict[str, Fixture] = field(default_factory=dict)
 
+    @property
+    def teams_by_id(self) -> dict[int, Team]:
+        return {t.id: t for t in self.teams}
+
 
 class FixtureImportService:
     def __init__(self, db: Session, access: Access):
@@ -296,6 +301,14 @@ class FixtureImportService:
             else None
         )
 
+        # The FA's venue is fixture-specific so it wins, but when we already know where
+        # they play and the two disagree, say so - that is how a wrong row gets spotted.
+        ground_note = None
+        if venue == Venue.AWAY and opp is not None and tidy_venue(p.venue):
+            known = ctx.teams_by_id[opp.id].home_ground if opp.id in ctx.teams_by_id else None
+            if known and norm(known) != norm(tidy_venue(p.venue) or ""):
+                ground_note = f"FA says {tidy_venue(p.venue)}; we have them at {known}"
+
         base = dict(
             line=p.line,
             date=p.date,
@@ -311,6 +324,7 @@ class FixtureImportService:
             venue_notes=tidy_venue(p.venue),
             external_id=p.external_id,
             status=_status_from_note(p.note),
+            ground_note=ground_note,
         )
 
         # Already imported (same FA id) or already entered by hand (same date)?
@@ -360,6 +374,7 @@ class FixtureImportService:
         created = updated = skipped = 0
         new_teams: dict[str, Team] = {}
         new_comps: dict[str, Competition] = {}
+        learned: list[str] = []  # oppositions whose home ground this import filled in
 
         for row in data.rows:
             if row.action == "skip":
@@ -408,14 +423,22 @@ class FixtureImportService:
             kickoff = datetime.combine(row.date, datetime.min.time()) + timedelta(
                 hours=int(hh), minutes=int(mm)
             )
+            venue = row.our_venue or Venue.HOME
+            # The FA's venue is for this match, so it wins; our stored ground fills a gap.
+            ground = row.venue_notes or default_ground(venue, ctx.ts.club_team, opp)
+            # First time we've played them away and nobody has recorded where: learn it.
+            # Only ever fills a blank, and the result says how many were set.
+            if venue == Venue.AWAY and row.venue_notes and not opp.home_ground:
+                opp.home_ground = row.venue_notes
+                learned.append(opp.name)
             f = Fixture(
                 team_season_id=ctx.ts.id,
                 competition_id=comp.id,
                 opposition_team_id=opp.id,
                 match_number=fixtures.next_match_number(ctx.ts.id),
                 kickoff_at=kickoff,
-                venue=row.our_venue or Venue.HOME,
-                venue_notes=row.venue_notes,
+                venue=venue,
+                venue_notes=ground,
                 status=row.status or FixtureStatus.SCHEDULED,
                 external_id=row.external_id,
             )
@@ -428,6 +451,7 @@ class FixtureImportService:
             updated=updated,
             skipped=skipped,
             new_teams=[t.name for t in new_teams.values()],
+            grounds_learned=sorted(set(learned)),
             new_competitions=[c.name for c in new_comps.values()],
         )
 
