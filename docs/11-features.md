@@ -146,6 +146,14 @@ under `/fixtures/{id}/selection`, UI at `/[team]/fixtures/[id]/selection`
   available players ticked instead of the whole squad — a default, not a change in
   behaviour; with nothing recorded they are as before. The matchday PDF pre-ticks the
   *Avail* boxes (above).
+- **Kick-off time.** The screen has a `time` input for it, because fixtures imported from
+  the FA list carry a placeholder (08:00, or 00:00 shown as "not set") and the real time is
+  confirmed a week or so before - exactly when the coach is here recording availability.
+  The arrival line recalculates as they type; *Save availability* then does two writes,
+  `PATCH /fixtures/{id}` with the new `kickoff_at` first (so a failure there doesn't leave
+  the two disagreeing) and the selection second. Clearing the field is a no-op - unsetting a
+  time is the fixture form's job. Everything that quotes the time (parents' message,
+  matchday sheet, fixtures list) follows from the fixture, so it is right everywhere.
 - Times: `kickoff_at` is UK wall-clock; `arrival_time()` goes through Europe/London so a
   kick-off just after midnight or on a clock-change morning still comes out right.
 

@@ -92,11 +92,15 @@ export function SquadSelection({
 
   // Everyone is available unless the coach taps them out.
   const [out, setOut] = useState<Set<number>>(() => new Set((selection?.unavailable ?? []).map((p) => p.player.id)));
+  // The FA's imported times are placeholders; the real one is known a week or so before,
+  // which is exactly when the coach is on this screen. Blank for an unset (00:00) kick-off.
+  const [kickoff, setKickoff] = useState(() => (isUnset(fixture.kickoff_at) ? "" : timePart(fixture.kickoff_at)));
   const [coaching, setCoaching] = useState(selection?.coaching ?? "");
   const [notes, setNotes] = useState(selection?.notes ?? "");
   const [confirmRemove, setConfirmRemove] = useState(false);
 
   const save = $api.useMutation("put", "/api/v1/fixtures/{fixture_id}/selection");
+  const setTime = $api.useMutation("patch", "/api/v1/fixtures/{fixture_id}");
   const remove = $api.useMutation("delete", "/api/v1/fixtures/{fixture_id}/selection");
 
   function toggle(id: number) {
@@ -111,10 +115,19 @@ export function SquadSelection({
   function invalidate() {
     qc.invalidateQueries({ queryKey: selectionKey(fixture.id) });
     qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });
+    qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures/{fixture_id}"] });
   }
+
+  const kickoffAt = kickoff ? `${fixture.kickoff_at.slice(0, 10)}T${kickoff}:00` : fixture.kickoff_at;
+  const kickoffChanged = kickoffAt !== fixture.kickoff_at;
 
   async function onSave() {
     try {
+      // The kick-off belongs to the fixture, availability to the selection - two writes,
+      // the time first so a failure there doesn't leave the two disagreeing.
+      if (kickoffChanged) {
+        await setTime.mutateAsync({ params: { path: { fixture_id: fixture.id } }, body: { kickoff_at: kickoffAt } });
+      }
       const d = await save.mutateAsync({
         params: { path: { fixture_id: fixture.id } },
         body: {
@@ -126,7 +139,7 @@ export function SquadSelection({
       });
       qc.setQueryData(selectionKey(fixture.id), d);
       invalidate();
-      toast.success("Availability saved");
+      toast.success(kickoffChanged ? "Kick-off time and availability saved" : "Availability saved");
       router.replace(`${base}/fixtures/${fixture.id}`);
     } catch (err) {
       toast.error(errorMessage(err));
@@ -176,26 +189,44 @@ export function SquadSelection({
         />
       </section>
       <section>
-        <SectionTitle>Arrival</SectionTitle>
-        <Card className="flex items-center gap-3 p-4 text-sm">
-          <Clock className="size-4 shrink-0 text-muted-foreground" />
-          {fixture.kickoff_at.endsWith("T00:00:00") ? (
-            <>
-              <div className="min-w-0 flex-1">
-                <div className="font-medium">Kick-off time not set</div>
-                <div className="text-xs text-muted-foreground">Parents will be asked to arrive {leadMinutes} min before kick-off.</div>
-              </div>
-              <Link href={`${base}/fixtures/${fixture.id}/edit`} className="text-xs font-medium text-primary hover:underline">Set it</Link>
-            </>
-          ) : (
-            <>
-              <div className="min-w-0 flex-1">
-                <div className="font-medium">Arrive {arrivalTime(fixture.kickoff_at, leadMinutes)}</div>
-                <div className="text-xs text-muted-foreground">{leadMinutes} min before the {formatTime(fixture.kickoff_at)} kick-off</div>
-              </div>
-              <Link href={`${base}/settings`} className="text-xs font-medium text-primary hover:underline">Change</Link>
-            </>
-          )}
+        <SectionTitle>Kick-off and arrival</SectionTitle>
+        <Card className="divide-y divide-border/40 text-sm">
+          <label className="flex items-center gap-3 p-4">
+            <Clock className="size-4 shrink-0 text-muted-foreground" />
+            <span className="min-w-0 flex-1 font-medium">Kick-off</span>
+            <Input
+              type="time"
+              value={kickoff}
+              onChange={(e) => setKickoff(e.target.value)}
+              className="h-11 w-32 text-base"
+              aria-label="Kick-off time"
+            />
+          </label>
+          <div className="flex items-center gap-3 p-4">
+            <span className="size-4 shrink-0" aria-hidden />
+            <div className="min-w-0 flex-1">
+              {kickoff ? (
+                <>
+                  <div className="font-medium">Arrive {arrivalTime(kickoffAt, leadMinutes)}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {leadMinutes} min before the {formatTime(kickoffAt)} kick-off
+                    {kickoffChanged && <span className="text-primary"> · saves with availability</span>}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="font-medium">Kick-off time not set</div>
+                  <div className="text-xs text-muted-foreground">
+                    Fixtures imported from the FA list come with a placeholder time. Set the real one
+                    here once the league confirms it.
+                  </div>
+                </>
+              )}
+            </div>
+            <Link href={`${base}/settings`} className="shrink-0 text-xs font-medium text-primary hover:underline">
+              Change {leadMinutes}m
+            </Link>
+          </div>
         </Card>
       </section>
 
@@ -262,4 +293,15 @@ function SelectionChip({ name, out, guest, onClick }: { name: string; out: boole
       ) : null}
     </button>
   );
+}
+
+/** "10:00" from a naive wall-clock kick-off, for <input type="time">. A slice, not a Date
+ *  round-trip, which would shift it by the viewer's zone. */
+function timePart(kickoffAt: string): string {
+  return kickoffAt.slice(11, 16);
+}
+
+/** Midnight means the FA's placeholder, not a real midnight kick-off. */
+function isUnset(kickoffAt: string): boolean {
+  return kickoffAt.endsWith("T00:00:00");
 }
