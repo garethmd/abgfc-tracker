@@ -295,8 +295,11 @@ Park). Both are plain text in the same shape as `fixtures.venue_notes`.
     only as the school) - and it stops at the first hit, with a second between requests as
     Nominatim asks. Searches are **bounded to the area** the age group plays in (`VIEWBOX`,
     Hampshire and the Surrey/Sussex borders), because a shortened name otherwise finds its
-    namesake anywhere: unbounded, "Kennels Lane" is a road in Leeds. 17 of the 21 grounds on
-    record resolve; the rest show the name and the directions link without a map.
+    namesake anywhere: unbounded, "Kennels Lane" is a road in Leeds. 19 of the 21 grounds on
+    record resolve; the two that do not need their text corrected by someone who knows the
+    place - "Surrey Nomads U9 Blacks" is a team name the FA put in the venue column, and
+    "Yateley Health & Fitness" is on the map as Frogmore Leisure Centre. They show the name
+    and the directions link without a map, which is the intended way to fail.
 
 ## Opposition head-to-head
 

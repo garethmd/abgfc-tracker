@@ -108,7 +108,11 @@ def test_what_gets_tried(auth_client: TestClient):
     )
     # A postcode is tried on its own, ahead of picking the name apart.
     assert candidates("Grayshott Rec, GU26 6LS")[1] == "gu26 6ls"
-    # A plain name is one request, not four.
+    # OSM writes an ampersand where a coach writes the word.
+    assert "cody sports & social club" in candidates("Cody Sports and Social Club 4")
+    # The generic tail comes off a word at a time: this one is on the map as "Goldsworth Park".
+    assert "goldsworth park" in candidates("Goldsworth Park Recreation Ground")
+    # A plain name is one request, not five.
     assert candidates("Aldershot Park") == ["aldershot park"]
 
 

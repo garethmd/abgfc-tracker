@@ -49,17 +49,26 @@ def candidates(name: str) -> list[str]:
     # findable only as the school.
     if "(" in full:
         tries.append(normalise(full.split("(")[0]))
+    # OSM writes an ampersand where a coach writes the word: "Cody Sports and Social Club"
+    # is on the map as "Cody Sports & Social Club".
+    if " and " in full:
+        tries.append(full.replace(" and ", " & "))
+    elif " & " in full:
+        tries.append(full.replace(" & ", " and "))
     without = normalise(POSTCODE.sub("", full).strip().strip(",").strip())
     if without and without != full:
         tries.append(without)
+    # Shedding the generic tail, a word at a time: "Goldsworth Park Recreation Ground" is
+    # on the map as plain "Goldsworth Park".
     words = (without or full).split()
-    if len(words) >= 3:
-        tries.append(" ".join(words[:-1]))
+    for drop in (1, 2):
+        if len(words) - drop >= 2:
+            tries.append(" ".join(words[:-drop]))
     seen: list[str] = []
     for t in tries:
         if t and t not in seen:
             seen.append(t)
-    return seen[:4]  # four requests at most, and only ever once per ground
+    return seen[:5]  # five requests at most, and only ever once per ground
 
 
 class GroundService:
