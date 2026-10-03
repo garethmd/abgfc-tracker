@@ -1117,6 +1117,18 @@
             ],
             "title": "Our Score"
           },
+          "postponed_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Postponed From"
+          },
           "status": {
             "$ref": "#/components/schemas/FixtureStatus"
           },
@@ -1177,6 +1189,26 @@
           "warnings"
         ],
         "title": "FixtureDetail",
+        "type": "object"
+      },
+      "FixturePostpone": {
+        "additionalProperties": false,
+        "description": "Called off. The date stays as it is - that it should have been played that day is\nthe thing worth keeping - and a reason, if given, goes on the fixture's notes.",
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "title": "FixturePostpone",
         "type": "object"
       },
       "FixtureRead": {
@@ -1261,6 +1293,18 @@
             ],
             "title": "Our Score"
           },
+          "postponed_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Postponed From"
+          },
           "status": {
             "$ref": "#/components/schemas/FixtureStatus"
           },
@@ -1310,6 +1354,34 @@
           "notes"
         ],
         "title": "FixtureRead",
+        "type": "object"
+      },
+      "FixtureRearrange": {
+        "additionalProperties": false,
+        "description": "A postponed match given a new date. The old one moves to `postponed_from`.",
+        "properties": {
+          "kickoff_at": {
+            "format": "date-time",
+            "title": "Kickoff At",
+            "type": "string"
+          },
+          "venue_notes": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Venue Notes"
+          }
+        },
+        "required": [
+          "kickoff_at"
+        ],
+        "title": "FixtureRearrange",
         "type": "object"
       },
       "FixtureStatus": {
@@ -7501,6 +7573,144 @@
           }
         },
         "summary": "Update Note",
+        "tags": [
+          "fixtures"
+        ]
+      }
+    },
+    "/api/v1/fixtures/{fixture_id}/postpone": {
+      "post": {
+        "description": "Called off. Keeps its date, so the season still shows a match was due that day.",
+        "operationId": "postpone_fixture_api_v1_fixtures__fixture_id__postpone_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fixture_id",
+            "required": true,
+            "schema": {
+              "title": "Fixture Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FixturePostpone"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixtureDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Postpone Fixture",
+        "tags": [
+          "fixtures"
+        ]
+      }
+    },
+    "/api/v1/fixtures/{fixture_id}/rearrange": {
+      "post": {
+        "description": "A postponed match given a new date; the old date is kept on `postponed_from`.",
+        "operationId": "rearrange_fixture_api_v1_fixtures__fixture_id__rearrange_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fixture_id",
+            "required": true,
+            "schema": {
+              "title": "Fixture Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FixtureRearrange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixtureDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rearrange Fixture",
         "tags": [
           "fixtures"
         ]

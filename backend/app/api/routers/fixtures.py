@@ -5,6 +5,7 @@ from app.models import FixtureStatus
 from app.schemas.fixture import (
     FixtureCreate,
     FixtureDetail,
+    FixturePostpone,
     FixtureRead,
     FixtureUpdate,
     ResultSubmit,
@@ -49,6 +50,12 @@ def update_fixture(fixture_id: int, data: FixtureUpdate, db: DB, access: Access)
     svc = FixtureService(db, access)
     svc.update(fixture_id, data)
     return svc.detail(fixture_id)
+
+
+@router.post("/{fixture_id}/postpone", response_model=FixtureDetail)
+def postpone_fixture(fixture_id: int, data: FixturePostpone, db: DB, access: Access):
+    """Called off. Keeps its date, so the season still shows a match was due that day."""
+    return FixtureService(db, access).postpone(fixture_id, data.reason)
 
 
 @router.delete("/{fixture_id}", status_code=204)

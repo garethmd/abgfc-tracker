@@ -254,6 +254,27 @@ reference the player, not the squad.
   + 1 guest" - and *Enter result* and the live line-up hand them over pre-ticked
   (`guestPlayers(selection)`), so nobody is added twice.
 
+## Postponing a match
+
+Winter takes pitches out. `POST /fixtures/{id}/postpone` sets `status='postponed'` and,
+given a `reason`, appends it to the fixture's notes. **The fixture keeps the date it was
+due** - that a match should have been played that day is the record worth having, which is
+why this is not a delete - and nothing about it counts: stats only ever read `played`.
+
+**There is no reschedule.** The league does not give a postponed fixture a new date; if the
+tie is replayed it comes round as a separate fixture (and arrives through the FA import
+like any other). So there is no `postponed_from` column, no link between an original and a
+replay, and nothing that moves a fixture's date - don't add one.
+
+A played or live match can't be postponed (409); the result flows own those. The fixtures
+list gives postponed matches their own section, since they are not results and would
+otherwise sit under Results looking like a game nobody scored in.
+
+*Postpone* lives in the fixture page's overflow menu with Edit and Delete, not beside
+*Start match*: it is a rare action and the card is a coach's matchday card. That card holds
+two buttons - *Start match* and *Enter result* - and nothing else; the matchday sheet was a
+second copy of the menu item and has gone.
+
 ## Home grounds
 
 `teams.home_ground` (where an opposition plays) and `club_teams.home_ground` (ours, Aldershot

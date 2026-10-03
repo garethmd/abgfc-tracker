@@ -177,3 +177,11 @@ class LiveGoal(GoalInput):
     same one (a retried request) returns the goal already recorded instead of a second."""
 
     sequence: int = Field(ge=1)
+
+
+class FixturePostpone(InputModel):
+    """Called off - waterlogged, usually. The fixture keeps the date it was due, which is
+    the record worth having; the league does not rearrange it, so nothing moves. A reason,
+    if given, goes on the fixture's notes."""
+
+    reason: str | None = Field(default=None, max_length=200)

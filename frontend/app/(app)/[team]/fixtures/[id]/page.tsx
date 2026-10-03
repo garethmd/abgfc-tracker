@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { use } from "react";
+import { use, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Award, FileDown, MapPin, MoreHorizontal, Pencil, Radio, Trash2 } from "lucide-react";
+import { AlertTriangle, Award, CloudRain, FileDown, MapPin, MoreHorizontal, Pencil, Radio, Trash2 } from "lucide-react";
 import { matchdaySheetUrl } from "@/lib/reports";
 import { toast } from "sonner";
 import { $api, errorMessage, type Schema } from "@/lib/api/client";
@@ -29,6 +29,7 @@ import { FixtureVideos } from "@/components/features/fixtures/fixture-videos";
 import { SelectionCard } from "@/components/features/fixtures/selection-card";
 import { GroundLink } from "@/components/ground-link";
 import { GroundMap } from "@/components/ground-map";
+import { PostponeSheet } from "@/components/features/fixtures/postpone-sheet";
 
 export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixtures/[id]">) {
   const { id } = use(params);
@@ -38,6 +39,7 @@ export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixture
   const qc = useQueryClient();
   const q = $api.useQuery("get", "/api/v1/fixtures/{fixture_id}", { params: { path: { fixture_id: fixtureId } } });
   const del = $api.useMutation("delete", "/api/v1/fixtures/{fixture_id}");
+  const [postponing, setPostponing] = useState(false);
 
   async function onDelete() {
     if (!confirm("Delete this fixture and everything recorded against it?")) return;
@@ -100,6 +102,11 @@ export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixture
               <DropdownMenuItem asChild>
                 <a href={matchdaySheetUrl(f.team_season_id, f.id)} download><FileDown className="size-4" /> Matchday sheet (PDF)</a>
               </DropdownMenuItem>
+              {!played && f.status === "scheduled" && (
+                <DropdownMenuItem onSelect={() => setPostponing(true)}>
+                  <CloudRain className="size-4" /> Postpone
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onSelect={onDelete}>
                 <Trash2 className="size-4" /> Delete
@@ -140,17 +147,12 @@ export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixture
           )}
         </div>
         {!played && f.status === "scheduled" && canEdit && (
-          <div className="mt-6 grid grid-cols-[1fr_1fr_auto] gap-2">
+          <div className="mt-6 grid grid-cols-2 gap-2">
             <Button asChild className="h-12 w-full">
               <Link href={`${base}/fixtures/${f.id}/live`}><Radio className="size-4" /> Start match</Link>
             </Button>
             <Button asChild variant="outline" className="h-12 w-full">
               <Link href={`${base}/fixtures/${f.id}/entry`}>Enter result</Link>
-            </Button>
-            <Button asChild variant="outline" className="h-12" title="Download the matchday sheet (PDF)">
-              <a href={matchdaySheetUrl(f.team_season_id, f.id)} download>
-                <FileDown className="size-4" /> Sheet
-              </a>
             </Button>
           </div>
         )}
@@ -162,6 +164,8 @@ export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixture
           </div>
         )}
       </Card>
+
+      {canEdit && <PostponeSheet fixture={f} open={postponing} onOpenChange={setPostponing} />}
 
       {f.venue_notes && <GroundMap ground={f.venue_notes} className="mt-6 overflow-hidden" />}
 

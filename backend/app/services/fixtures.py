@@ -148,6 +148,20 @@ class FixtureService:
         self.db.commit()
         return self.repo.get_detail(id)
 
+    def postpone(self, id: int, reason: str | None) -> FixtureDetail:
+        """Called off - waterlogged, usually. The fixture keeps the date it was due, so
+        the season still shows a match should have been played that day. The league does
+        not give it a new date: if it is replayed it comes round as a new fixture."""
+        fixture = self.get(id, UserRole.COACH)
+        if fixture.status in (FixtureStatus.PLAYED, FixtureStatus.LIVE):
+            raise ConflictError("This match has been played - edit the result instead")
+        fixture.status = FixtureStatus.POSTPONED
+        if reason and reason.strip():
+            note = reason.strip()
+            fixture.notes = f"{fixture.notes}\n{note}" if fixture.notes else note
+        self.db.commit()
+        return self.detail(id)
+
     def delete(self, id: int) -> None:
         fixture = self.get(id, UserRole.COACH)
         # media_links cascade with the fixture, but the media rows they point at are
@@ -284,25 +298,11 @@ class FixtureService:
                     notes=e.notes,
                 )
             )
+        # Built from FixtureRead rather than a hand-kept list of field names, so a column
+        # added to the fixture reaches the detail endpoint instead of silently defaulting
+        # (external_id was being lost that way).
         return FixtureDetail(
-            **{
-                k: getattr(fixture, k)
-                for k in (
-                    "id",
-                    "team_season_id",
-                    "competition",
-                    "opposition",
-                    "match_number",
-                    "kickoff_at",
-                    "venue",
-                    "venue_notes",
-                    "status",
-                    "our_score",
-                    "their_score",
-                    "duration_minutes",
-                    "notes",
-                )
-            },
+            **FixtureRead.model_validate(fixture).model_dump(),
             appearances=[AppearanceRead.model_validate(a) for a in fixture.appearances],
             goals=goals,
             awards=[AwardRead.model_validate(a) for a in fixture.awards],

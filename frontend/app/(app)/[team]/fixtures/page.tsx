@@ -27,7 +27,13 @@ export default function FixturesPage() {
 
   const live = (fixtures.data ?? []).find((f) => f.status === "live");
   const upcoming = (fixtures.data ?? []).filter((f) => f.status === "scheduled");
-  const others = (fixtures.data ?? []).filter((f) => f.status !== "scheduled" && f.status !== "live").slice().reverse();
+  // A called-off match is not a result: it keeps the date it was due, so it gets its own
+  // section rather than sitting under Results looking like a game with no score.
+  const postponed = (fixtures.data ?? []).filter((f) => f.status === "postponed");
+  const others = (fixtures.data ?? [])
+    .filter((f) => !["scheduled", "live", "postponed"].includes(f.status))
+    .slice()
+    .reverse();
   const nextUp = live ?? upcoming[0];
   const later = upcoming.filter((f) => f.id !== nextUp?.id);
   // Which fixture's parents' message is open, if any.
@@ -156,6 +162,20 @@ export default function FixturesPage() {
               {canEdit && message !== null && (
                 <MessageSheet fixtureId={message} open onOpenChange={(o) => { if (!o) setMessage(null); }} />
               )}
+            </section>
+          )}
+
+          {postponed.length > 0 && (
+            <section>
+              <SectionTitle>Postponed</SectionTitle>
+              <Card className="divide-y divide-border/40 overflow-hidden">
+                {postponed.map((f) => (
+                  <FixtureRow key={f.id} fixture={f} base={base} />
+                ))}
+              </Card>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Still on record for the day they were due, counting towards nothing.
+              </p>
             </section>
           )}
 

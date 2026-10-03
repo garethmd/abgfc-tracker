@@ -530,6 +530,46 @@ export interface paths {
         patch: operations["update_note_api_v1_fixtures__fixture_id__notes__note_id__patch"];
         trace?: never;
     };
+    "/api/v1/fixtures/{fixture_id}/postpone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Postpone Fixture
+         * @description Called off. Keeps its date, so the season still shows a match was due that day.
+         */
+        post: operations["postpone_fixture_api_v1_fixtures__fixture_id__postpone_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fixtures/{fixture_id}/rearrange": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rearrange Fixture
+         * @description A postponed match given a new date; the old date is kept on `postponed_from`.
+         */
+        post: operations["rearrange_fixture_api_v1_fixtures__fixture_id__rearrange_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/fixtures/{fixture_id}/result": {
         parameters: {
             query?: never;
@@ -1498,6 +1538,8 @@ export interface components {
             opposition: components["schemas"]["TeamRead"];
             /** Our Score */
             our_score: number | null;
+            /** Postponed From */
+            postponed_from?: string | null;
             status: components["schemas"]["FixtureStatus"];
             /** Team Season Id */
             team_season_id: number;
@@ -1508,6 +1550,15 @@ export interface components {
             venue_notes: string | null;
             /** Warnings */
             warnings: string[];
+        };
+        /**
+         * FixturePostpone
+         * @description Called off. The date stays as it is - that it should have been played that day is
+         *     the thing worth keeping - and a reason, if given, goes on the fixture's notes.
+         */
+        FixturePostpone: {
+            /** Reason */
+            reason?: string | null;
         };
         /** FixtureRead */
         FixtureRead: {
@@ -1531,6 +1582,8 @@ export interface components {
             opposition: components["schemas"]["TeamRead"];
             /** Our Score */
             our_score: number | null;
+            /** Postponed From */
+            postponed_from?: string | null;
             status: components["schemas"]["FixtureStatus"];
             /** Team Season Id */
             team_season_id: number;
@@ -1539,6 +1592,19 @@ export interface components {
             venue: components["schemas"]["Venue"];
             /** Venue Notes */
             venue_notes: string | null;
+        };
+        /**
+         * FixtureRearrange
+         * @description A postponed match given a new date. The old one moves to `postponed_from`.
+         */
+        FixtureRearrange: {
+            /**
+             * Kickoff At
+             * Format: date-time
+             */
+            kickoff_at: string;
+            /** Venue Notes */
+            venue_notes?: string | null;
         };
         /**
          * FixtureStatus
@@ -4057,6 +4123,80 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MatchNoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    postpone_fixture_api_v1_fixtures__fixture_id__postpone_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FixturePostpone"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rearrange_fixture_api_v1_fixtures__fixture_id__rearrange_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FixtureRearrange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixtureDetail"];
                 };
             };
             /** @description Validation Error */
