@@ -18,6 +18,14 @@ services:
       ABGFC_COACH_USERNAME: ${ABGFC_COACH_USERNAME:-coach}
       ABGFC_COACH_PASSWORD: ${ABGFC_COACH_PASSWORD:?set in .env}
       ABGFC_CORS_ORIGINS: '["https://${SITE_ADDRESS:?set in .env}"]'
+      # Email: invitations and parents' sign-in links. Without a backend and a key the
+      # app only logs them, and invitations still work by copying the link in the app.
+      ABGFC_PUBLIC_BASE_URL: https://${SITE_ADDRESS:?set in .env}
+      ABGFC_EMAIL_BACKEND: ${ABGFC_EMAIL_BACKEND:-console}
+      ABGFC_EMAIL_API_KEY: ${ABGFC_EMAIL_API_KEY:-}
+      ABGFC_EMAIL_FROM: ${ABGFC_EMAIL_FROM:-ABGFC Blues <noreply@abgfc.neuralaspect.com>}
+      ABGFC_EMAIL_REPLY_TO: ${ABGFC_EMAIL_REPLY_TO:-}
+      ABGFC_MAILGUN_DOMAIN: ${ABGFC_MAILGUN_DOMAIN:-abgfc.neuralaspect.com}
     volumes:
       - /data:/data
     # No `ports:` - only reachable from the frontend over the compose network.
