@@ -52,6 +52,13 @@ class MediaKind(StrEnum):
     FILE = "file"
 
 
+class TokenPurpose(StrEnum):
+    """What an emailed single-use link is for."""
+
+    INVITE = "invite"  # no account yet; accepting creates one
+    SIGNIN = "signin"  # an existing passwordless account signing in
+
+
 class UserRole(StrEnum):
     """Ordered: viewer < coach < admin."""
 

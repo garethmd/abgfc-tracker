@@ -1839,6 +1839,66 @@
         "title": "GroundRead",
         "type": "object"
       },
+      "GuardianRead": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "last_signed_in": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Signed In"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "display_name",
+          "email",
+          "is_active",
+          "last_signed_in"
+        ],
+        "title": "GuardianRead",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -2507,6 +2567,187 @@
         "title": "ImportRowDecision",
         "type": "object"
       },
+      "InviteAccept": {
+        "additionalProperties": false,
+        "properties": {
+          "display_name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "display_name"
+        ],
+        "title": "InviteAccept",
+        "type": "object"
+      },
+      "InviteCreate": {
+        "additionalProperties": false,
+        "description": "Invite one parent to see the club, as the guardian of one child.",
+        "properties": {
+          "email": {
+            "maxLength": 255,
+            "minLength": 3,
+            "pattern": "^[^@\\s]+@[^@\\s.]+\\.[^@\\s]+$",
+            "title": "Email",
+            "type": "string"
+          },
+          "player_id": {
+            "title": "Player Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "email",
+          "player_id"
+        ],
+        "title": "InviteCreate",
+        "type": "object"
+      },
+      "InviteCreated": {
+        "description": "The link is returned **once**, when the invite is made, so the coach can send it\nby hand if email is slow, bounces, or the parent only uses WhatsApp. It is not\nstored and never appears in a listing.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "emailed": {
+            "title": "Emailed",
+            "type": "boolean"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "invited_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invited By"
+          },
+          "link": {
+            "title": "Link",
+            "type": "string"
+          },
+          "player": {
+            "$ref": "#/components/schemas/PlayerSummary"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "player",
+          "invited_by",
+          "expires_at",
+          "created_at",
+          "link",
+          "emailed"
+        ],
+        "title": "InviteCreated",
+        "type": "object"
+      },
+      "InvitePreview": {
+        "description": "What the landing page shows before the parent commits - no account exists yet.",
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "invited_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invited By"
+          },
+          "player_name": {
+            "title": "Player Name",
+            "type": "string"
+          },
+          "team_names": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Team Names",
+            "type": "array"
+          }
+        },
+        "required": [
+          "player_name",
+          "team_names",
+          "invited_by",
+          "email"
+        ],
+        "title": "InvitePreview",
+        "type": "object"
+      },
+      "InviteRead": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "invited_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invited By"
+          },
+          "player": {
+            "$ref": "#/components/schemas/PlayerSummary"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "player",
+          "invited_by",
+          "expires_at",
+          "created_at"
+        ],
+        "title": "InviteRead",
+        "type": "object"
+      },
       "Leaderboard": {
         "properties": {
           "award_types": {
@@ -2840,6 +3081,17 @@
             ],
             "title": "Display Name"
           },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
           "id": {
             "title": "Id",
             "type": "integer"
@@ -2866,6 +3118,7 @@
         "required": [
           "id",
           "username",
+          "email",
           "display_name",
           "roles",
           "club_role",
@@ -2975,6 +3228,35 @@
           "text"
         ],
         "title": "ParentsMessage",
+        "type": "object"
+      },
+      "PlayerAccessRead": {
+        "description": "One child and who can see the club because of them - the Parents tab.",
+        "properties": {
+          "guardians": {
+            "items": {
+              "$ref": "#/components/schemas/GuardianRead"
+            },
+            "title": "Guardians",
+            "type": "array"
+          },
+          "pending": {
+            "items": {
+              "$ref": "#/components/schemas/InviteRead"
+            },
+            "title": "Pending",
+            "type": "array"
+          },
+          "player": {
+            "$ref": "#/components/schemas/PlayerSummary"
+          }
+        },
+        "required": [
+          "player",
+          "guardians",
+          "pending"
+        ],
+        "title": "PlayerAccessRead",
         "type": "object"
       },
       "PlayerCreate": {
@@ -4031,6 +4313,23 @@
         "title": "SetPasswordRequest",
         "type": "object"
       },
+      "SigninLinkRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "maxLength": 255,
+            "minLength": 3,
+            "pattern": "^[^@\\s]+@[^@\\s.]+\\.[^@\\s]+$",
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "SigninLinkRequest",
+        "type": "object"
+      },
       "SquadMemberRead": {
         "properties": {
           "id": {
@@ -4953,8 +5252,105 @@
         ]
       }
     },
+    "/api/v1/auth/invitations/{token}": {
+      "get": {
+        "description": "What the invitation is for. Reading does not spend the token - mail scanners\nfollow links, and spending it here would break the invitation before the parent\never saw it.",
+        "operationId": "preview_invitation_api_v1_auth_invitations__token__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitePreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Invitation",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/invitations/{token}/accept": {
+      "post": {
+        "description": "Create the parent's account and sign them in. This is where the token is spent.",
+        "operationId": "accept_invitation_api_v1_auth_invitations__token__accept_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteAccept"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Accept Invitation",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
+        "description": "Username and password - coaches and admins. Unchanged, and a parent account can\nnever come through here: it has no password hash to match.",
         "operationId": "login_api_v1_auth_login_post",
         "requestBody": {
           "content": {
@@ -5052,6 +5448,83 @@
           }
         },
         "summary": "Me",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/signin-link": {
+      "post": {
+        "description": "Email a sign-in link. Always 204, whether or not that address has an account -\nan unauthenticated caller doesn't get to find out which addresses are registered.",
+        "operationId": "request_signin_link_api_v1_auth_signin_link_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SigninLinkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Request Signin Link",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/signin-link/{token}": {
+      "post": {
+        "operationId": "use_signin_link_api_v1_auth_signin_link__token__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Use Signin Link",
         "tags": [
           "auth"
         ]
@@ -7975,6 +8448,117 @@
         ]
       }
     },
+    "/api/v1/invitations": {
+      "post": {
+        "description": "Invite a parent as the guardian of one child. Coach+ on that child's team.\n\nThe response carries the link **once** so it can be sent by hand if email fails or\nthe parent only uses WhatsApp; it is never returned again.",
+        "operationId": "create_invitation_api_v1_invitations_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteCreated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Invitation",
+        "tags": [
+          "invitations"
+        ]
+      }
+    },
+    "/api/v1/invitations/{invite_id}": {
+      "delete": {
+        "operationId": "revoke_invitation_api_v1_invitations__invite_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invite_id",
+            "required": true,
+            "schema": {
+              "title": "Invite Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke Invitation",
+        "tags": [
+          "invitations"
+        ]
+      }
+    },
     "/api/v1/players": {
       "get": {
         "operationId": "list_players_api_v1_players_get",
@@ -9335,6 +9919,69 @@
         "summary": "Make Current",
         "tags": [
           "club"
+        ]
+      }
+    },
+    "/api/v1/team-seasons/{team_season_id}/parents": {
+      "get": {
+        "description": "Each child in the squad with the parents who can see the club, and any invitation\nstill outstanding.",
+        "operationId": "team_parents_api_v1_team_seasons__team_season_id__parents_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "team_season_id",
+            "required": true,
+            "schema": {
+              "title": "Team Season Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PlayerAccessRead"
+                  },
+                  "title": "Response Team Parents Api V1 Team Seasons  Team Season Id  Parents Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Team Parents",
+        "tags": [
+          "invitations"
         ]
       }
     },

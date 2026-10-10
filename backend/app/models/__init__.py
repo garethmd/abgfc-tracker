@@ -10,16 +10,18 @@ from app.models.enums import (
     MediaKind,
     PositionCategory,
     RoleScope,
+    TokenPurpose,
     UserRole,
     Venue,
 )
 from app.models.fixture import Fixture
 from app.models.ground import Ground
+from app.models.invite import LoginToken
 from app.models.lookup import AwardType, Competition, Position
 from app.models.match import Appearance, MatchEvent, PlayerStint
 from app.models.media import Media, MediaLink
 from app.models.note import MatchNote
-from app.models.player import Player, SquadMember
+from app.models.player import Player, PlayerGuardian, SquadMember
 from app.models.season import Season
 from app.models.selection import FixtureSelection, GuestPlayer, UnavailablePlayer
 from app.models.team import Team
@@ -46,7 +48,9 @@ __all__ = [
     "Media",
     "MediaKind",
     "MediaLink",
+    "LoginToken",
     "Player",
+    "PlayerGuardian",
     "PlayerStint",
     "Position",
     "PositionCategory",
@@ -56,6 +60,7 @@ __all__ = [
     "UnavailablePlayer",
     "FixtureSelection",
     "SquadMember",
+    "TokenPurpose",
     "Team",
     "User",
     "UserRole",

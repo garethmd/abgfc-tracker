@@ -22,9 +22,13 @@ def get_current_user(
 ) -> User:
     if not session:
         raise AuthError("Not signed in")
-    user_id = read_session_token(session, settings.secret_key, settings.session_max_age_seconds)
-    user = AuthService(db).get_user(user_id) if user_id else None
+    claims = read_session_token(session, settings.secret_key, settings.session_max_age_seconds)
+    user = AuthService(db).get_user(claims.user_id) if claims else None
     if user is None:
+        raise AuthError("Session expired - sign in again")
+    # A bumped session_version signs every device out; a cookie from before versions
+    # existed (claims.version is None) is left alone.
+    if claims.version is not None and claims.version != user.session_version:
         raise AuthError("Session expired - sign in again")
     return user
 

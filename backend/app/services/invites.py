@@ -1,0 +1,331 @@
+"""Parent access: invitations and passwordless sign-in.
+
+A parent is an ordinary account with one ordinary role - `viewer` at cohort scope, the
+same row the age-group coach has - plus a `player_guardians` link recording whose parent
+they are. Nothing new in `services/access.py`; the link is what will later let them add
+a photo or a note to their own child, and what tells us whose access to close when a
+child leaves.
+
+They have no password. The invitation link and every later sign-in link are the same
+mechanism: a 256-bit single-use token, stored only as a sha256 hash, that expires.
+Coaches are untouched by all of this - `POST /auth/login` still takes a username and a
+password and never reaches this module.
+"""
+
+from datetime import datetime, timedelta
+
+from sqlalchemy import select, update
+from sqlalchemy.orm import Session, selectinload
+
+from app.config import Settings
+from app.core.errors import ConflictError, ForbiddenError, NotFoundError, ValidationError
+from app.core.security import hash_login_token, new_login_token
+from app.models import (
+    LoginToken,
+    Player,
+    PlayerGuardian,
+    RoleScope,
+    SquadMember,
+    TeamSeason,
+    TokenPurpose,
+    User,
+    UserRole,
+)
+from app.models import UserRoleAssignment as RoleRow
+from app.repositories.players import PlayerRepository
+from app.repositories.users import UserRepository
+from app.schemas.invite import (
+    GuardianRead,
+    InviteAccept,
+    InviteCreate,
+    InviteCreated,
+    InvitePreview,
+    InviteRead,
+    PlayerAccessRead,
+)
+from app.schemas.player import PlayerSummary
+from app.services.access import Access
+from app.services.email import EmailError, EmailService
+
+
+def _now() -> datetime:
+    return datetime.now()
+
+
+class InviteService:
+    def __init__(self, db: Session, access: Access | None, settings: Settings):
+        self.db = db
+        self.access = access
+        self.settings = settings
+        self.users = UserRepository(db)
+
+    # --- making an invitation ---------------------------------------------------
+
+    def create(self, data: InviteCreate) -> InviteCreated:
+        """Coaches and admins may invite. The check is the one that already exists for
+        editing a child: coach+ on their cohort, or on a team whose squad they are in."""
+        player = PlayerRepository(self.db).get_or_404(data.player_id)
+        self._access.require_player(self.db, player, UserRole.COACH)
+        if player.left_date is not None:
+            raise ValidationError(f"{player.display_name} has left the club")
+
+        existing = self.users.get_by_email(data.email)
+        if existing and any(g.player_id == player.id for g in existing.guardian_of):
+            raise ConflictError(f"{data.email} can already see {player.display_name}")
+
+        # One live link per address and child: re-inviting replaces the old one.
+        self.db.execute(
+            update(LoginToken)
+            .where(
+                LoginToken.purpose == TokenPurpose.INVITE,
+                LoginToken.email == data.email,
+                LoginToken.player_id == player.id,
+                LoginToken.used_at.is_(None),
+                LoginToken.revoked_at.is_(None),
+            )
+            .values(revoked_at=_now())
+        )
+        raw, token_hash = new_login_token()
+        token = LoginToken(
+            token_hash=token_hash,
+            purpose=TokenPurpose.INVITE,
+            email=data.email,
+            player_id=player.id,
+            invited_by_user_id=self._access.user.id,
+            expires_at=_now() + timedelta(hours=self.settings.invite_expiry_hours),
+        )
+        self.db.add(token)
+        self.db.commit()
+        self.db.refresh(token)
+
+        link = f"{self.settings.public_base_url.rstrip('/')}/invite/{raw}"
+        emailed = self._send_invite(data.email, player, link)
+        return InviteCreated(**_invite_read(token).model_dump(), link=link, emailed=emailed)
+
+    def list_for_team_season(self, team_season_id: int) -> list[PlayerAccessRead]:
+        """Who can see the club because of each child in this squad - the Parents tab."""
+        ts = self.db.get(TeamSeason, team_season_id)
+        if ts is None:
+            raise NotFoundError(f"Team season {team_season_id} not found")
+        self._access.require_team_season(ts, UserRole.COACH)
+        members = self.db.scalars(
+            select(SquadMember)
+            .where(SquadMember.team_season_id == team_season_id, SquadMember.left_at.is_(None))
+            .options(
+                selectinload(SquadMember.player)
+                .selectinload(Player.guardians)
+                .selectinload(PlayerGuardian.user)
+            )
+        ).all()
+        pending: dict[int, list[InviteRead]] = {}
+        for t in self._live_invites([m.player_id for m in members]):
+            pending.setdefault(t.player_id, []).append(_invite_read(t))
+        return [
+            PlayerAccessRead(
+                player=PlayerSummary.model_validate(m.player),
+                guardians=[
+                    GuardianRead(
+                        id=g.id,
+                        user_id=g.user_id,
+                        display_name=g.user.display_name,
+                        email=g.user.email,
+                        is_active=g.user.is_active,
+                        last_signed_in=None,
+                    )
+                    for g in m.player.guardians
+                ],
+                pending=pending.get(m.player_id, []),
+            )
+            for m in members
+        ]
+
+    def revoke(self, invite_id: int) -> None:
+        token = self.db.get(LoginToken, invite_id)
+        if token is None or token.purpose != TokenPurpose.INVITE or not token.is_live:
+            raise NotFoundError("No such invitation")
+        self._access.require_player(self.db, token.player, UserRole.COACH)
+        token.revoked_at = _now()
+        self.db.commit()
+
+    # --- the parent's side (no session yet) --------------------------------------
+
+    def preview(self, raw: str) -> InvitePreview:
+        """Shown on the landing page. Reading does not consume the token - mail scanners
+        follow links, so the token is only spent when the parent posts the form."""
+        token = self._find_live(raw, TokenPurpose.INVITE)
+        teams = self.db.scalars(
+            select(TeamSeason)
+            .join(SquadMember, SquadMember.team_season_id == TeamSeason.id)
+            .where(SquadMember.player_id == token.player_id, SquadMember.left_at.is_(None))
+            .options(selectinload(TeamSeason.club_team))
+        ).all()
+        return InvitePreview(
+            player_name=token.player.display_name,
+            team_names=sorted({ts.club_team.name for ts in teams}),
+            invited_by=_who(token.invited_by),
+            email=token.email,
+        )
+
+    def accept(self, raw: str, data: InviteAccept) -> User:
+        token = self._consume(raw, TokenPurpose.INVITE)
+        player = token.player
+        if player.cohort_id is None:
+            raise ValidationError("That child is not in an age group yet")
+
+        user = self.users.get_by_email(token.email)
+        if user is None:
+            # No password: this account can only ever be reached by an emailed link.
+            user = User(
+                username=token.email,
+                email=token.email,
+                display_name=data.display_name,
+                password_hash=None,
+            )
+            self.db.add(user)
+            self.db.flush()
+        elif not user.is_active:
+            raise ForbiddenError("That account has been closed - ask your coach")
+
+        # Through the relationships, so the object we hand back has them loaded.
+        if not any(g.player_id == player.id for g in user.guardian_of):
+            user.guardian_of.append(PlayerGuardian(player_id=player.id))
+        # The same multi-team role the age-group coach holds: read the whole age group.
+        if not any(
+            r.scope_type == RoleScope.COHORT and r.scope_id == player.cohort_id for r in user.roles
+        ):
+            user.roles.append(
+                RoleRow(
+                    role=UserRole.VIEWER,
+                    scope_type=RoleScope.COHORT,
+                    scope_id=player.cohort_id,
+                )
+            )
+        self.db.commit()
+        return self.users.get(user.id)
+
+    def request_signin_link(self, email: str) -> None:
+        """Always succeeds from the caller's point of view: whether an account exists is
+        not something an unauthenticated request gets to learn."""
+        user = self.users.get_by_email(email)
+        if user is None or not user.is_active or user.password_hash is not None:
+            return
+        raw, token_hash = new_login_token()
+        self.db.add(
+            LoginToken(
+                token_hash=token_hash,
+                purpose=TokenPurpose.SIGNIN,
+                email=email,
+                user_id=user.id,
+                expires_at=_now() + timedelta(minutes=self.settings.signin_link_expiry_minutes),
+            )
+        )
+        self.db.commit()
+        link = f"{self.settings.public_base_url.rstrip('/')}/signin/{raw}"
+        try:
+            EmailService(self.settings).send(
+                email,
+                "Your ABGFC sign-in link",
+                f"Hello{' ' + user.display_name if user.display_name else ''},\n\n"
+                f"Here is your link to sign in to the ABGFC app:\n\n{link}\n\n"
+                f"It works once and lasts {self.settings.signin_link_expiry_minutes} "
+                "minutes. If you didn't ask for it, ignore this email.\n",
+            )
+        except EmailError:
+            pass  # the parent can ask for another
+
+    def consume_signin(self, raw: str) -> User:
+        token = self._consume(raw, TokenPurpose.SIGNIN)
+        user = self.users.get(token.user_id)
+        if user is None or not user.is_active:
+            raise ForbiddenError("That account has been closed - ask your coach")
+        return user
+
+    # --- helpers -----------------------------------------------------------------
+
+    @property
+    def _access(self) -> Access:
+        if self.access is None:  # pragma: no cover - programming error
+            raise RuntimeError("This operation needs a signed-in caller")
+        return self.access
+
+    def _live_invites(self, player_ids: list[int]) -> list[LoginToken]:
+        if not player_ids:
+            return []
+        return list(
+            self.db.scalars(
+                select(LoginToken)
+                .where(
+                    LoginToken.purpose == TokenPurpose.INVITE,
+                    LoginToken.player_id.in_(player_ids),
+                    LoginToken.used_at.is_(None),
+                    LoginToken.revoked_at.is_(None),
+                    LoginToken.expires_at > _now(),
+                )
+                .options(selectinload(LoginToken.player), selectinload(LoginToken.invited_by))
+                .order_by(LoginToken.created_at)
+            )
+        )
+
+    def _find_live(self, raw: str, purpose: TokenPurpose) -> LoginToken:
+        token = self.db.scalar(
+            select(LoginToken)
+            .where(LoginToken.token_hash == hash_login_token(raw), LoginToken.purpose == purpose)
+            .options(selectinload(LoginToken.player), selectinload(LoginToken.invited_by))
+        )
+        if token is None or not token.is_live:
+            raise NotFoundError("That link has expired or has already been used")
+        return token
+
+    def _consume(self, raw: str, purpose: TokenPurpose) -> LoginToken:
+        """Spend the token. One conditional UPDATE, so two simultaneous clicks can't both
+        win: the second matches no rows because used_at is no longer NULL."""
+        now = _now()
+        row = self.db.execute(
+            update(LoginToken)
+            .where(
+                LoginToken.token_hash == hash_login_token(raw),
+                LoginToken.purpose == purpose,
+                LoginToken.used_at.is_(None),
+                LoginToken.revoked_at.is_(None),
+                LoginToken.expires_at > now,
+            )
+            .values(used_at=now)
+            .returning(LoginToken.id)
+        ).first()
+        if row is None:
+            raise NotFoundError("That link has expired or has already been used")
+        self.db.commit()
+        return self.db.get(LoginToken, row[0])
+
+    def _send_invite(self, email: str, player: Player, link: str) -> bool:
+        who = _who(self._access.user) or "Your coach"
+        try:
+            EmailService(self.settings).send(
+                email,
+                f"{who} has invited you to the ABGFC app",
+                f"Hello,\n\n{who} has invited you to see {player.display_name}'s team on "
+                "the Aldershot Boys & Girls FC app - fixtures, results and who's "
+                "available each week.\n\n"
+                f"Open this link to get started:\n\n{link}\n\n"
+                "There is no password to remember: when you come back, the app emails "
+                "you a link to sign in.\n\n"
+                f"The invitation lasts {self.settings.invite_expiry_hours // 24} days.\n",
+            )
+            return True
+        except EmailError:
+            return False  # the coach still has the link to send by hand
+
+
+def _who(user: User | None) -> str | None:
+    return (user.display_name or user.username) if user else None
+
+
+def _invite_read(token: LoginToken) -> InviteRead:
+    return InviteRead(
+        id=token.id,
+        email=token.email,
+        player=PlayerSummary.model_validate(token.player),
+        invited_by=_who(token.invited_by),
+        expires_at=token.expires_at,
+        created_at=token.created_at,
+    )

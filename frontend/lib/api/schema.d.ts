@@ -38,6 +38,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/invitations/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview Invitation
+         * @description What the invitation is for. Reading does not spend the token - mail scanners
+         *     follow links, and spending it here would break the invitation before the parent
+         *     ever saw it.
+         */
+        get: operations["preview_invitation_api_v1_auth_invitations__token__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/invitations/{token}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept Invitation
+         * @description Create the parent's account and sign them in. This is where the token is spent.
+         */
+        post: operations["accept_invitation_api_v1_auth_invitations__token__accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -47,7 +89,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Login */
+        /**
+         * Login
+         * @description Username and password - coaches and admins. Unchanged, and a parent account can
+         *     never come through here: it has no password hash to match.
+         */
         post: operations["login_api_v1_auth_login_post"];
         delete?: never;
         options?: never;
@@ -83,6 +129,44 @@ export interface paths {
         get: operations["me_api_v1_auth_me_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/signin-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request Signin Link
+         * @description Email a sign-in link. Always 204, whether or not that address has an account -
+         *     an unauthenticated caller doesn't get to find out which addresses are registered.
+         */
+        post: operations["request_signin_link_api_v1_auth_signin_link_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/signin-link/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Use Signin Link */
+        post: operations["use_signin_link_api_v1_auth_signin_link__token__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -636,6 +720,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Invitation
+         * @description Invite a parent as the guardian of one child. Coach+ on that child's team.
+         *
+         *     The response carries the link **once** so it can be sent by hand if email fails or
+         *     the parent only uses WhatsApp; it is never returned again.
+         */
+        post: operations["create_invitation_api_v1_invitations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invitations/{invite_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke Invitation */
+        delete: operations["revoke_invitation_api_v1_invitations__invite_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/players": {
         parameters: {
             query?: never;
@@ -898,6 +1022,27 @@ export interface paths {
         put?: never;
         /** Make Current */
         post: operations["make_current_api_v1_team_seasons__team_season_id__make_current_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/team-seasons/{team_season_id}/parents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Team Parents
+         * @description Each child in the squad with the parents who can see the club, and any invitation
+         *     still outstanding.
+         */
+        get: operations["team_parents_api_v1_team_seasons__team_season_id__parents_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1714,6 +1859,21 @@ export interface components {
             /** Query */
             query: string;
         };
+        /** GuardianRead */
+        GuardianRead: {
+            /** Display Name */
+            display_name: string | null;
+            /** Email */
+            email: string | null;
+            /** Id */
+            id: number;
+            /** Is Active */
+            is_active: boolean;
+            /** Last Signed In */
+            last_signed_in: string | null;
+            /** User Id */
+            user_id: number;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1899,6 +2059,84 @@ export interface components {
             /** Venue Notes */
             venue_notes?: string | null;
         };
+        /** InviteAccept */
+        InviteAccept: {
+            /** Display Name */
+            display_name: string;
+        };
+        /**
+         * InviteCreate
+         * @description Invite one parent to see the club, as the guardian of one child.
+         */
+        InviteCreate: {
+            /** Email */
+            email: string;
+            /** Player Id */
+            player_id: number;
+        };
+        /**
+         * InviteCreated
+         * @description The link is returned **once**, when the invite is made, so the coach can send it
+         *     by hand if email is slow, bounces, or the parent only uses WhatsApp. It is not
+         *     stored and never appears in a listing.
+         */
+        InviteCreated: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Email */
+            email: string;
+            /** Emailed */
+            emailed: boolean;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Id */
+            id: number;
+            /** Invited By */
+            invited_by: string | null;
+            /** Link */
+            link: string;
+            player: components["schemas"]["PlayerSummary"];
+        };
+        /**
+         * InvitePreview
+         * @description What the landing page shows before the parent commits - no account exists yet.
+         */
+        InvitePreview: {
+            /** Email */
+            email: string;
+            /** Invited By */
+            invited_by: string | null;
+            /** Player Name */
+            player_name: string;
+            /** Team Names */
+            team_names: string[];
+        };
+        /** InviteRead */
+        InviteRead: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Email */
+            email: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Id */
+            id: number;
+            /** Invited By */
+            invited_by: string | null;
+            player: components["schemas"]["PlayerSummary"];
+        };
         /** Leaderboard */
         Leaderboard: {
             /** Award Types */
@@ -1995,6 +2233,8 @@ export interface components {
             cohorts: components["schemas"]["CohortAccess"][];
             /** Display Name */
             display_name: string | null;
+            /** Email */
+            email: string | null;
             /** Id */
             id: number;
             /** Roles */
@@ -2034,6 +2274,17 @@ export interface components {
         ParentsMessage: {
             /** Text */
             text: string;
+        };
+        /**
+         * PlayerAccessRead
+         * @description One child and who can see the club because of them - the Parents tab.
+         */
+        PlayerAccessRead: {
+            /** Guardians */
+            guardians: components["schemas"]["GuardianRead"][];
+            /** Pending */
+            pending: components["schemas"]["InviteRead"][];
+            player: components["schemas"]["PlayerSummary"];
         };
         /** PlayerCreate */
         PlayerCreate: {
@@ -2372,6 +2623,11 @@ export interface components {
             /** New Password */
             new_password: string;
         };
+        /** SigninLinkRequest */
+        SigninLinkRequest: {
+            /** Email */
+            email: string;
+        };
         /** SquadMemberRead */
         SquadMemberRead: {
             /** Id */
@@ -2673,6 +2929,72 @@ export interface operations {
             };
         };
     };
+    preview_invitation_api_v1_auth_invitations__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitePreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_invitation_api_v1_auth_invitations__token__accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteAccept"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     login_api_v1_auth_login_post: {
         parameters: {
             query?: never;
@@ -2732,6 +3054,68 @@ export interface operations {
             cookie?: {
                 abgfc_session?: string | null;
             };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_signin_link_api_v1_auth_signin_link_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SigninLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    use_signin_link_api_v1_auth_signin_link__token__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -4343,6 +4727,72 @@ export interface operations {
             };
         };
     };
+    create_invitation_api_v1_invitations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteCreated"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_invitation_api_v1_invitations__invite_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invite_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_players_api_v1_players_get: {
         parameters: {
             query?: {
@@ -5087,6 +5537,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TeamSeasonRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    team_parents_api_v1_team_seasons__team_season_id__parents_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_season_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayerAccessRead"][];
                 };
             };
             /** @description Validation Error */

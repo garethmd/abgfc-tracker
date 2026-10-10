@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from app.models.club import Cohort, TeamSeason
     from app.models.lookup import Position
     from app.models.media import MediaLink
+    from app.models.user import User
 
 
 class Player(TimestampMixin, Base):
@@ -31,6 +32,9 @@ class Player(TimestampMixin, Base):
 
     cohort: Mapped["Cohort | None"] = relationship()
     squad_memberships: Mapped[list["SquadMember"]] = relationship(back_populates="player")
+    guardians: Mapped[list["PlayerGuardian"]] = relationship(
+        back_populates="player", cascade="all, delete-orphan"
+    )
     profile_photo_link: Mapped["MediaLink | None"] = relationship(
         primaryjoin="and_(MediaLink.player_id == Player.id, MediaLink.role == 'profile_photo')",
         viewonly=True,
@@ -43,6 +47,27 @@ class Player(TimestampMixin, Base):
         """Random token that changes with every upload; the client cache-busts with it."""
         link = self.profile_photo_link
         return link.media.storage_key.rsplit("/", 1)[-1] if link and link.media else None
+
+
+class PlayerGuardian(TimestampMixin, Base):
+    """A parent's account linked to their child. Two parents per child and two children
+    per parent are both normal, so this is a plain many-to-many.
+
+    It is **not** what grants access - a parent holds an ordinary `viewer` role at cohort
+    scope, like the age-group coach. This records *whose* parent they are, which is what
+    lets a leaving child surface the accounts to close, and what will gate a parent
+    adding a photo or a note to their own child and nobody else's.
+    """
+
+    __tablename__ = "player_guardians"
+    __table_args__ = (UniqueConstraint("user_id", "player_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    player_id: Mapped[int] = mapped_column(ForeignKey("players.id", ondelete="CASCADE"), index=True)
+
+    user: Mapped["User"] = relationship(back_populates="guardian_of")
+    player: Mapped["Player"] = relationship(back_populates="guardians")
 
 
 class SquadMember(TimestampMixin, Base):

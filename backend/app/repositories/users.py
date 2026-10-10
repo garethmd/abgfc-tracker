@@ -17,6 +17,14 @@ class UserRepository(BaseRepository[User]):
             select(User).where(User.username == username).options(selectinload(User.roles))
         )
 
+    def get_by_email(self, email: str) -> User | None:
+        """Parents are identified by email; coaches have none, and NULLs don't collide."""
+        return self.db.scalar(
+            select(User)
+            .where(User.email == email.strip().lower())
+            .options(selectinload(User.roles))
+        )
+
     def list_all(self) -> list[User]:
         return list(
             self.db.scalars(select(User).options(selectinload(User.roles)).order_by(User.username))

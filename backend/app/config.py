@@ -28,6 +28,19 @@ class Settings(BaseSettings):
     coach_username: str = "coach"
     coach_password: str = DEV_COACH_PASSWORD
 
+    # Where the app is reached from outside - used to build emailed links.
+    public_base_url: str = "http://localhost:3000"
+    # "console" logs the email instead of sending it (development and tests).
+    email_backend: Literal["console", "resend", "mailgun"] = "console"
+    email_from: str = "ABGFC Blues <noreply@abgfc.neuralaspect.com>"
+    # The sending domain has no MX, so replies to the From address bounce: point this
+    # at a mailbox somebody reads.
+    email_reply_to: str = ""
+    email_api_key: str = ""
+    mailgun_domain: str = "abgfc.neuralaspect.com"
+    invite_expiry_hours: int = 24 * 14
+    signin_link_expiry_minutes: int = 15
+
     @property
     def is_production(self) -> bool:
         return self.env == "production"
@@ -44,6 +57,10 @@ class Settings(BaseSettings):
                 problems.append("ABGFC_SECRET_KEY is the development default")
             if self.coach_password == DEV_COACH_PASSWORD:
                 problems.append("ABGFC_COACH_PASSWORD is the development default")
+            if self.email_backend != "console" and not self.email_api_key:
+                problems.append(
+                    f"ABGFC_EMAIL_BACKEND={self.email_backend} but ABGFC_EMAIL_API_KEY is empty"
+                )
             if problems:
                 raise ValueError("Refusing to start in production: " + "; ".join(problems))
         return self

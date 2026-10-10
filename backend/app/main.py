@@ -8,6 +8,7 @@ from app.api.routers import (
     fixtures,
     grounds,
     imports,
+    invitations,
     live,
     lookups,
     players,
@@ -55,6 +56,7 @@ def create_app() -> FastAPI:
         reports,
         imports,
         grounds,
+        invitations,
     )
     for r in routers:
         app.include_router(r.router, prefix=API_PREFIX)
