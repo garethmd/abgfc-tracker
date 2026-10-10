@@ -88,9 +88,17 @@ work: boolean `server_default="1"` → `true`, the partial unique index needs
 `postgresql_where`, add `psycopg`, re-verify migrations. `DATABASE_URL` is already the
 only switch.
 
-**Parents as viewers.** The `viewer` role exists. Missing: self-signup/invite flow,
-per-child visibility (a parent should see only their child's photo?), and a decision on
-what parents may see. Product question before code.
+**Parents as viewers.** Done — see [Parents](13-parents.md). Invited by email, no
+password, `viewer` at cohort scope. The product questions were answered by the club:
+parents see everything a viewer can across the whole age group, and nothing is withheld.
+
+**Parents contributing to their own child.** The `player_guardians` link exists and grants
+nothing yet. The intended next step: a guardian may add a photo, a note or a video to
+*their own* child and no one else's — gated on the link, never on a role, and never
+extending to `display_name`, `squad_number` or `left_date`. Needs one decision first:
+whether a parent's contribution is visible to the whole team or only to coaches and that
+parent. `players.notes` stays coach admin; parent text belongs in its own table with an
+author.
 
 ## Explicitly out of scope
 

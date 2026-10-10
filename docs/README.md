@@ -20,6 +20,7 @@ Read in order the first time; afterwards each document stands alone.
 | 10 | [Development guide](10-development.md) | Local setup, Make targets, tests, migrations, adding features, troubleshooting |
 | 11 | [Reports, exports, media & live entry](11-features.md) | Matchday PDF, spreadsheet export, match notes, profile photos, live match entry |
 | 12 | [Roadmap & design seams](12-roadmap.md) | Features designed but not built, and how they land |
+| 13 | [Parent access](13-parents.md) | Invitations, passwordless sign-in, removing access |
 
 `CLAUDE.md` in the repository root is the condensed version of the same material,
 optimised for AI coding assistants; keep the two in step when you change behaviour.

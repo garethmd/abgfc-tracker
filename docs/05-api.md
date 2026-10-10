@@ -11,6 +11,25 @@ endpoints. Interactive docs at `/api/docs` in development only.
 - `POST /auth/logout` clears the cookie. `GET /auth/me` returns the caller and what they
   can reach. `POST /auth/change-password` `{current_password, new_password}`.
 
+**Parents have no password** and use emailed single-use links instead
+([Parents](13-parents.md)). These four need no session:
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/auth/signin-link` | `{email}` → always `204`, whether or not the address has an account |
+| POST | `/auth/signin-link/{token}` | spends the link and signs in → `MeRead` |
+| GET | `/auth/invitations/{token}` | `InvitePreview` — does **not** spend the token |
+| POST | `/auth/invitations/{token}/accept` | `{display_name}` → creates the account and signs in |
+
+Managing them needs coach+ on one of that parent's children:
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/invitations` | `{email, player_id}` → `InviteCreated`, which carries `link` **once** |
+| GET | `/team-seasons/{id}/parents` | `{players, leavers}` — who can see the club, and whose child has left |
+| DELETE | `/invitations/{id}` | cancels an outstanding invitation |
+| POST | `/parents/{id}/close` · `/reopen` · `/sign-out` | deactivate (immediate), restore, or bump `session_version` |
+
 `MeRead` drives the frontend's routing:
 
 ```json

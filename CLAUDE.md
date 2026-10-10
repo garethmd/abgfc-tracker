@@ -8,9 +8,17 @@ the whole age group - Blues, Blacks, Reds, Whites - and future seasons). Coaches
 results on a phone at the side of the pitch; the app derives everything else (record,
 form, leaderboards, awards).
 
-**Team-first.** A team coach signs in and sees only their team - no switcher, no other
-teams' children. An age-group coach (Stuart) sees every team in the cohort plus a
-cohort overview. A club admin sees everything and manages coaches.
+**Team-first for writing, open for reading.** A coach enters results only for their own
+team. *Seeing* is open: the head coach decided in Oct 2026 that every coach and parent
+may view every team in the age group, so the old "no switcher, no other teams' children"
+isolation is gone. An age-group coach (Stuart) coaches every team in the cohort; a club
+admin manages coaches.
+
+**Parents.** A parent is an ordinary account holding the same multi-team role as the
+age-group coach - `viewer` at cohort scope - plus a `player_guardians` link saying whose
+parent they are. They have **no password**: they are invited by email and sign in with a
+single-use link (`services/invites.py`). Coaches invite their own team's parents; closing
+an account is immediate. See `docs/13-parents.md`.
 
 **Children's data.** Everything sits behind a login and every query is scoped by the
 caller's roles (`services/access.py`); media (when added) is served through the API

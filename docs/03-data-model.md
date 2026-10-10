@@ -40,6 +40,9 @@ erDiagram
     media_links }o--o| players : "attached to"
     media_links }o--o| match_events : "attached to"
     users ||--o{ user_roles : "has"
+    users ||--o{ player_guardians : "parent of"
+    players ||--o{ player_guardians : "has parent"
+    users ||--o{ login_tokens : "signs in with"
     users ||--o{ match_notes : "pasted by"
 ```
 
@@ -114,8 +117,22 @@ together), `squad_number` (partial unique per team season where not null),
 **`positions`** — lookup. `code` (GK/DEF/MID/FWD), `name`, `category` (same four values),
 `sort_order`. Finer positions later are rows sharing a category.
 
-**`users`** — logins. `username` (unique), `display_name`, `password_hash` (argon2id),
-`is_active`. No `role` column — roles are rows below.
+**`users`** — logins. `username` (unique), `email` (unique, nullable), `display_name`,
+`password_hash` (argon2id, **nullable**), `is_active`, `session_version`. No `role`
+column — roles are rows below. A coach has a username and a password; a **parent** has an
+email and no password, signing in with a link (see [Parents](13-parents.md)).
+`session_version` is carried in the session cookie and bumped to sign every device out.
+
+**`login_tokens`** — a single-use emailed link: `token_hash` (sha256 of 256 random bits,
+the raw value is never stored), `purpose` (`invite` | `signin`), `email`, `player_id`
+(invites: whose parent this is), `user_id` (sign-ins), `invited_by_user_id`,
+`expires_at`, `used_at`, `revoked_at`. A CHECK keeps the two shapes apart.
+
+**`player_guardians`** — `user_id` + `player_id`, unique together. Which child a parent
+account belongs to; many-to-many, because two parents per child and two children per
+parent are both normal. It grants **nothing** — a parent's access is their `viewer` role
+at cohort scope. It exists to answer "whose access is this?" when a child leaves, and to
+gate per-child contributions later.
 
 **`user_roles`** — `user_id`, `role` (`viewer` < `coach` < `admin`), `scope_type`
 (`club` | `cohort` | `team`), `scope_id` (NULL for club, else cohort or club_team id).

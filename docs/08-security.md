@@ -7,10 +7,16 @@ explicitly granted more.
 
 ## Login and sessions
 
+There are two ways in, and they never cross: **coaches and admins** have a username and
+a password; **parents** have neither and sign in with a single-use link emailed to them
+(see [Parents](13-parents.md)). A parent account has `password_hash = NULL`, so
+`POST /auth/login` can never authenticate one; a coach has no `email`, so no sign-in link
+is ever issued for them.
+
 1. `POST /auth/login` with username + password over HTTPS.
 2. Password verified with **argon2id** (`argon2-cffi` defaults: memory-hard, ~50 ms).
    Unknown user and wrong password return the same 401 message.
-3. On success a cookie `abgfc_session` is set: value = `{"uid": id}` signed with
+3. On success a cookie `abgfc_session` is set: value = `{"uid": id, "sv": session_version}` signed with
    `ABGFC_SECRET_KEY` and timestamped (`itsdangerous.URLSafeTimedSerializer`, salt
    `"session"`). Flags: `HttpOnly`, `SameSite=Lax`, `Secure` (production), `Path=/`,
    `Max-Age` 30 days.
@@ -18,6 +24,9 @@ explicitly granted more.
    requires `is_active`. `deps.get_access` resolves roles.
 5. `POST /auth/logout` deletes the cookie. Sign-in/out are full page loads in the
    frontend so nothing cached from another user survives on a shared phone.
+   `users.session_version` is included in the cookie and checked per request: bumping it
+   signs every device out at once. A cookie issued before versions existed carries no
+   `sv` and is still accepted, so adding this signed nobody out.
 6. Passwords: min 8 chars (12 recommended); self-service change needs the current
    password; admins can reset within their scope; the development default is refused
    in production.
@@ -41,6 +50,12 @@ has no public port; only Next.js reaches it over the Docker network.
 | `team` | one club team |
 | `cohort` | every team in the age group, plus the cohort overview and player moves |
 | `club` | everything |
+
+A **parent** holds exactly one row: `(viewer, cohort, <their child's cohort>)`. That is
+the same row the age-group coach has at a lower role, so parents needed no new access
+logic - they read the whole age group and write nothing. What makes them a parent rather
+than any other viewer is a `player_guardians` link, which grants nothing today and is
+there to answer "whose access is this?" and to gate per-child contributions later.
 
 Roles **widen upwards**: role on a team = max(club role, cohort role, direct team role).
 `Access.for_user` computes, once per request:
@@ -67,7 +82,12 @@ scoped even when no single row would 403.
 An admin manages only users whose *every* role lies inside scopes the admin administers:
 a Blacks team admin can create Blacks coaches but not Reds', nor grant cohort or club
 roles. A club admin can't demote their own club-admin role or deactivate themselves.
-Admin password reset is the "forgot password" path — there is no email flow.
+For a **coach**, admin password reset is still the "forgot password" path.
+
+Parents are managed separately, by **coaches**, in Settings → Parents: inviting, closing
+and signing out are authorised by "could you have invited them?" — coach+ on at least one
+of that parent's children — not by the admin-scope rules above. A coach granting `viewer`
+is granting strictly less than they hold themselves, so it is not an escalation.
 
 ## Children's data handling
 
@@ -76,7 +96,13 @@ Admin password reset is the "forgot password" path — there is no email flow.
   `/data/media/players/<id>/<random>-{full,thumb}.jpg` with mode 600 on a private
   volume. Served only by `GET /players/{id}/photo` after `require_player`, with
   `Cache-Control: private`. The URL's `v=<random token>` changes on every upload.
-- **PDF and spreadsheet** name children, so they're **coach-only** (403 for viewers).
+- **PDF and spreadsheet** name children, so they're **coach-only** (403 for viewers) -
+  this is the one thing a parent cannot reach. Everything else in the age group is
+  readable by them, which the head coach decided explicitly in Oct 2026: there is nothing
+  in match notes, player notes or photos the club wants withheld from parents.
+- **Parents' email addresses** are personal data and the only contact details the app
+  holds. They are in the database and therefore in the backups; closing an account leaves
+  the address on the row.
 - **Match notes** are verbatim WhatsApp text; readable by anyone with access to the
   fixture's team, writable by coaches. Don't add parsing that writes to results without
   a human confirming (see roadmap).
@@ -119,13 +145,19 @@ check by default. Say explicitly who may write it.
 
 ## Known gaps (recommended next steps)
 
-1. **No login rate limiting.** Argon2 makes each guess ~50 ms but nothing throttles a
-   client. Add per-IP + per-username limits (e.g. 5 failures → 15-minute wait) in the
-   API or at Caddy.
-2. **Sessions can't be revoked.** The cookie is self-contained; a password change doesn't
-   invalidate other devices. Deactivating the user *does* cut them off immediately
-   (checked per request). Fix: a per-user session version in the token, bumped on
-   password change/reset.
-3. **No 2FA** — judged unnecessary for the audience; revisit if parents get accounts.
+1. **No rate limiting on `POST /auth/login`.** Argon2 makes each guess ~50 ms but nothing
+   throttles a client. Deliberately left alone when parent access was added: locking out a
+   coach who fumbles their password at the pitch is its own failure. The emailed-link
+   endpoints *are* limited (`core/ratelimit.py`: 5 link requests and 20 token attempts per
+   15 minutes, per email and per IP), in process - it forgets on restart, which is fine
+   for one container.
+2. **Session revocation is now possible but not wired to passwords.**
+   `users.session_version` is in the cookie and checked per request;
+   `POST /parents/{id}/sign-out` bumps it, and closing an account bumps it too. A coach
+   changing their password still doesn't invalidate their other devices - bump it there
+   as well.
+3. **No 2FA.** Parents now have accounts, but they are read-only and sign in from an
+   email inbox, which is itself the second factor in practice. Revisit if parents ever get
+   write access beyond their own child.
 4. **Timing side-channel on username existence** (argon2 is skipped for unknown users).
    Negligible here; a dummy verify would close it.
