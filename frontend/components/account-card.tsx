@@ -38,10 +38,14 @@ export function AccountCard() {
     }
   }
 
+  const cohortRole = me.roles.find(
+    (r) => r.scope_type === "cohort" && me.cohorts.some((c) => c.cohort.id === r.scope_id),
+  );
   const roleLabel = me.club_role
     ? `Club ${me.club_role}`
-    : me.cohorts.some((c) => me.roles.some((r) => r.scope_type === "cohort" && r.scope_id === c.cohort.id))
-      ? "Age-group coach"
+    : cohortRole
+      // A cohort viewer is a parent; a cohort coach is the age-group coach.
+      ? cohortRole.role === "viewer" ? "Parent" : "Age-group coach"
       : me.teams.length ? `${me.teams[0].role} · ${me.teams.map((t) => t.team.name).join(", ")}` : "No team";
 
   return (
@@ -52,7 +56,10 @@ export function AccountCard() {
           <p className="truncate text-xs capitalize text-muted-foreground">{roleLabel}</p>
         </div>
         <div className="flex shrink-0 gap-2">
-          <Button variant="outline" size="sm" onClick={() => setOpen(true)}><KeyRound className="size-4" /><span className="hidden sm:inline">Password</span></Button>
+          {/* Parents have no password - they sign in with an emailed link. */}
+          {me.has_password && (
+            <Button variant="outline" size="sm" onClick={() => setOpen(true)}><KeyRound className="size-4" /><span className="hidden sm:inline">Password</span></Button>
+          )}
           <Button variant="outline" size="sm" onClick={logout}><LogOut className="size-4" /><span className="hidden sm:inline">Sign out</span></Button>
         </div>
       </Card>

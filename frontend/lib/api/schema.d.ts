@@ -2235,6 +2235,8 @@ export interface components {
             display_name: string | null;
             /** Email */
             email: string | null;
+            /** Has Password */
+            has_password: boolean;
             /** Id */
             id: number;
             /** Roles */

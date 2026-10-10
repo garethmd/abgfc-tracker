@@ -65,6 +65,7 @@ def test_invite_accept_and_see_the_club(auth_client: TestClient, db, demo: DemoS
     assert r.status_code == 200, r.text
     me = r.json()
     assert me["username"] == "mum@example.com" and me["display_name"] == "Jo Smith"
+    assert me["email"] == "mum@example.com" and me["has_password"] is False
     assert me["roles"] == [{"role": "viewer", "scope_type": "cohort", "scope_id": archie.cohort_id}]
     # The multi-team role the age-group coach has: every team in the age group, read-only
     assert sorted(t["team"]["name"] for t in me["teams"]) == ["Blacks", "Blues", "Reds", "Whites"]

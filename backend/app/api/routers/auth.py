@@ -107,6 +107,7 @@ def _me(db, access) -> MeRead:
         id=access.user.id,
         username=access.user.username,
         email=access.user.email,
+        has_password=access.user.password_hash is not None,
         display_name=access.user.display_name,
         roles=list(access.user.roles),
         club_role=access.club_role,

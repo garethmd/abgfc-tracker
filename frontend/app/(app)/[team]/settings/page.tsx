@@ -8,9 +8,10 @@ import { AccountCard } from "@/components/account-card";
 import { SeasonsManager } from "@/components/features/settings/seasons-manager";
 import { AwardTypesManager } from "@/components/features/settings/award-types-manager";
 import { CompetitionsManager, TeamsManager } from "@/components/features/settings/lookup-managers";
+import { ParentsManager } from "@/components/features/settings/parents-manager";
 
 export default function SettingsPage() {
-  const { team } = useTeam();
+  const { team, canEdit } = useTeam();
   return (
     <div className="mx-auto max-w-2xl">
       <PageHeader title="Settings" description={`ABGFC ${team.name}`} />
@@ -21,11 +22,13 @@ export default function SettingsPage() {
           <TabsTrigger value="awards" className="flex-1">Awards</TabsTrigger>
           <TabsTrigger value="competitions" className="flex-1">Leagues</TabsTrigger>
           <TabsTrigger value="teams" className="flex-1">Opposition</TabsTrigger>
+          {canEdit && <TabsTrigger value="parents" className="flex-1">Parents</TabsTrigger>}
         </TabsList>
         <TabsContent value="seasons"><SeasonsManager /></TabsContent>
         <TabsContent value="awards"><AwardTypesManager /></TabsContent>
         <TabsContent value="competitions"><CompetitionsManager /></TabsContent>
         <TabsContent value="teams"><TeamsManager /></TabsContent>
+        {canEdit && <TabsContent value="parents"><ParentsManager /></TabsContent>}
       </Tabs>
 
       <section className="mt-10">

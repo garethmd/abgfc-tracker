@@ -1,3 +1,6 @@
+import logging
+import sys
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -22,8 +25,21 @@ from app.core.errors import AppError
 API_PREFIX = "/api/v1"
 
 
+def _setup_logging() -> None:
+    """Give our own loggers a handler. Uvicorn only configures its own, so without this
+    the console email backend writes the invite and sign-in links into the void - and in
+    development that log *is* the inbox."""
+    log = logging.getLogger("abgfc")
+    if not log.handlers:
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(logging.Formatter("%(levelname)s [%(name)s] %(message)s"))
+        log.addHandler(handler)
+    log.setLevel(logging.INFO)
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
+    _setup_logging()
     app = FastAPI(
         title="ABGFC",
         version="0.1.0",

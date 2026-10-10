@@ -3092,6 +3092,10 @@
             ],
             "title": "Email"
           },
+          "has_password": {
+            "title": "Has Password",
+            "type": "boolean"
+          },
           "id": {
             "title": "Id",
             "type": "integer"
@@ -3119,6 +3123,7 @@
           "id",
           "username",
           "email",
+          "has_password",
           "display_name",
           "roles",
           "club_role",
