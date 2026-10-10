@@ -34,8 +34,13 @@ def _link_from_log(caplog) -> str:
     return found[-1]
 
 
-def _invite(client: TestClient, player_id: int, email: str = "mum@example.com"):
-    return client.post(f"{API}/invitations", json={"email": email, "player_id": player_id})
+def _invite(client: TestClient, player_id: int, email: str | None = "mum@example.com"):
+    """email=None is the WhatsApp flow: the coach sends the link, the parent gives
+    their address when they accept."""
+    body: dict = {"player_id": player_id}
+    if email is not None:
+        body["email"] = email
+    return client.post(f"{API}/invitations", json=body)
 
 
 # --- the happy path -------------------------------------------------------------------
@@ -96,31 +101,64 @@ def test_invite_accept_and_see_the_club(auth_client: TestClient, db, demo: DemoS
     assert r.status_code == 403
 
 
-def test_one_parent_two_children_one_account(auth_client: TestClient, db, demo: DemoSeason):
+def test_one_parent_two_children_one_account(auth_client: TestClient, db, demo: DemoSeason, caplog):
+    """A second child joins the same account - but only after the address is proved."""
     archie, max_ = demo.players["Archie"], demo.players["Max"]
-    first = _invite(auth_client, archie.id).json()
-    parent = TestClient(auth_client.app)
-    parent.post(
-        f"{API}/auth/invitations/{first['link'].rsplit('/', 1)[1]}",
-        json={"display_name": "Jo"},
-    )
-    parent.post(
-        f"{API}/auth/invitations/{first['link'].rsplit('/', 1)[1]}/accept",
-        json={"display_name": "Jo"},
-    )
-    second = _invite(auth_client, max_.id).json()
-    r = parent.post(
-        f"{API}/auth/invitations/{second['link'].rsplit('/', 1)[1]}/accept",
-        json={"display_name": "Jo"},
-    )
-    assert r.status_code == 200
+    parent = _accept_as_parent(auth_client, archie.id)
+
+    second = _invite(auth_client, max_.id).json()["link"].rsplit("/", 1)[1]
+    with caplog.at_level("INFO", logger="abgfc.email"):
+        r = parent.post(f"{API}/auth/invitations/{second}/accept", json={"display_name": "Jo"})
+    # Not signed straight in: holding a link must not be enough to join an account
+    assert r.status_code == 409 and "already has an account" in r.json()["detail"]
     users = db.scalars(select(User).where(User.email == "mum@example.com")).all()
     assert len(users) == 1
-    assert sorted(g.player_id for g in users[0].guardian_of) == sorted([archie.id, max_.id])
-    # One role row, not two
-    assert len(users[0].roles) == 1
-    # And inviting the same pair again is refused
+    assert [g.player_id for g in users[0].guardian_of] == [archie.id]
+
+    # The emailed link is the proof, and following it adds the child
+    r = parent.post(f"{API}/auth/signin-link/{_link_from_log(caplog)}")
+    assert r.status_code == 200, r.text
+    db.expire_all()
+    user = db.scalar(select(User).where(User.email == "mum@example.com"))
+    assert sorted(g.player_id for g in user.guardian_of) == sorted([archie.id, max_.id])
+    assert len(user.roles) == 1  # one cohort role, not two
+    assert "Max" in "\n".join(
+        rec.getMessage() for rec in caplog.records if rec.name == "abgfc.email"
+    )
+    # And inviting the same pair again is refused outright
     assert _invite(auth_client, archie.id).status_code == 409
+
+
+def test_an_invitation_cannot_take_over_a_coachs_login(
+    auth_client: TestClient, db, demo: DemoSeason
+):
+    """Typing a coach's address must not hand the holder a login with write access."""
+    coach = db.scalar(select(User).where(User.username == "coach"))
+    coach.email = "boss@example.com"
+    db.commit()
+    # The WhatsApp flow, where the parent is the one supplying the address
+    token = _invite(auth_client, demo.players["Archie"].id, None).json()["link"].rsplit("/", 1)[1]
+    client = TestClient(auth_client.app)
+    r = client.post(
+        f"{API}/auth/invitations/{token}/accept",
+        json={"display_name": "Chancer", "email": "boss@example.com"},
+    )
+    assert r.status_code == 409 and "coach's login" in r.json()["detail"]
+    assert client.get(f"{API}/auth/me").status_code == 401
+    db.expire_all()
+    assert db.scalar(select(User).where(User.username == "coach")).guardian_of == []
+
+    # And where the coach named the address, the parent cannot substitute another
+    token = (
+        _invite(auth_client, demo.players["Max"].id, "mum@example.com")
+        .json()["link"]
+        .rsplit("/", 1)[1]
+    )
+    r = client.post(
+        f"{API}/auth/invitations/{token}/accept",
+        json={"display_name": "Jo", "email": "someone.else@example.com"},
+    )
+    assert r.status_code == 200 and r.json()["email"] == "mum@example.com"
 
 
 # --- the token rules ------------------------------------------------------------------
@@ -370,14 +408,15 @@ def test_a_child_leaving_surfaces_the_parent_to_close(
 
 
 def test_a_second_child_still_playing_keeps_the_account(
-    auth_client: TestClient, db, demo: DemoSeason
+    auth_client: TestClient, db, demo: DemoSeason, caplog
 ):
     archie, max_ = demo.players["Archie"], demo.players["Max"]
-    _accept_as_parent(auth_client, archie.id)
-    token = _invite(auth_client, max_.id).json()["link"].rsplit("/", 1)[1]
-    TestClient(auth_client.app).post(
-        f"{API}/auth/invitations/{token}/accept", json={"display_name": "Jo"}
-    )
+    parent = _accept_as_parent(auth_client, archie.id)
+    second = _invite(auth_client, max_.id).json()["link"].rsplit("/", 1)[1]
+    with caplog.at_level("INFO", logger="abgfc.email"):
+        parent.post(f"{API}/auth/invitations/{second}/accept", json={"display_name": "Jo"})
+        parent.post(f"{API}/auth/signin-link/{_link_from_log(caplog)}")
+
     archie.left_date = datetime.now().date()
     db.commit()
     url = f"{API}/team-seasons/{demo.team_season.id}/parents"
@@ -432,3 +471,39 @@ def test_the_note_a_coach_sends_with_the_link(auth_client: TestClient, demo: Dem
     assert "Club admin has invited you" in created["share_text"]
     # No coach name on record still reads sensibly
     assert invite_message("Archie", "x", None).startswith("Your coach has invited you")
+
+
+def test_invite_without_an_address_for_whatsapp(
+    auth_client: TestClient, db, demo: DemoSeason, caplog
+):
+    """The coach has a phone number, not an email. They send the link themselves and
+    the parent gives their address on the way in."""
+    archie = demo.players["Archie"]
+    with caplog.at_level("INFO", logger="abgfc.email"):
+        r = _invite(auth_client, archie.id, None)
+    assert r.status_code == 201, r.text
+    created = r.json()
+    assert created["email"] is None and created["emailed"] is False
+    assert not [rec for rec in caplog.records if rec.name == "abgfc.email"]  # nothing sent
+    assert created["link"] in created["share_text"]
+
+    token = created["link"].rsplit("/", 1)[1]
+    parent = TestClient(auth_client.app)
+    # The landing page knows it must ask for an address
+    assert parent.get(f"{API}/auth/invitations/{token}").json()["email"] is None
+    # ...and refuses without one
+    r = parent.post(f"{API}/auth/invitations/{token}/accept", json={"display_name": "Jo"})
+    assert r.status_code == 422 and "email" in r.json()["detail"].lower()
+    assert parent.get(f"{API}/auth/invitations/{token}").status_code == 200  # not spent
+
+    r = parent.post(
+        f"{API}/auth/invitations/{token}/accept",
+        json={"display_name": "Jo Smith", "email": "Jo.Smith@Example.com "},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["email"] == "jo.smith@example.com"  # normalised
+    assert parent.get(f"{API}/auth/me").status_code == 200
+    user = db.scalar(select(User).where(User.email == "jo.smith@example.com"))
+    assert user.password_hash is None and [g.player_id for g in user.guardian_of] == [archie.id]
+    # Both parents of one child can be invited separately without clashing
+    assert _invite(auth_client, archie.id, None).status_code == 201

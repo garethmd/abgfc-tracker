@@ -2569,12 +2569,27 @@
       },
       "InviteAccept": {
         "additionalProperties": false,
+        "description": "`email` is required when the invitation didn't carry one.",
         "properties": {
           "display_name": {
             "maxLength": 100,
             "minLength": 1,
             "title": "Display Name",
             "type": "string"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 3,
+                "pattern": "^[^@\\s]+@[^@\\s.]+\\.[^@\\s]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
           }
         },
         "required": [
@@ -2585,14 +2600,21 @@
       },
       "InviteCreate": {
         "additionalProperties": false,
-        "description": "Invite one parent to see the club, as the guardian of one child.",
+        "description": "Invite one parent as the guardian of one child.\n\nNo email means the coach is sending the link themselves, over WhatsApp - which is\nhow this club actually talks to parents. The parent gives their address when they\naccept, because the account is keyed on it: that is how they sign in again once the\nsession lapses.",
         "properties": {
           "email": {
-            "maxLength": 255,
-            "minLength": 3,
-            "pattern": "^[^@\\s]+@[^@\\s.]+\\.[^@\\s]+$",
-            "title": "Email",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 3,
+                "pattern": "^[^@\\s]+@[^@\\s.]+\\.[^@\\s]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
           },
           "player_id": {
             "title": "Player Id",
@@ -2600,7 +2622,6 @@
           }
         },
         "required": [
-          "email",
           "player_id"
         ],
         "title": "InviteCreate",
@@ -2615,8 +2636,15 @@
             "type": "string"
           },
           "email": {
-            "title": "Email",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
           },
           "emailed": {
             "title": "Emailed",
@@ -2672,8 +2700,15 @@
         "description": "What the landing page shows before the parent commits - no account exists yet.",
         "properties": {
           "email": {
-            "title": "Email",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
           },
           "invited_by": {
             "anyOf": [
@@ -2715,8 +2750,15 @@
             "type": "string"
           },
           "email": {
-            "title": "Email",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
           },
           "expires_at": {
             "format": "date-time",

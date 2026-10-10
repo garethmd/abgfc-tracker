@@ -2116,18 +2116,28 @@ export interface components {
             /** Venue Notes */
             venue_notes?: string | null;
         };
-        /** InviteAccept */
+        /**
+         * InviteAccept
+         * @description `email` is required when the invitation didn't carry one.
+         */
         InviteAccept: {
             /** Display Name */
             display_name: string;
+            /** Email */
+            email?: string | null;
         };
         /**
          * InviteCreate
-         * @description Invite one parent to see the club, as the guardian of one child.
+         * @description Invite one parent as the guardian of one child.
+         *
+         *     No email means the coach is sending the link themselves, over WhatsApp - which is
+         *     how this club actually talks to parents. The parent gives their address when they
+         *     accept, because the account is keyed on it: that is how they sign in again once the
+         *     session lapses.
          */
         InviteCreate: {
             /** Email */
-            email: string;
+            email?: string | null;
             /** Player Id */
             player_id: number;
         };
@@ -2144,7 +2154,7 @@ export interface components {
              */
             created_at: string;
             /** Email */
-            email: string;
+            email: string | null;
             /** Emailed */
             emailed: boolean;
             /**
@@ -2168,7 +2178,7 @@ export interface components {
          */
         InvitePreview: {
             /** Email */
-            email: string;
+            email: string | null;
             /** Invited By */
             invited_by: string | null;
             /** Player Name */
@@ -2184,7 +2194,7 @@ export interface components {
              */
             created_at: string;
             /** Email */
-            email: string;
+            email: string | null;
             /**
              * Expires At
              * Format: date-time

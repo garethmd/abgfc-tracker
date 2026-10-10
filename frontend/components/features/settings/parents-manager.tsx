@@ -291,12 +291,16 @@ function InviteSheet({
   const [email, setEmail] = useState("");
   const create = $api.useMutation("post", "/api/v1/invitations");
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  /** WhatsApp sends nothing: the coach gets the link and the parent types their own
+   *  address on the way in, because a coach with a phone number rarely has an email. */
+  async function invite(withEmail: boolean) {
     if (!row) return;
     try {
       const c = await create.mutateAsync({
-        body: { email: email.trim().toLowerCase(), player_id: row.player.id },
+        body: {
+          player_id: row.player.id,
+          ...(withEmail ? { email: email.trim().toLowerCase() } : {}),
+        },
       });
       setEmail("");
       onCreated(c);
@@ -305,34 +309,64 @@ function InviteSheet({
     }
   }
 
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await invite(true);
+  }
+
   return (
     <Sheet open={row !== null} onOpenChange={(o) => { if (!o) { onClose(); setEmail(""); } }}>
       <SheetContent side="bottom" className="rounded-t-2xl pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:max-w-none">
         <SheetHeader className="text-left">
           <SheetTitle>Invite {row?.player.display_name}&apos;s parent</SheetTitle>
           <SheetDescription>
-            They&apos;ll get an email with a link. No password to set up.
+            They get a link, tap it, and they&apos;re in. No password to set up.
           </SheetDescription>
         </SheetHeader>
-        <form onSubmit={onSubmit} className="mx-auto w-full max-w-lg space-y-4 px-4">
+        <div className="mx-auto w-full max-w-lg space-y-5 px-4">
           <div className="space-y-2">
-            <Label htmlFor="parent-email">Email address</Label>
-            <Input
-              id="parent-email"
-              type="email"
-              inputMode="email"
-              autoCapitalize="none"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="parent@example.com"
-              className="h-11"
-              required
-            />
+            <Button
+              type="button"
+              className="h-12 w-full"
+              onClick={() => invite(false)}
+              disabled={create.isPending}
+            >
+              <WhatsAppIcon className="size-4" /> Send on WhatsApp
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Nothing is emailed. You get the link to send to that parent, and they give
+              us their email when they open it.
+            </p>
           </div>
-          <Button type="submit" className="h-12 w-full" disabled={create.isPending || !email.trim()}>
-            {create.isPending ? "Sending…" : "Send invitation"}
-          </Button>
-        </form>
+
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="h-px flex-1 bg-border" /> or email it <span className="h-px flex-1 bg-border" />
+          </div>
+
+          <form onSubmit={onSubmit} className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="parent-email">Their email address</Label>
+              <Input
+                id="parent-email"
+                type="email"
+                inputMode="email"
+                autoCapitalize="none"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="parent@example.com"
+                className="h-11"
+              />
+            </div>
+            <Button
+              type="submit"
+              variant="outline"
+              className="h-12 w-full"
+              disabled={create.isPending || !email.trim()}
+            >
+              {create.isPending ? "Sending…" : "Email the invitation"}
+            </Button>
+          </form>
+        </div>
       </SheetContent>
     </Sheet>
   );
@@ -365,7 +399,9 @@ function LinkDialog({ created, onClose }: { created: Created | null; onClose: ()
           <DialogDescription>
             {created?.emailed
               ? `Emailed to ${created?.email}. If it doesn't arrive, send them this link yourself - it's the same invitation.`
-              : `The email couldn't be sent, so send ${created?.email} this link yourself.`}
+              : created?.email
+                ? `The email couldn't be sent, so send ${created.email} this link yourself.`
+                : "Send this to that parent. They'll give us their email when they open it."}
           </DialogDescription>
         </DialogHeader>
         <p className="break-all rounded-lg bg-muted/60 p-3 text-xs">{created?.link}</p>

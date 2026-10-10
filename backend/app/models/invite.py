@@ -35,7 +35,9 @@ class LoginToken(TimestampMixin, Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)
     purpose: Mapped[TokenPurpose] = mapped_column(String(20))
-    email: Mapped[str] = mapped_column(String(255))  # lowercased
+    # NULL when the coach is sending the link by hand (WhatsApp): the parent gives
+    # their address when they accept, and that is what the account is keyed on.
+    email: Mapped[str | None] = mapped_column(String(255))  # lowercased
     # invite: the child this parent belongs to (their cohort decides what they can see)
     player_id: Mapped[int | None] = mapped_column(ForeignKey("players.id", ondelete="CASCADE"))
     # signin: the account the link signs into

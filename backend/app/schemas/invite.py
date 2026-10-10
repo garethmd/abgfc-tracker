@@ -18,15 +18,30 @@ class _WithEmail(InputModel):
         return v.strip().lower()
 
 
-class InviteCreate(_WithEmail):
-    """Invite one parent to see the club, as the guardian of one child."""
+class _WithOptionalEmail(InputModel):
+    email: str | None = Field(default=None, min_length=3, max_length=255, pattern=EMAIL_PATTERN)
+
+    @field_validator("email")
+    @classmethod
+    def _normalise(cls, v: str | None) -> str | None:
+        return v.strip().lower() if v else None
+
+
+class InviteCreate(_WithOptionalEmail):
+    """Invite one parent as the guardian of one child.
+
+    No email means the coach is sending the link themselves, over WhatsApp - which is
+    how this club actually talks to parents. The parent gives their address when they
+    accept, because the account is keyed on it: that is how they sign in again once the
+    session lapses.
+    """
 
     player_id: int
 
 
 class InviteRead(ORMModel):
     id: int
-    email: str
+    email: str | None  # None = the coach is sending the link by hand
     player: PlayerSummary
     invited_by: str | None
     expires_at: datetime
@@ -49,10 +64,13 @@ class InvitePreview(ORMModel):
     player_name: str
     team_names: list[str]
     invited_by: str | None
-    email: str
+    # None means we don't know the parent's address yet, so the page must ask for one.
+    email: str | None
 
 
-class InviteAccept(InputModel):
+class InviteAccept(_WithOptionalEmail):
+    """`email` is required when the invitation didn't carry one."""
+
     display_name: str = Field(min_length=1, max_length=100)
 
 

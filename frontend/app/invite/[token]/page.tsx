@@ -17,6 +17,7 @@ type Preview = Schema["InvitePreview"];
 export default function InvitePage({ params }: PageProps<"/invite/[token]">) {
   const { token } = use(params);
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -38,7 +39,11 @@ export default function InvitePage({ params }: PageProps<"/invite/[token]">) {
     setError(null);
     const { error } = await fetchClient.POST("/api/v1/auth/invitations/{token}/accept", {
       params: { path: { token } },
-      body: { display_name: name.trim() },
+      body: {
+        display_name: name.trim(),
+        // Only when the coach sent the link by hand and we don't know it yet.
+        ...(q.data?.email ? {} : { email: email.trim().toLowerCase() }),
+      },
     });
     setPending(false);
     if (error) {
@@ -86,12 +91,37 @@ export default function InvitePage({ params }: PageProps<"/invite/[token]">) {
               required
             />
           </div>
+          {!q.data.email && (
+            <div className="space-y-2">
+              <Label htmlFor="email">Your email address</Label>
+              <Input
+                id="email"
+                type="email"
+                inputMode="email"
+                autoCapitalize="none"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="h-11"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Only so we can send you a link when you need to sign in again.
+              </p>
+            </div>
+          )}
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" className="h-12 w-full text-base" disabled={pending || !name.trim()}>
+          <Button
+            type="submit"
+            className="h-12 w-full text-base"
+            disabled={pending || !name.trim() || (!q.data.email && !email.trim())}
+          >
             {pending ? "Getting you in…" : "Get started"}
           </Button>
           <p className="text-center text-xs text-muted-foreground">
-            No password needed. Next time, we&apos;ll email you a link to {q.data.email}.
+            No password needed. Next time, we&apos;ll email you a link to sign in
+            {q.data.email ? ` at ${q.data.email}` : ""}.
           </p>
         </form>
       )}
