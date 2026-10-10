@@ -2648,6 +2648,10 @@
           },
           "player": {
             "$ref": "#/components/schemas/PlayerSummary"
+          },
+          "share_text": {
+            "title": "Share Text",
+            "type": "string"
           }
         },
         "required": [
@@ -2658,7 +2662,8 @@
           "expires_at",
           "created_at",
           "link",
-          "emailed"
+          "emailed",
+          "share_text"
         ],
         "title": "InviteCreated",
         "type": "object"

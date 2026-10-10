@@ -56,6 +56,24 @@ def format_date_line(dt: datetime) -> str:
     return f"{dt:%A} {dt.day} {dt:%B}"  # "Saturday 19 September"
 
 
+def invite_message(player_name: str, link: str, invited_by: str | None) -> str:
+    """The note a coach sends a parent with their invitation, usually as a WhatsApp
+    direct message. Kept here with the match-day template so the wording is one thing,
+    under test, rather than a string in a component.
+
+    It says the link is personal because it is: whoever opens it first becomes that
+    child's parent on the app, so it must not be forwarded or put in a group.
+    """
+    who = invited_by or "Your coach"
+    return (
+        f"{who} has invited you to the Aldershot Boys & Girls FC app - "
+        f"{player_name}'s fixtures, results and who's available each week.\n\n"
+        f"{link}\n\n"
+        "This link is just for you, so please don't forward it or put it in a group. "
+        "There's no password to set up: tap the link and you're in.\n"
+    )
+
+
 @dataclass(frozen=True)
 class MessageInput:
     team_name: str

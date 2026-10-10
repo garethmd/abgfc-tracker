@@ -2159,6 +2159,8 @@ export interface components {
             /** Link */
             link: string;
             player: components["schemas"]["PlayerSummary"];
+            /** Share Text */
+            share_text: string;
         };
         /**
          * InvitePreview

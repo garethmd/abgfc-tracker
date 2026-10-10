@@ -48,6 +48,7 @@ from app.schemas.invite import (
 from app.schemas.player import PlayerSummary
 from app.services.access import Access
 from app.services.email import EmailError, EmailService
+from app.services.messages import invite_message
 
 
 def _now() -> datetime:
@@ -102,7 +103,12 @@ class InviteService:
 
         link = f"{self.settings.public_base_url.rstrip('/')}/invite/{raw}"
         emailed = self._send_invite(data.email, player, link)
-        return InviteCreated(**_invite_read(token).model_dump(), link=link, emailed=emailed)
+        return InviteCreated(
+            **_invite_read(token).model_dump(),
+            link=link,
+            emailed=emailed,
+            share_text=invite_message(player.display_name, link, _who(self._access.user)),
+        )
 
     def list_for_team_season(self, team_season_id: int) -> TeamParentsRead:
         """Who can see the club because of each child in this squad - the Parents tab."""

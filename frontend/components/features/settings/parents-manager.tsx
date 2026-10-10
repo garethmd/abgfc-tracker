@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ErrorState } from "@/components/error-state";
+import { WhatsAppIcon, whatsAppUrl } from "@/components/whatsapp";
 import { formatDate } from "@/lib/format";
 
 type Row = Schema["PlayerAccessRead"];
@@ -346,7 +347,7 @@ function LinkDialog({ created, onClose }: { created: Created | null; onClose: ()
   async function copy() {
     if (!created) return;
     try {
-      await navigator.clipboard.writeText(created.link);
+      await navigator.clipboard.writeText(created.share_text);
       setCopied(true);
       toast.success("Link copied");
     } catch {
@@ -369,14 +370,30 @@ function LinkDialog({ created, onClose }: { created: Created | null; onClose: ()
         </DialogHeader>
         <p className="break-all rounded-lg bg-muted/60 p-3 text-xs">{created?.link}</p>
         <p className="text-xs text-muted-foreground">
-          Send it to that parent only - anyone with the link can use it. It works once and
-          expires {created ? formatDate(created.expires_at) : ""}.
+          <strong className="font-medium text-foreground">Send it to that one parent.</strong>{" "}
+          Whoever opens it first becomes {created?.player.display_name}&apos;s parent on the
+          app, so it mustn&apos;t go in a group. It works once and expires{" "}
+          {created ? formatDate(created.expires_at) : ""}.
         </p>
-        <DialogFooter className="gap-2">
-          <Button variant="outline" className="h-11" onClick={onClose}>Done</Button>
-          <Button className="h-11" onClick={copy}>
-            {copied ? <><Check className="size-4" /> Copied</> : <><Copy className="size-4" /> Copy link</>}
+        <div className="grid grid-cols-2 gap-2">
+          <Button asChild className="h-11">
+            <a
+              href={created ? whatsAppUrl(created.share_text) : "#"}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <WhatsAppIcon className="size-4" /> WhatsApp
+            </a>
           </Button>
+          <Button variant="outline" className="h-11" onClick={copy}>
+            {copied ? <><Check className="size-4" /> Copied</> : <><Copy className="size-4" /> Copy message</>}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          WhatsApp opens with the message typed - pick that parent&apos;s chat, not a group.
+        </p>
+        <DialogFooter>
+          <Button variant="outline" className="h-11 w-full" onClick={onClose}>Done</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

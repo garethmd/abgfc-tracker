@@ -417,3 +417,18 @@ def test_only_a_coach_of_that_child_may_close_the_account(
     # A coach account is not a parent and can't be closed through this route
     coach = db.scalar(select(User).where(User.username == "coach"))
     assert auth_client.post(f"{API}/parents/{coach.id}/close").status_code == 404
+
+
+def test_the_note_a_coach_sends_with_the_link(auth_client: TestClient, demo: DemoSeason):
+    """Invitations usually travel as a WhatsApp direct message, so the app writes the
+    note as well as the link - and says not to forward it."""
+    from app.services.messages import invite_message
+
+    created = _invite(auth_client, demo.players["Archie"].id).json()
+    assert created["share_text"] == invite_message("Archie", created["link"], "Club admin")
+    assert created["link"] in created["share_text"]
+    assert "Archie's fixtures" in created["share_text"]
+    assert "just for you" in created["share_text"]
+    assert "Club admin has invited you" in created["share_text"]
+    # No coach name on record still reads sensibly
+    assert invite_message("Archie", "x", None).startswith("Your coach has invited you")

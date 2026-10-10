@@ -40,6 +40,7 @@ class InviteCreated(InviteRead):
 
     link: str
     emailed: bool
+    share_text: str  # the note to send the parent, link included
 
 
 class InvitePreview(ORMModel):
