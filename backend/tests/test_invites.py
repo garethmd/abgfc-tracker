@@ -313,8 +313,9 @@ def test_parents_tab_lists_access_per_child(auth_client: TestClient, db, demo: D
     _accept_as_parent(auth_client, archie)
     _invite(auth_client, demo.players["Max"].id, "max.dad@example.com")
 
-    rows = auth_client.get(f"{API}/team-seasons/{demo.team_season.id}/parents").json()
-    by_name = {r["player"]["display_name"]: r for r in rows}
+    body = auth_client.get(f"{API}/team-seasons/{demo.team_season.id}/parents").json()
+    assert body["leavers"] == []
+    by_name = {r["player"]["display_name"]: r for r in body["players"]}
     assert by_name["Archie"]["guardians"][0]["email"] == "mum@example.com"
     assert by_name["Archie"]["guardians"][0]["is_active"] is True
     assert by_name["Archie"]["pending"] == []
@@ -337,3 +338,82 @@ def test_closing_an_account_locks_the_parent_out(auth_client: TestClient, db, de
     assert parent.get(f"{API}/auth/me").status_code == 401
     # And the guardian link is still there to say why they had access
     assert db.scalar(select(PlayerGuardian).where(PlayerGuardian.user_id == user.id)) is not None
+
+
+# --- closing an account ---------------------------------------------------------------
+
+
+def test_a_child_leaving_surfaces_the_parent_to_close(
+    auth_client: TestClient, db, demo: DemoSeason
+):
+    """Access doesn't lapse by itself - the Parents tab says whose account to close."""
+    archie = demo.players["Archie"]
+    parent = _accept_as_parent(auth_client, archie.id)
+    url = f"{API}/team-seasons/{demo.team_season.id}/parents"
+    assert auth_client.get(url).json()["leavers"] == []
+
+    archie.left_date = datetime.now().date()
+    db.commit()
+    leavers = auth_client.get(url).json()["leavers"]
+    assert len(leavers) == 1
+    assert leavers[0]["email"] == "mum@example.com" and leavers[0]["children"] == ["Archie"]
+    # Still in until somebody closes it
+    assert parent.get(f"{API}/auth/me").status_code == 200
+
+    user_id = leavers[0]["user_id"]
+    assert auth_client.post(f"{API}/parents/{user_id}/close").status_code == 204
+    assert parent.get(f"{API}/auth/me").status_code == 401
+    assert auth_client.get(url).json()["leavers"] == []  # closed accounts drop off
+    # And can be let back in
+    assert auth_client.post(f"{API}/parents/{user_id}/reopen").status_code == 204
+    assert len(auth_client.get(url).json()["leavers"]) == 1
+
+
+def test_a_second_child_still_playing_keeps_the_account(
+    auth_client: TestClient, db, demo: DemoSeason
+):
+    archie, max_ = demo.players["Archie"], demo.players["Max"]
+    _accept_as_parent(auth_client, archie.id)
+    token = _invite(auth_client, max_.id).json()["link"].rsplit("/", 1)[1]
+    TestClient(auth_client.app).post(
+        f"{API}/auth/invitations/{token}/accept", json={"display_name": "Jo"}
+    )
+    archie.left_date = datetime.now().date()
+    db.commit()
+    url = f"{API}/team-seasons/{demo.team_season.id}/parents"
+    assert auth_client.get(url).json()["leavers"] == []
+
+
+def test_sign_out_everywhere_keeps_the_account(auth_client: TestClient, db, demo: DemoSeason):
+    """A phone left on a bus: kill the sessions, keep the access."""
+    parent = _accept_as_parent(auth_client, demo.players["Archie"].id)
+    user = db.scalar(select(User).where(User.email == "mum@example.com"))
+    assert parent.get(f"{API}/auth/me").status_code == 200
+
+    assert auth_client.post(f"{API}/parents/{user.id}/sign-out").status_code == 204
+    assert parent.get(f"{API}/auth/me").status_code == 401
+    db.refresh(user)
+    assert user.is_active is True  # they can ask for a new link
+
+    fresh = TestClient(auth_client.app)
+    fresh.post(f"{API}/auth/signin-link", json={"email": "mum@example.com"})
+    assert db.scalar(select(User).where(User.email == "mum@example.com")).is_active
+
+
+def test_only_a_coach_of_that_child_may_close_the_account(
+    client: TestClient, auth_client: TestClient, db, demo: DemoSeason
+):
+    _accept_as_parent(auth_client, demo.players["Archie"].id)
+    user = db.scalar(select(User).where(User.email == "mum@example.com"))
+    blues = demo.team_season.club_team_id
+    make_user(db, "reds_coach", (UserRole.COACH, RoleScope.TEAM, blues + 1))
+    make_user(db, "blues_viewer", (UserRole.VIEWER, RoleScope.TEAM, blues))
+    db.commit()
+
+    login_as(client, "reds_coach")
+    assert client.post(f"{API}/parents/{user.id}/close").status_code == 403
+    login_as(client, "blues_viewer")
+    assert client.post(f"{API}/parents/{user.id}/close").status_code == 403
+    # A coach account is not a parent and can't be closed through this route
+    coach = db.scalar(select(User).where(User.username == "coach"))
+    assert auth_client.post(f"{API}/parents/{coach.id}/close").status_code == 404

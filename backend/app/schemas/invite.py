@@ -74,3 +74,19 @@ class PlayerAccessRead(ORMModel):
     player: PlayerSummary
     guardians: list[GuardianRead]
     pending: list[InviteRead]
+
+
+class LeaverRead(ORMModel):
+    """A parent account whose children have all left the club. Access doesn't lapse on
+    its own, so these are listed for a coach to close."""
+
+    user_id: int
+    display_name: str | None
+    email: str | None
+    is_active: bool
+    children: list[str]
+
+
+class TeamParentsRead(ORMModel):
+    players: list[PlayerAccessRead]
+    leavers: list[LeaverRead]

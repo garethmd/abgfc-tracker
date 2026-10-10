@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, Mail, Plus, Trash2, UserRound } from "lucide-react";
+import { Check, Copy, LogOut, Mail, Plus, Trash2, UserRound, UserX } from "lucide-react";
 import { toast } from "sonner";
 import { $api, errorMessage, type Schema } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
@@ -27,6 +27,9 @@ import { formatDate } from "@/lib/format";
 type Row = Schema["PlayerAccessRead"];
 type Invite = Schema["InviteRead"];
 type Created = Schema["InviteCreated"];
+type Guardian = Schema["GuardianRead"];
+/** A parent to act on, and which action. */
+type Action = { user: { id: number; name: string }; kind: "close" | "sign-out" };
 
 /** Who can see the club because of a child in this squad, and inviting more.
  *  Parents sign in with an emailed link, so there is no password to hand out. */
@@ -43,7 +46,10 @@ export function ParentsManager() {
   const [inviting, setInviting] = useState<Row | null>(null);
   const [created, setCreated] = useState<Created | null>(null);
   const [revoking, setRevoking] = useState<Invite | null>(null);
+  const [acting, setActing] = useState<Action | null>(null);
   const revoke = $api.useMutation("delete", "/api/v1/invitations/{invite_id}");
+  const close = $api.useMutation("post", "/api/v1/parents/{user_id}/close");
+  const signOut = $api.useMutation("post", "/api/v1/parents/{user_id}/sign-out");
 
   function invalidate() {
     qc.invalidateQueries({ queryKey: ["get", "/api/v1/team-seasons"] });
@@ -65,10 +71,29 @@ export function ParentsManager() {
   if (!canEdit) {
     return <p className="text-sm text-muted-foreground">Coaches only.</p>;
   }
+  async function onAct() {
+    if (!acting) return;
+    const m = acting.kind === "close" ? close : signOut;
+    try {
+      await m.mutateAsync({ params: { path: { user_id: acting.user.id } } });
+      invalidate();
+      toast.success(
+        acting.kind === "close"
+          ? `${acting.user.name} can no longer sign in`
+          : `${acting.user.name} signed out on every device`,
+      );
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setActing(null);
+    }
+  }
+
   if (q.isPending) return <Skeleton className="h-64 rounded-xl" />;
   if (q.error) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
 
-  const rows = q.data;
+  const rows = q.data.players;
+  const leavers = q.data.leavers;
   const withAccess = rows.filter((r) => r.guardians.length > 0).length;
 
   return (
@@ -85,11 +110,13 @@ export function ParentsManager() {
             <span className="min-w-28 flex-1 text-sm font-medium">{r.player.display_name}</span>
             <div className="flex min-w-0 flex-[2] flex-wrap items-center gap-1.5">
               {r.guardians.map((g) => (
-                <Badge key={g.id} variant={g.is_active ? "secondary" : "outline"} className="max-w-full gap-1">
-                  <UserRound className="size-3 shrink-0" />
-                  <span className="truncate">{g.display_name ?? g.email}</span>
-                  {!g.is_active && <span className="text-muted-foreground">· closed</span>}
-                </Badge>
+                <GuardianBadge
+                  key={g.id}
+                  guardian={g}
+                  onAct={(kind) =>
+                    setActing({ user: { id: g.user_id, name: g.display_name ?? g.email ?? "They" }, kind })
+                  }
+                />
               ))}
               {r.pending.map((p) => (
                 <Badge key={p.id} variant="outline" className="max-w-full gap-1 border-dashed">
@@ -111,7 +138,7 @@ export function ParentsManager() {
               )}
             </div>
             <Button size="sm" variant="outline" className="h-9" onClick={() => setInviting(r)}>
-              <Plus className="size-4" /> Invite
+              <Plus className="size-4" /> {r.pending.length ? "Resend" : "Invite"}
             </Button>
           </div>
         ))}
@@ -121,6 +148,37 @@ export function ParentsManager() {
           </p>
         )}
       </Card>
+
+      {leavers.length > 0 && (
+        <div className="mt-6">
+          <p className="mb-2 text-sm font-medium">Children who have left</p>
+          <p className="mb-3 text-xs text-muted-foreground">
+            These parents can still sign in. Closing an account takes effect straight away.
+          </p>
+          <Card className="divide-y divide-border/40">
+            {leavers.map((l) => (
+              <div key={l.user_id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{l.display_name ?? l.email}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {l.children.join(", ")} · left
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-9"
+                  onClick={() =>
+                    setActing({ user: { id: l.user_id, name: l.display_name ?? l.email ?? "They" }, kind: "close" })
+                  }
+                >
+                  <UserX className="size-4" /> Close account
+                </Button>
+              </div>
+            ))}
+          </Card>
+        </div>
+      )}
 
       <InviteSheet
         row={inviting}
@@ -132,6 +190,34 @@ export function ParentsManager() {
         }}
       />
       <LinkDialog created={created} onClose={() => setCreated(null)} />
+
+      <Dialog open={acting !== null} onOpenChange={(o) => !o && setActing(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {acting?.kind === "close"
+                ? `Close ${acting?.user.name}'s account?`
+                : `Sign ${acting?.user.name} out everywhere?`}
+            </DialogTitle>
+            <DialogDescription>
+              {acting?.kind === "close"
+                ? "They won't be able to sign in again until you reopen it. Nothing they can see is deleted."
+                : "Every phone and computer they're signed in on is signed out. They keep their access and can ask for a new link."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" className="h-11" onClick={() => setActing(null)}>Cancel</Button>
+            <Button
+              variant={acting?.kind === "close" ? "destructive" : "default"}
+              className="h-11"
+              onClick={onAct}
+              disabled={close.isPending || signOut.isPending}
+            >
+              {acting?.kind === "close" ? "Close account" : "Sign out"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={revoking !== null} onOpenChange={(o) => !o && setRevoking(null)}>
         <DialogContent>
@@ -153,6 +239,42 @@ export function ParentsManager() {
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+function GuardianBadge({
+  guardian: g,
+  onAct,
+}: {
+  guardian: Guardian;
+  onAct: (kind: "close" | "sign-out") => void;
+}) {
+  return (
+    <span className="inline-flex max-w-full items-center gap-1 rounded-md bg-secondary px-2 py-1 text-xs">
+      <UserRound className="size-3 shrink-0" />
+      <span className="truncate">{g.display_name ?? g.email}</span>
+      {!g.is_active && <span className="text-muted-foreground">· closed</span>}
+      <button
+        type="button"
+        onClick={() => onAct("sign-out")}
+        aria-label={`Sign ${g.display_name ?? g.email} out everywhere`}
+        title="Sign out everywhere"
+        className="ml-0.5 text-muted-foreground hover:text-foreground"
+      >
+        <LogOut className="size-3" />
+      </button>
+      {g.is_active && (
+        <button
+          type="button"
+          onClick={() => onAct("close")}
+          aria-label={`Close ${g.display_name ?? g.email}'s account`}
+          title="Close account"
+          className="text-muted-foreground hover:text-destructive"
+        >
+          <UserX className="size-3" />
+        </button>
+      )}
+    </span>
   );
 }
 

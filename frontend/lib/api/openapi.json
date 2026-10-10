@@ -2789,6 +2789,57 @@
         "title": "Leaderboard",
         "type": "object"
       },
+      "LeaverRead": {
+        "description": "A parent account whose children have all left the club. Access doesn't lapse on\nits own, so these are listed for a coach to close.",
+        "properties": {
+          "children": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Children",
+            "type": "array"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "user_id",
+          "display_name",
+          "email",
+          "is_active",
+          "children"
+        ],
+        "title": "LeaverRead",
+        "type": "object"
+      },
       "LiveGoal": {
         "additionalProperties": false,
         "description": "A goal as it happens. `sequence` is the client's next event sequence: resending the\nsame one (a retried request) returns the goal already recorded instead of a second.",
@@ -4589,6 +4640,30 @@
           "into_team_id"
         ],
         "title": "TeamMerge",
+        "type": "object"
+      },
+      "TeamParentsRead": {
+        "properties": {
+          "leavers": {
+            "items": {
+              "$ref": "#/components/schemas/LeaverRead"
+            },
+            "title": "Leavers",
+            "type": "array"
+          },
+          "players": {
+            "items": {
+              "$ref": "#/components/schemas/PlayerAccessRead"
+            },
+            "title": "Players",
+            "type": "array"
+          }
+        },
+        "required": [
+          "players",
+          "leavers"
+        ],
+        "title": "TeamParentsRead",
         "type": "object"
       },
       "TeamRead": {
@@ -8564,6 +8639,161 @@
         ]
       }
     },
+    "/api/v1/parents/{user_id}/close": {
+      "post": {
+        "description": "Stop this parent getting in - a child who has left, or a lost phone. Immediate.",
+        "operationId": "close_parent_api_v1_parents__user_id__close_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Close Parent",
+        "tags": [
+          "invitations"
+        ]
+      }
+    },
+    "/api/v1/parents/{user_id}/reopen": {
+      "post": {
+        "operationId": "reopen_parent_api_v1_parents__user_id__reopen_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reopen Parent",
+        "tags": [
+          "invitations"
+        ]
+      }
+    },
+    "/api/v1/parents/{user_id}/sign-out": {
+      "post": {
+        "description": "Sign every device out but keep the account - a phone left on a bus.",
+        "operationId": "sign_parent_out_api_v1_parents__user_id__sign_out_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Sign Parent Out",
+        "tags": [
+          "invitations"
+        ]
+      }
+    },
     "/api/v1/players": {
       "get": {
         "operationId": "list_players_api_v1_players_get",
@@ -9929,7 +10159,7 @@
     },
     "/api/v1/team-seasons/{team_season_id}/parents": {
       "get": {
-        "description": "Each child in the squad with the parents who can see the club, and any invitation\nstill outstanding.",
+        "description": "Each child in the squad with the parents who can see the club and any invitation\nstill outstanding, plus parents whose children have all left - the accounts to close.",
         "operationId": "team_parents_api_v1_team_seasons__team_season_id__parents_get",
         "parameters": [
           {
@@ -9963,11 +10193,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/PlayerAccessRead"
-                  },
-                  "title": "Response Team Parents Api V1 Team Seasons  Team Season Id  Parents Get",
-                  "type": "array"
+                  "$ref": "#/components/schemas/TeamParentsRead"
                 }
               }
             },

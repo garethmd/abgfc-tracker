@@ -41,7 +41,9 @@ from app.schemas.invite import (
     InviteCreated,
     InvitePreview,
     InviteRead,
+    LeaverRead,
     PlayerAccessRead,
+    TeamParentsRead,
 )
 from app.schemas.player import PlayerSummary
 from app.services.access import Access
@@ -102,7 +104,7 @@ class InviteService:
         emailed = self._send_invite(data.email, player, link)
         return InviteCreated(**_invite_read(token).model_dump(), link=link, emailed=emailed)
 
-    def list_for_team_season(self, team_season_id: int) -> list[PlayerAccessRead]:
+    def list_for_team_season(self, team_season_id: int) -> TeamParentsRead:
         """Who can see the club because of each child in this squad - the Parents tab."""
         ts = self.db.get(TeamSeason, team_season_id)
         if ts is None:
@@ -120,24 +122,82 @@ class InviteService:
         pending: dict[int, list[InviteRead]] = {}
         for t in self._live_invites([m.player_id for m in members]):
             pending.setdefault(t.player_id, []).append(_invite_read(t))
-        return [
+        players = [
             PlayerAccessRead(
                 player=PlayerSummary.model_validate(m.player),
-                guardians=[
-                    GuardianRead(
-                        id=g.id,
-                        user_id=g.user_id,
-                        display_name=g.user.display_name,
-                        email=g.user.email,
-                        is_active=g.user.is_active,
-                        last_signed_in=None,
-                    )
-                    for g in m.player.guardians
-                ],
+                guardians=[_guardian_read(g) for g in m.player.guardians],
                 pending=pending.get(m.player_id, []),
             )
             for m in members
         ]
+        return TeamParentsRead(players=players, leavers=self._leavers(ts))
+
+    def _leavers(self, ts: TeamSeason) -> list[LeaverRead]:
+        """Parents of children who have left. A guardian link outlives the child's time
+        at the club - deliberately, so the account can be found and closed rather than
+        quietly keeping access."""
+        gone = self.db.scalars(
+            select(PlayerGuardian)
+            .join(Player, Player.id == PlayerGuardian.player_id)
+            .where(Player.cohort_id == ts.club_team.cohort_id, Player.left_date.is_not(None))
+            .options(
+                selectinload(PlayerGuardian.user).selectinload(User.guardian_of),
+                selectinload(PlayerGuardian.player),
+            )
+        ).all()
+        out: dict[int, LeaverRead] = {}
+        for g in gone:
+            # Only if *every* child of theirs has gone - a second child still playing
+            # is reason enough to keep the account.
+            if any(link.player.left_date is None for link in g.user.guardian_of):
+                continue
+            row = out.setdefault(
+                g.user_id,
+                LeaverRead(
+                    user_id=g.user_id,
+                    display_name=g.user.display_name,
+                    email=g.user.email,
+                    is_active=g.user.is_active,
+                    children=[],
+                ),
+            )
+            row.children.append(g.player.display_name)
+        return [r for r in out.values() if r.is_active]
+
+    # --- closing an account ------------------------------------------------------
+
+    def close(self, user_id: int) -> None:
+        """Child left, or the account should simply go. Deactivating takes effect on the
+        very next request; bumping the version kills any cookie already issued."""
+        user = self._manageable_parent(user_id)
+        user.is_active = False
+        user.session_version += 1
+        self.db.commit()
+
+    def reopen(self, user_id: int) -> None:
+        user = self._manageable_parent(user_id)
+        user.is_active = True
+        self.db.commit()
+
+    def sign_out_everywhere(self, user_id: int) -> None:
+        """A lost or stolen phone, where the parent should keep their access."""
+        user = self._manageable_parent(user_id)
+        user.session_version += 1
+        self.db.commit()
+
+    def _manageable_parent(self, user_id: int) -> User:
+        """A coach may manage a parent if they could have invited them - that is, if they
+        are coach+ on at least one of that parent's children."""
+        user = self.users.get(user_id)
+        if user is None or not user.guardian_of:
+            raise NotFoundError("No such parent")
+        for link in user.guardian_of:
+            try:
+                self._access.require_player(self.db, link.player, UserRole.COACH)
+                return user
+            except ForbiddenError:
+                continue
+        raise ForbiddenError("That parent is outside your teams")
 
     def revoke(self, invite_id: int) -> None:
         token = self.db.get(LoginToken, invite_id)
@@ -314,6 +374,17 @@ class InviteService:
             return True
         except EmailError:
             return False  # the coach still has the link to send by hand
+
+
+def _guardian_read(g: PlayerGuardian) -> GuardianRead:
+    return GuardianRead(
+        id=g.id,
+        user_id=g.user_id,
+        display_name=g.user.display_name,
+        email=g.user.email,
+        is_active=g.user.is_active,
+        last_signed_in=None,
+    )
 
 
 def _who(user: User | None) -> str | None:

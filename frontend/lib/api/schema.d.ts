@@ -760,6 +760,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/parents/{user_id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close Parent
+         * @description Stop this parent getting in - a child who has left, or a lost phone. Immediate.
+         */
+        post: operations["close_parent_api_v1_parents__user_id__close_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/parents/{user_id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reopen Parent */
+        post: operations["reopen_parent_api_v1_parents__user_id__reopen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/parents/{user_id}/sign-out": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign Parent Out
+         * @description Sign every device out but keep the account - a phone left on a bus.
+         */
+        post: operations["sign_parent_out_api_v1_parents__user_id__sign_out_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/players": {
         parameters: {
             query?: never;
@@ -1037,8 +1094,8 @@ export interface paths {
         };
         /**
          * Team Parents
-         * @description Each child in the squad with the parents who can see the club, and any invitation
-         *     still outstanding.
+         * @description Each child in the squad with the parents who can see the club and any invitation
+         *     still outstanding, plus parents whose children have all left - the accounts to close.
          */
         get: operations["team_parents_api_v1_team_seasons__team_season_id__parents_get"];
         put?: never;
@@ -2149,6 +2206,23 @@ export interface components {
             team_season_id: number;
         };
         /**
+         * LeaverRead
+         * @description A parent account whose children have all left the club. Access doesn't lapse on
+         *     its own, so these are listed for a coach to close.
+         */
+        LeaverRead: {
+            /** Children */
+            children: string[];
+            /** Display Name */
+            display_name: string | null;
+            /** Email */
+            email: string | null;
+            /** Is Active */
+            is_active: boolean;
+            /** User Id */
+            user_id: number;
+        };
+        /**
          * LiveGoal
          * @description A goal as it happens. `sequence` is the client's next event sequence: resending the
          *     same one (a retried request) returns the goal already recorded instead of a second.
@@ -2695,6 +2769,13 @@ export interface components {
         TeamMerge: {
             /** Into Team Id */
             into_team_id: number;
+        };
+        /** TeamParentsRead */
+        TeamParentsRead: {
+            /** Leavers */
+            leavers: components["schemas"]["LeaverRead"][];
+            /** Players */
+            players: components["schemas"]["PlayerAccessRead"][];
         };
         /** TeamRead */
         TeamRead: {
@@ -4795,6 +4876,99 @@ export interface operations {
             };
         };
     };
+    close_parent_api_v1_parents__user_id__close_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reopen_parent_api_v1_parents__user_id__reopen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sign_parent_out_api_v1_parents__user_id__sign_out_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_players_api_v1_players_get: {
         parameters: {
             query?: {
@@ -5571,7 +5745,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PlayerAccessRead"][];
+                    "application/json": components["schemas"]["TeamParentsRead"];
                 };
             };
             /** @description Validation Error */

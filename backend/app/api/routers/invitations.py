@@ -7,7 +7,7 @@ the auth router with the rest of the cookie handling.
 from fastapi import APIRouter
 
 from app.api.deps import DB, Access, Config
-from app.schemas.invite import InviteCreate, InviteCreated, PlayerAccessRead
+from app.schemas.invite import InviteCreate, InviteCreated, TeamParentsRead
 from app.services.invites import InviteService
 
 router = APIRouter(tags=["invitations"])
@@ -23,11 +23,28 @@ def create_invitation(data: InviteCreate, db: DB, access: Access, settings: Conf
     return InviteService(db, access, settings).create(data)
 
 
-@router.get("/team-seasons/{team_season_id}/parents", response_model=list[PlayerAccessRead])
+@router.get("/team-seasons/{team_season_id}/parents", response_model=TeamParentsRead)
 def team_parents(team_season_id: int, db: DB, access: Access, settings: Config):
-    """Each child in the squad with the parents who can see the club, and any invitation
-    still outstanding."""
+    """Each child in the squad with the parents who can see the club and any invitation
+    still outstanding, plus parents whose children have all left - the accounts to close."""
     return InviteService(db, access, settings).list_for_team_season(team_season_id)
+
+
+@router.post("/parents/{user_id}/close", status_code=204)
+def close_parent(user_id: int, db: DB, access: Access, settings: Config):
+    """Stop this parent getting in - a child who has left, or a lost phone. Immediate."""
+    InviteService(db, access, settings).close(user_id)
+
+
+@router.post("/parents/{user_id}/reopen", status_code=204)
+def reopen_parent(user_id: int, db: DB, access: Access, settings: Config):
+    InviteService(db, access, settings).reopen(user_id)
+
+
+@router.post("/parents/{user_id}/sign-out", status_code=204)
+def sign_parent_out(user_id: int, db: DB, access: Access, settings: Config):
+    """Sign every device out but keep the account - a phone left on a bus."""
+    InviteService(db, access, settings).sign_out_everywhere(user_id)
 
 
 @router.delete("/invitations/{invite_id}", status_code=204)
