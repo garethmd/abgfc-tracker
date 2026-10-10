@@ -26,11 +26,12 @@ def _fresh_limits():
 
 
 def _link_from_log(caplog) -> str:
-    """The sign-in link only exists in the email; the console backend logs it."""
+    """The sign-in link only exists in the email; the console backend logs it. Take the
+    *last* one: a test that invites and then asks for a sign-in link logs two."""
     text = "\n".join(r.getMessage() for r in caplog.records if r.name == "abgfc.email")
-    m = re.search(r"https?://\S+/(?:invite|signin)/([\w-]+)", text)
-    assert m, f"no link in the email log:\n{text}"
-    return m.group(1)
+    found = re.findall(r"https?://\S+/(?:invite|signin)/([\w-]+)", text)
+    assert found, f"no link in the email log:\n{text}"
+    return found[-1]
 
 
 def _invite(client: TestClient, player_id: int, email: str = "mum@example.com"):
