@@ -91,10 +91,17 @@ restore: ## Restore a backup to production: make restore FILE=data/backups/abgfc
 	@scp -q "$(FILE)" $(DEPLOY_HOST):/tmp/restore.db
 	@ssh $(DEPLOY_HOST) '/opt/abgfc/deploy/restore.sh /tmp/restore.db && rm -f /tmp/restore.db'
 
+email-test: ## Send one real email to prove the setup: make email-test TO=you@example.com
+	@test -n "$(TO)" || (echo "TO=you@example.com required"; exit 1)
+	@# The key comes from the gitignored .env.production, exported above.
+	cd $(BACKEND) && ABGFC_EMAIL_BACKEND=$${ABGFC_EMAIL_BACKEND:-resend} \
+		ABGFC_EMAIL_REPLY_TO=$${ABGFC_EMAIL_REPLY_TO:-$(TO)} \
+		uv run python -m scripts.send_test_email "$(TO)"
+
 prod-logs: ## Tail production logs
 	ssh $(DEPLOY_HOST) 'cd /opt/abgfc && docker compose -f docker-compose.prod.yml logs -f --tail 100'
 
 prod-shell: ## SSH to the droplet
 	ssh $(DEPLOY_HOST)
 
-.PHONY: help install dev backend frontend migrate migration seed seed-demo test lint format api-client check-api up droplet deploy prod-logs prod-shell backup restore
+.PHONY: help install dev backend frontend migrate migration seed seed-demo test lint format api-client check-api up droplet deploy email-test prod-logs prod-shell backup restore

@@ -39,8 +39,14 @@ class EmailService:
             return
         try:
             self._post(to, subject, body)
+        except httpx.HTTPStatusError as e:
+            # The provider's own message ("domain is not verified", "invalid key") is
+            # the only useful part - surface it. Never log the message we tried to send:
+            # that carries a single-use sign-in link.
+            detail = e.response.text[:300]
+            log.warning("Email to %s refused (%s): %s", to, e.response.status_code, detail)
+            raise EmailError(f"{e.response.status_code}: {detail}") from e
         except httpx.HTTPError as e:
-            # Never log the body: it carries a single-use sign-in link.
             log.warning("Email to %s failed: %s", to, e.__class__.__name__)
             raise EmailError(str(e)) from e
 
