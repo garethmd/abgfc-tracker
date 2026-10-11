@@ -85,6 +85,8 @@ class GuardianRead(ORMModel):
     email: str | None
     is_active: bool
     last_signed_in: datetime | None
+    passkey_count: int  # 0 = still signing in with emailed links
+    allow_email_signin: bool  # a coach's exception for a device that can't hold one
 
 
 class PlayerAccessRead(ORMModel):

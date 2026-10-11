@@ -41,6 +41,13 @@ def reopen_parent(user_id: int, db: DB, access: Access, settings: Config):
     InviteService(db, access, settings).reopen(user_id)
 
 
+@router.post("/parents/{user_id}/email-signin", status_code=204)
+def set_parent_email_signin(user_id: int, allowed: bool, db: DB, access: Access, settings: Config):
+    """Let this parent keep using emailed links even though they have a passkey - for a
+    phone that can't hold one. Never automatic."""
+    InviteService(db, access, settings).set_email_signin(user_id, allowed)
+
+
 @router.post("/parents/{user_id}/sign-out", status_code=204)
 def sign_parent_out(user_id: int, db: DB, access: Access, settings: Config):
     """Sign every device out but keep the account - a phone left on a bus."""

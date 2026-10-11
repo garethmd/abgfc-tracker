@@ -7,8 +7,14 @@ from app.models import User, UserRole
 from app.repositories.club import ClubTeamRepository, CohortRepository, TeamSeasonRepository
 from app.schemas.auth import ChangePasswordRequest, CohortAccess, LoginRequest, MeRead, TeamAccess
 from app.schemas.invite import InviteAccept, InvitePreview, SigninLinkRequest
+from app.schemas.passkey import (
+    PasskeyAuthenticate,
+    PasskeyRead,
+    PasskeyRegister,
+)
 from app.services.auth import AuthService
 from app.services.invites import InviteService
+from app.services.passkeys import PasskeyService, passkey_label
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -64,6 +70,56 @@ def accept_invitation(
     return _sign_in(response, user, db, settings)
 
 
+# --- passkeys ----------------------------------------------------------------------
+
+
+@router.post("/passkeys/options")
+def passkey_registration_options(db: DB, settings: Config, user: CurrentUser):
+    """Start registering a passkey. Only ever for an account already signed in - that
+    is what binds the new credential to the right person."""
+    return PasskeyService(db, settings).registration_options(user)
+
+
+@router.post("/passkeys", response_model=PasskeyRead, status_code=201)
+def register_passkey(data: PasskeyRegister, db: DB, settings: Config, user: CurrentUser):
+    p = PasskeyService(db, settings).register(user, data.credential, data.label)
+    return PasskeyRead(
+        id=p.id, label=passkey_label(p), created_at=p.created_at, last_used_at=p.last_used_at
+    )
+
+
+@router.get("/passkeys", response_model=list[PasskeyRead])
+def my_passkeys(user: CurrentUser):
+    return [
+        PasskeyRead(
+            id=p.id, label=passkey_label(p), created_at=p.created_at, last_used_at=p.last_used_at
+        )
+        for p in user.passkeys
+    ]
+
+
+@router.delete("/passkeys/{passkey_id}", status_code=204)
+def remove_passkey(passkey_id: int, db: DB, settings: Config, user: CurrentUser):
+    PasskeyService(db, settings).remove(user, passkey_id)
+
+
+@router.post("/passkeys/signin/options")
+def passkey_signin_options(request: Request, db: DB, settings: Config):
+    """No account is named and nothing here says whether one exists: the credential is
+    discoverable, so the phone decides which account it holds."""
+    token_attempts.check(f"ip:{_client(request)}")
+    return PasskeyService(db, settings).authentication_options()
+
+
+@router.post("/passkeys/signin", response_model=MeRead)
+def passkey_signin(
+    data: PasskeyAuthenticate, request: Request, response: Response, db: DB, settings: Config
+):
+    token_attempts.check(f"ip:{_client(request)}")
+    user = PasskeyService(db, settings).authenticate(data.credential)
+    return _sign_in(response, user, db, settings)
+
+
 def _client(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
@@ -108,6 +164,7 @@ def _me(db, access) -> MeRead:
         username=access.user.username,
         email=access.user.email,
         has_password=access.user.password_hash is not None,
+        passkey_count=len(access.user.passkeys),
         display_name=access.user.display_name,
         roles=list(access.user.roles),
         club_role=access.club_role,

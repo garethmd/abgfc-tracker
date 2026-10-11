@@ -21,6 +21,7 @@ from app.models.lookup import AwardType, Competition, Position
 from app.models.match import Appearance, MatchEvent, PlayerStint
 from app.models.media import Media, MediaLink
 from app.models.note import MatchNote
+from app.models.passkey import Passkey, WebAuthnChallenge
 from app.models.player import Player, PlayerGuardian, SquadMember
 from app.models.season import Season
 from app.models.selection import FixtureSelection, GuestPlayer, UnavailablePlayer
@@ -49,6 +50,8 @@ __all__ = [
     "MediaKind",
     "MediaLink",
     "LoginToken",
+    "Passkey",
+    "WebAuthnChallenge",
     "Player",
     "PlayerGuardian",
     "PlayerStint",

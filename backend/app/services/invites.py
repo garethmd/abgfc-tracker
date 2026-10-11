@@ -189,6 +189,15 @@ class InviteService:
         user.is_active = True
         self.db.commit()
 
+    def set_email_signin(self, user_id: int, allowed: bool) -> None:
+        """The exception for a parent whose phone can't hold a passkey - too old, or no
+        screen lock, so nothing can verify them. Deliberate, per account, and visible in
+        the Parents tab, rather than an automatic fallback an attacker could invoke
+        simply by claiming a passkey failed."""
+        user = self._manageable_parent(user_id)
+        user.allow_email_signin = allowed
+        self.db.commit()
+
     def sign_out_everywhere(self, user_id: int) -> None:
         """A lost or stolen phone, where the parent should keep their access."""
         user = self._manageable_parent(user_id)
@@ -298,6 +307,10 @@ class InviteService:
         not something an unauthenticated request gets to learn."""
         user = self.users.get_by_email(email)
         if user is None or not user.is_active or user.password_hash is not None:
+            return
+        if not user.email_signin_permitted:
+            # They have a passkey. A failed passkey must not quietly fall back to a
+            # weaker method, so this is silent: the response is 204 either way.
             return
         self._issue_signin(user, email)
 
@@ -439,6 +452,8 @@ def _guardian_read(g: PlayerGuardian) -> GuardianRead:
         email=g.user.email,
         is_active=g.user.is_active,
         last_signed_in=None,
+        passkey_count=len(g.user.passkeys),
+        allow_email_signin=g.user.allow_email_signin,
     )
 
 

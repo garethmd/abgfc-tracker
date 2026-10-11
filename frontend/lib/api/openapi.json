@@ -1841,6 +1841,10 @@
       },
       "GuardianRead": {
         "properties": {
+          "allow_email_signin": {
+            "title": "Allow Email Signin",
+            "type": "boolean"
+          },
           "display_name": {
             "anyOf": [
               {
@@ -1883,6 +1887,10 @@
             ],
             "title": "Last Signed In"
           },
+          "passkey_count": {
+            "title": "Passkey Count",
+            "type": "integer"
+          },
           "user_id": {
             "title": "User Id",
             "type": "integer"
@@ -1894,7 +1902,9 @@
           "display_name",
           "email",
           "is_active",
-          "last_signed_in"
+          "last_signed_in",
+          "passkey_count",
+          "allow_email_signin"
         ],
         "title": "GuardianRead",
         "type": "object"
@@ -3198,6 +3208,10 @@
             "title": "Id",
             "type": "integer"
           },
+          "passkey_count": {
+            "title": "Passkey Count",
+            "type": "integer"
+          },
           "roles": {
             "items": {
               "$ref": "#/components/schemas/RoleRead"
@@ -3222,6 +3236,7 @@
           "username",
           "email",
           "has_password",
+          "passkey_count",
           "display_name",
           "roles",
           "club_role",
@@ -3331,6 +3346,86 @@
           "text"
         ],
         "title": "ParentsMessage",
+        "type": "object"
+      },
+      "PasskeyAuthenticate": {
+        "additionalProperties": false,
+        "properties": {
+          "credential": {
+            "additionalProperties": true,
+            "title": "Credential",
+            "type": "object"
+          }
+        },
+        "required": [
+          "credential"
+        ],
+        "title": "PasskeyAuthenticate",
+        "type": "object"
+      },
+      "PasskeyRead": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used At"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "created_at",
+          "last_used_at"
+        ],
+        "title": "PasskeyRead",
+        "type": "object"
+      },
+      "PasskeyRegister": {
+        "additionalProperties": false,
+        "description": "The browser's PublicKeyCredential, serialised. Verified in full server-side.",
+        "properties": {
+          "credential": {
+            "additionalProperties": true,
+            "title": "Credential",
+            "type": "object"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          }
+        },
+        "required": [
+          "credential"
+        ],
+        "title": "PasskeyRegister",
         "type": "object"
       },
       "PlayerAccessRead": {
@@ -5575,6 +5670,276 @@
           }
         },
         "summary": "Me",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/passkeys": {
+      "get": {
+        "operationId": "my_passkeys_api_v1_auth_passkeys_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PasskeyRead"
+                  },
+                  "title": "Response My Passkeys Api V1 Auth Passkeys Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "My Passkeys",
+        "tags": [
+          "auth"
+        ]
+      },
+      "post": {
+        "operationId": "register_passkey_api_v1_auth_passkeys_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasskeyRegister"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register Passkey",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/passkeys/options": {
+      "post": {
+        "description": "Start registering a passkey. Only ever for an account already signed in - that\nis what binds the new credential to the right person.",
+        "operationId": "passkey_registration_options_api_v1_auth_passkeys_options_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Passkey Registration Options",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/passkeys/signin": {
+      "post": {
+        "operationId": "passkey_signin_api_v1_auth_passkeys_signin_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasskeyAuthenticate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Passkey Signin",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/passkeys/signin/options": {
+      "post": {
+        "description": "No account is named and nothing here says whether one exists: the credential is\ndiscoverable, so the phone decides which account it holds.",
+        "operationId": "passkey_signin_options_api_v1_auth_passkeys_signin_options_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Passkey Signin Options",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/passkeys/{passkey_id}": {
+      "delete": {
+        "operationId": "remove_passkey_api_v1_auth_passkeys__passkey_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "passkey_id",
+            "required": true,
+            "schema": {
+              "title": "Passkey Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove Passkey",
         "tags": [
           "auth"
         ]
@@ -8733,6 +9098,67 @@
           }
         },
         "summary": "Close Parent",
+        "tags": [
+          "invitations"
+        ]
+      }
+    },
+    "/api/v1/parents/{user_id}/email-signin": {
+      "post": {
+        "description": "Let this parent keep using emailed links even though they have a passkey - for a\nphone that can't hold one. Never automatic.",
+        "operationId": "set_parent_email_signin_api_v1_parents__user_id__email_signin_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "allowed",
+            "required": true,
+            "schema": {
+              "title": "Allowed",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Parent Email Signin",
         "tags": [
           "invitations"
         ]

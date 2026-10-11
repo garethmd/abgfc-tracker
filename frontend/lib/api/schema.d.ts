@@ -135,6 +135,100 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/passkeys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Passkeys */
+        get: operations["my_passkeys_api_v1_auth_passkeys_get"];
+        put?: never;
+        /** Register Passkey */
+        post: operations["register_passkey_api_v1_auth_passkeys_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/passkeys/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Passkey Registration Options
+         * @description Start registering a passkey. Only ever for an account already signed in - that
+         *     is what binds the new credential to the right person.
+         */
+        post: operations["passkey_registration_options_api_v1_auth_passkeys_options_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/passkeys/signin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Passkey Signin */
+        post: operations["passkey_signin_api_v1_auth_passkeys_signin_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/passkeys/signin/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Passkey Signin Options
+         * @description No account is named and nothing here says whether one exists: the credential is
+         *     discoverable, so the phone decides which account it holds.
+         */
+        post: operations["passkey_signin_options_api_v1_auth_passkeys_signin_options_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/passkeys/{passkey_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove Passkey */
+        delete: operations["remove_passkey_api_v1_auth_passkeys__passkey_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/signin-link": {
         parameters: {
             query?: never;
@@ -774,6 +868,27 @@ export interface paths {
          * @description Stop this parent getting in - a child who has left, or a lost phone. Immediate.
          */
         post: operations["close_parent_api_v1_parents__user_id__close_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/parents/{user_id}/email-signin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Parent Email Signin
+         * @description Let this parent keep using emailed links even though they have a passkey - for a
+         *     phone that can't hold one. Never automatic.
+         */
+        post: operations["set_parent_email_signin_api_v1_parents__user_id__email_signin_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1918,6 +2033,8 @@ export interface components {
         };
         /** GuardianRead */
         GuardianRead: {
+            /** Allow Email Signin */
+            allow_email_signin: boolean;
             /** Display Name */
             display_name: string | null;
             /** Email */
@@ -1928,6 +2045,8 @@ export interface components {
             is_active: boolean;
             /** Last Signed In */
             last_signed_in: string | null;
+            /** Passkey Count */
+            passkey_count: number;
             /** User Id */
             user_id: number;
         };
@@ -2325,6 +2444,8 @@ export interface components {
             has_password: boolean;
             /** Id */
             id: number;
+            /** Passkey Count */
+            passkey_count: number;
             /** Roles */
             roles: components["schemas"]["RoleRead"][];
             /** Teams */
@@ -2362,6 +2483,39 @@ export interface components {
         ParentsMessage: {
             /** Text */
             text: string;
+        };
+        /** PasskeyAuthenticate */
+        PasskeyAuthenticate: {
+            /** Credential */
+            credential: {
+                [key: string]: unknown;
+            };
+        };
+        /** PasskeyRead */
+        PasskeyRead: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: number;
+            /** Label */
+            label: string;
+            /** Last Used At */
+            last_used_at: string | null;
+        };
+        /**
+         * PasskeyRegister
+         * @description The browser's PublicKeyCredential, serialised. Verified in full server-side.
+         */
+        PasskeyRegister: {
+            /** Credential */
+            credential: {
+                [key: string]: unknown;
+            };
+            /** Label */
+            label?: string | null;
         };
         /**
          * PlayerAccessRead
@@ -3160,6 +3314,187 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MeRead"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_passkeys_api_v1_auth_passkeys_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    register_passkey_api_v1_auth_passkeys_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasskeyRegister"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    passkey_registration_options_api_v1_auth_passkeys_options_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    passkey_signin_api_v1_auth_passkeys_signin_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasskeyAuthenticate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    passkey_signin_options_api_v1_auth_passkeys_signin_options_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    remove_passkey_api_v1_auth_passkeys__passkey_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                passkey_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -4891,6 +5226,39 @@ export interface operations {
     close_parent_api_v1_parents__user_id__close_post: {
         parameters: {
             query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_parent_email_signin_api_v1_parents__user_id__email_signin_post: {
+        parameters: {
+            query: {
+                allowed: boolean;
+            };
             header?: never;
             path: {
                 user_id: number;

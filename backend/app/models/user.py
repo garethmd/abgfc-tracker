@@ -1,11 +1,20 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    ForeignKey,
+    Integer,
+    LargeBinary,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
+    from app.models.passkey import Passkey
     from app.models.player import PlayerGuardian
 from app.models.enums import RoleScope, check_in
 from app.models.enums import UserRole as Role
@@ -25,6 +34,13 @@ class User(TimestampMixin, Base):
     # Bumped to sign every device out without deactivating the account. Cookies issued
     # before this existed carry no version and stay valid - see core/security.py.
     session_version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    # The handle a passkey is registered against. Deliberately random rather than the
+    # email: it travels to the authenticator, so it must carry nothing personal.
+    webauthn_handle: Mapped[bytes | None] = mapped_column(LargeBinary(64), unique=True)
+    # A passkey normally retires emailed sign-in links for that account. This re-opens
+    # them for the odd parent whose phone can't hold a passkey - set by a coach, per
+    # account, deliberately, never as an automatic fallback.
+    allow_email_signin: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
 
     roles: Mapped[list["UserRole"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
@@ -32,10 +48,24 @@ class User(TimestampMixin, Base):
     guardian_of: Mapped[list["PlayerGuardian"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    passkeys: Mapped[list["Passkey"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
 
     @property
     def is_parent(self) -> bool:
         return bool(self.guardian_of)
+
+    @property
+    def uses_passkeys(self) -> bool:
+        return bool(self.passkeys)
+
+    @property
+    def email_signin_permitted(self) -> bool:
+        """Email links are how an account starts and how a passkey-less one carries on.
+        Once a passkey exists they stop, so that a failed passkey can never quietly fall
+        back to a weaker method - unless a coach has allowed it for this account."""
+        return not self.passkeys or self.allow_email_signin
 
 
 class UserRole(Base):

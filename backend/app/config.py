@@ -38,8 +38,22 @@ class Settings(BaseSettings):
     email_reply_to: str = ""
     email_api_key: str = ""
     mailgun_domain: str = "abgfc.neuralaspect.com"
+    # WebAuthn: the relying-party id is the registrable domain, and the browser will
+    # refuse any credential whose origin doesn't match - that is the phishing resistance.
+    # Derived from public_base_url unless set explicitly (localhost in development).
+    webauthn_rp_id: str = ""
+    webauthn_rp_name: str = "ABGFC"
+    webauthn_challenge_ttl_seconds: int = 300
     invite_expiry_hours: int = 24 * 14
     signin_link_expiry_minutes: int = 15
+
+    @property
+    def rp_id(self) -> str:
+        """Host only - no scheme, no port. localhost is a valid RP id for development."""
+        if self.webauthn_rp_id:
+            return self.webauthn_rp_id
+        host = self.public_base_url.split("//", 1)[-1].split("/", 1)[0]
+        return host.split(":", 1)[0]
 
     @property
     def is_production(self) -> bool:
