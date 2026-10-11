@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useEffect } from "react";
-import { CalendarDays, LayoutDashboard, Settings, Users } from "lucide-react";
+import { CalendarDays, LayoutDashboard, Settings, Shield, Users } from "lucide-react";
 import { rememberTeam, useMe } from "@/lib/me-context";
 import { TeamProvider } from "@/lib/team-context";
 import { AppShell } from "@/components/app-shell";
@@ -32,6 +32,7 @@ export default function TeamLayout({ children, params }: LayoutProps<"/[team]">)
     { href: base, label: "Home", icon: LayoutDashboard, exact: true },
     { href: `${base}/fixtures`, label: "Fixtures", icon: CalendarDays },
     { href: `${base}/players`, label: "Squad", icon: Users },
+    { href: `${base}/opposition`, label: "Opposition", icon: Shield },
     { href: `${base}/settings`, label: "Settings", icon: Settings },
   ];
 

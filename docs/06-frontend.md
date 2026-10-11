@@ -111,7 +111,8 @@ qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });   // prefix mat
 | Fixture new/edit | `FixtureForm` | inline "+ New team…" creates opposition |
 | Squad | `PlayerAvatar`, `PlayerForm` (sheet) | "Already at the club" mode picks from the cohort pool |
 | Player | `PhotoPicker`, `PlayerAvatar`, `Stat` | season stats, history across teams |
-| Settings | `SeasonsManager` (roll-over dialog, match length, arrival lead time), `AwardTypesManager`, `CompetitionsManager`, `TeamsManager`, `ThemeToggle`, `AccountCard` | |
+| Opposition | `OppositionList` | Main nav. Every team we play; coaches add, rename, merge and delete here; a row opens the head-to-head |
+| Settings | `SeasonsManager` (roll-over dialog, match length, arrival lead time), `AwardTypesManager`, `CompetitionsManager`, `ParentsManager`, `ThemeToggle`, `AccountCard` | |
 | Admin | `UsersManager` (roles with scope picker, reset password), `StructureManager` | admins only |
 | Cohort overview | cards per team, players table, `MovePlayerDialog` | cohort coaches |
 

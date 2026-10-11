@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { useTeam } from "@/lib/team-context";
 import { toast } from "sonner";
 import { $api, errorMessage, type Schema } from "@/lib/api/client";
@@ -103,137 +102,6 @@ export function CompetitionsManager() {
             </Field>
             <Button type="submit" className="h-11 w-full" disabled={create.isPending}>Add</Button>
           </form>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-}
-
-export function TeamsManager() {
-  const qc = useQueryClient();
-  const { base, canEdit } = useTeam();
-  const list = $api.useQuery("get", "/api/v1/teams");
-  const create = $api.useMutation("post", "/api/v1/teams");
-  const update = $api.useMutation("patch", "/api/v1/teams/{team_id}");
-  const remove = $api.useMutation("delete", "/api/v1/teams/{team_id}");
-  const merge = $api.useMutation("post", "/api/v1/teams/{team_id}/merge");
-  const [editing, setEditing] = useState<Schema["TeamRead"] | "new" | null>(null);
-  const [name, setName] = useState("");
-  const [shortName, setShortName] = useState("");
-  const [homeGround, setHomeGround] = useState("");
-  const [mergeInto, setMergeInto] = useState("");
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["get", "/api/v1/teams"] });
-
-  function openFor(t: Schema["TeamRead"] | "new") {
-    setEditing(t);
-    setName(t === "new" ? "" : t.name);
-    setShortName(t === "new" ? "" : (t.short_name ?? ""));
-    setHomeGround(t === "new" ? "" : (t.home_ground ?? ""));
-  }
-
-  async function onSave(e: React.FormEvent) {
-    e.preventDefault();
-    const body = {
-      name: name.trim(),
-      short_name: shortName.trim() || null,
-      home_ground: homeGround.trim() || null,
-    };
-    try {
-      if (editing === "new") await create.mutateAsync({ body });
-      else if (editing) await update.mutateAsync({ params: { path: { team_id: editing.id } }, body });
-      invalidate();
-      setEditing(null);
-    } catch (err) {
-      toast.error(errorMessage(err));
-    }
-  }
-
-  async function onDelete(id: number) {
-    try {
-      await remove.mutateAsync({ params: { path: { team_id: id } } });
-      invalidate();
-    } catch (err) {
-      toast.error(errorMessage(err));
-    }
-  }
-
-  async function onMerge() {
-    if (editing === null || editing === "new" || !mergeInto) return;
-    const target = list.data?.find((t) => t.id === Number(mergeInto));
-    if (!confirm(`Merge "${editing.name}" into "${target?.name}"? Its fixtures move across and "${editing.name}" is deleted.`)) return;
-    try {
-      await merge.mutateAsync({ params: { path: { team_id: editing.id } }, body: { into_team_id: Number(mergeInto) } });
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });
-      invalidate();
-      setEditing(null);
-      setMergeInto("");
-      toast.success("Merged");
-    } catch (err) {
-      toast.error(errorMessage(err));
-    }
-  }
-
-  return (
-    <>
-      {canEdit && (
-        <div className="mb-3 flex justify-end">
-          <Button size="sm" variant="outline" onClick={() => openFor("new")}><Plus className="size-4" /> New team</Button>
-        </div>
-      )}
-      <Card className="divide-y divide-border/40">
-        {(list.data ?? []).map((t) => (
-          <div key={t.id} className="flex min-h-14 items-center gap-3 px-4 py-2 text-sm">
-            <Link href={`${base}/opposition/${t.id}`} className="min-w-0 flex-1 hover:underline">
-              <span className="font-medium">{t.name}</span>
-              {t.short_name && <span className="ml-2 text-xs text-muted-foreground">{t.short_name}</span>}
-              {t.home_ground && <span className="ml-2 truncate text-xs text-muted-foreground">· {t.home_ground}</span>}
-            </Link>
-            {canEdit && (
-              <>
-                <button type="button" onClick={() => openFor(t)} className="text-xs text-muted-foreground hover:text-foreground">Edit</button>
-                <button type="button" onClick={() => onDelete(t.id)} className="flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-destructive" aria-label="Delete">
-                  <Trash2 className="size-4" />
-                </button>
-              </>
-            )}
-          </div>
-        ))}
-        {list.data && !list.data.length && <p className="p-4 text-sm text-muted-foreground">Opposition teams appear here as you add fixtures.</p>}
-      </Card>
-      <Link href={`${base}/opposition`} className="mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-        Head-to-head records <ChevronRight className="size-3" />
-      </Link>
-
-      <Dialog open={editing !== null} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{editing === "new" ? "New team" : "Edit team"}</DialogTitle></DialogHeader>
-          <form onSubmit={onSave} className="space-y-4">
-            <Field label="Name"><Input className="h-11" value={name} onChange={(e) => setName(e.target.value)} required autoFocus /></Field>
-            <Field label="Short name"><Input className="h-11" value={shortName} onChange={(e) => setShortName(e.target.value)} placeholder="Shown in tight spaces" /></Field>
-            <Field label="Home ground">
-              <Input className="h-11" value={homeGround} onChange={(e) => setHomeGround(e.target.value)} placeholder="Where they play at home" />
-              <p className="mt-1.5 text-[11px] text-muted-foreground">
-                Filled in on away fixtures against them as they&apos;re created. Changing it never
-                moves a fixture already arranged.
-              </p>
-            </Field>
-            <Button type="submit" className="h-11 w-full" disabled={create.isPending || update.isPending}>Save</Button>
-          </form>
-          {editing !== "new" && editing && (
-            <div className="mt-2 space-y-2 rounded-lg bg-muted/40 p-3">
-              <p className="text-xs font-medium">Duplicate of another team?</p>
-              <div className="flex gap-2">
-                <Select value={mergeInto} onValueChange={setMergeInto}>
-                  <SelectTrigger className="h-10 flex-1"><SelectValue placeholder="Merge into…" /></SelectTrigger>
-                  <SelectContent>
-                    {(list.data ?? []).filter((t) => t.id !== editing.id).map((t) => <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Button type="button" variant="outline" className="h-10" disabled={!mergeInto || merge.isPending} onClick={onMerge}>Merge</Button>
-              </div>
-              <p className="text-[11px] text-muted-foreground">Fixtures against this team move to the other one and this entry is removed.</p>
-            </div>
-          )}
         </DialogContent>
       </Dialog>
     </>

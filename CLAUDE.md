@@ -57,7 +57,7 @@ backend/   FastAPI + SQLAlchemy 2 + Alembic, managed by uv (Python 3.13)
   tests/              pytest; conftest builds an in-memory DB per test
 frontend/  Next.js 16 App Router + TypeScript + Tailwind 4 + shadcn (radix)
   app/(app)/          Authenticated. layout loads /auth/me -> MeProvider; page.tsx routes
-    [team]/           Everything a coach uses: dashboard, fixtures (+ [id]/live, [id]/selection), players, settings
+    [team]/           Everything a coach uses: dashboard, fixtures (+ [id]/live, [id]/selection), players, opposition, settings
     cohorts/[id]/     Age-group overview (Stuart): team records + player game time + moves
     admin/            Coaches (users/roles/password reset), age groups & teams
     teams/            Picker for people with several teams
@@ -86,7 +86,7 @@ not spreadsheet columns. Full DDL is in `backend/alembic/versions/`; rationale h
 | `users` / `user_roles` | Login + roles at a scope: `club` (scope_id NULL), `cohort`, or `team`. Roles: viewer < coach < admin. Widen upwards - a cohort coach is a coach on every team in the cohort. Resolved per request into `Access` (`services/access.py`). Admins manage users only within scopes they administer. |
 | `positions` | Lookup (GK/DEF/MID/FWD + `category`). Finer positions later = rows sharing a category. |
 | `competitions` | Global lookup with `type` (league/cup/friendly/tournament). "League-only" stats filter on the type, so a second league competition needs no code. |
-| `teams` | Opposition. We are not a row; fixtures are always us-vs-them. `home_ground` is where they play; **copied** onto an away fixture's `venue_notes` at creation (`default_ground()`), never looked up later, so changing it never moves a fixture already arranged and a one-off venue is just the fixture's own value. **Head-to-head**: `GET /teams/{id}/head-to-head?club_team_id=` returns our record, form, results, upcoming and postponed fixtures against them across seasons, scoped to the teams the caller can see (`FixtureRepository.list_v_opposition`). UI: `/[team]/opposition` list and `/[team]/opposition/[id]`, linked from the fixture page and Settings → Opposition; multi-team users get a "this team / all ABGFC" toggle. |
+| `teams` | Opposition. We are not a row; fixtures are always us-vs-them. `home_ground` is where they play; **copied** onto an away fixture's `venue_notes` at creation (`default_ground()`), never looked up later, so changing it never moves a fixture already arranged and a one-off venue is just the fixture's own value. **Head-to-head**: `GET /teams/{id}/head-to-head?club_team_id=` returns our record, form, results, upcoming and postponed fixtures against them across seasons, scoped to the teams the caller can see (`FixtureRepository.list_v_opposition`). UI: **Opposition is a main nav item** (`/[team]/opposition`) - the list, where coaches also add, rename, merge and delete, plus `/[team]/opposition/[id]` for the head-to-head; also linked from the fixture page. Multi-team users get a "this team / all ABGFC" toggle. |
 | `fixtures` | Keyed by `team_season_id`. `POST /fixtures/{id}/postpone` calls a match off: status `postponed`, **date unchanged** (the record that a match was due that day is the point), reason appended to notes, counts towards nothing. There is deliberately **no reschedule** - the league doesn't move a postponed fixture; a replayed tie is a new fixture. `status` includes `live` (being recorded from the pitch; only `played` counts for stats). `our_score`/`their_score` are **stored** as well as derivable — at pitchside you know the score before the scorers. `stats.score_warnings()` reports mismatches instead of blocking. A derby (Blues v Blacks) is two rows, one per team; `teams.club_team_id` links the opposition row to our own team. |
 | `appearances` | One row per player per fixture (`started`, `position_id`, `shirt_number`, `captain`). Unique (fixture, player). This is what the app writes today. **No squad row is required**: a child guesting for another team in the age group (Noah, a Blues player, turning out for the Blacks) is just an appearance on that team's fixture, so their goals count for the team that fielded them and still show on their own page. `is_guest` is derived (not in this team season's squad), guests keep their own squad number, and the result/live flows refuse a player from a different age group. A player's page shows the season across **all** teams in the age group (`GET /players/{id}/season-stats?season_id=` -> `{totals, teams}`) with a per-team breakdown, so one child reads as one footballer. See `docs/11-features.md`. |
 | `player_stints` | Rolling-sub detail: `(appearance_id, on_minute, off_minute NULL=to the end, position_id)`. Hangs off the appearance so a stint can't exist for someone who didn't play. `stats.minutes_for_appearance()` already computes minutes; nothing writes stints yet. |
@@ -274,7 +274,7 @@ names, token containment, Jaccard; abbreviations like "CPR" need a human). Nothi
 written until `apply` with the coach's per-row decisions. Kick-off times are taken as
 listed (08:00 is often the FA's placeholder). New opposition names have the age token
 stripped. `POST /teams/{id}/merge` folds duplicate opposition rows (fixtures re-pointed);
-UI in Settings → Opposition → Edit.
+UI in Opposition → the pencil on a row.
 
 ## Out of scope (deliberately)
 
