@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { $api, errorMessage } from "@/lib/api/client";
+import { $api, errorMessage, invalidatePath } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
 import { Card } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
@@ -23,8 +23,8 @@ export function AwardTypesManager() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ["get", "/api/v1/award-types"] });
-    qc.invalidateQueries({ queryKey: ["get", "/api/v1/team-seasons"] });
+    invalidatePath(qc, "/api/v1/award-types");
+    invalidatePath(qc, "/api/v1/team-seasons");
   };
 
   async function onCreate(e: React.FormEvent) {

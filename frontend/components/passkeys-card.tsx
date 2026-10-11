@@ -4,7 +4,7 @@ import { useState, useSyncExternalStore } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Fingerprint, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { $api, errorMessage } from "@/lib/api/client";
+import { $api, errorMessage, invalidatePath } from "@/lib/api/client";
 import { useMe } from "@/lib/me-context";
 import { PasskeyCancelled, passkeysSupported, registerPasskey } from "@/lib/passkeys";
 import { Card } from "@/components/stat-card";
@@ -38,8 +38,8 @@ export function PasskeysCard() {
     setAdding(true);
     try {
       await registerPasskey(deviceGuess());
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/auth/passkeys"] });
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/auth/me"] });
+      invalidatePath(qc, "/api/v1/auth/passkeys");
+      invalidatePath(qc, "/api/v1/auth/me");
       toast.success("This device can now sign you in");
     } catch (err) {
       if (!(err instanceof PasskeyCancelled)) toast.error(errorMessage(err, "That didn't work"));
@@ -52,8 +52,8 @@ export function PasskeysCard() {
     if (!removing) return;
     try {
       await remove.mutateAsync({ params: { path: { passkey_id: removing.id } } });
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/auth/passkeys"] });
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/auth/me"] });
+      invalidatePath(qc, "/api/v1/auth/passkeys");
+      invalidatePath(qc, "/api/v1/auth/me");
       toast.success(`${removing.label} removed`);
     } catch (err) {
       toast.error(errorMessage(err));

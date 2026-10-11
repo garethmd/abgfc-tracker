@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ExternalLink, Pencil, Play, Plus, Trash2, TvMinimalPlay } from "lucide-react";
 import { toast } from "sonner";
-import { $api, errorMessage, type Schema } from "@/lib/api/client";
+import { $api, errorMessage, type Schema, invalidatePath } from "@/lib/api/client";
 import { SectionTitle } from "@/components/page-header";
 import { Card } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ export function FixtureVideos({ fixtureId, canEdit }: { fixtureId: number; canEd
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
   const invalidate = () =>
-    qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures/{fixture_id}/media"] });
+    invalidatePath(qc, "/api/v1/fixtures/{fixture_id}/media");
 
   function open(v: Video | "new") {
     setEditing(v);

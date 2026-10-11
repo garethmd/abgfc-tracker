@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { $api, errorMessage, type Schema } from "@/lib/api/client";
+import { $api, errorMessage, type Schema, invalidatePath } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -46,7 +46,7 @@ export function PostponeSheet({
         params: { path: { fixture_id: fixture.id } },
         body: { reason: reason.trim() || null },
       });
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });
+      invalidatePath(qc, "/api/v1/fixtures");
       qc.invalidateQueries({
         queryKey: $api.queryOptions("get", "/api/v1/fixtures/{fixture_id}", {
           params: { path: { fixture_id: fixture.id } },

@@ -14,7 +14,7 @@ password and never reaches this module.
 
 from datetime import datetime, timedelta
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session, selectinload
 
 from app.config import Settings
@@ -75,6 +75,15 @@ class InviteService:
         if data.email:
             existing = self.users.get_by_email(data.email)
             if existing and any(g.player_id == player.id for g in existing.guardian_of):
+                # A closed account still holds its guardian links, so "already has
+                # access" would be a lie - and the coach needs to know which button to
+                # reach for, not be told to go away.
+                if not existing.is_active:
+                    raise ConflictError(
+                        f"{data.email} already has an account for "
+                        f"{player.display_name}, but it's closed. Re-open it instead of "
+                        "inviting them again."
+                    )
                 raise ConflictError(f"{data.email} can already see {player.display_name}")
 
         # One live link per address and child: re-inviting replaces the old one. With no
@@ -187,6 +196,38 @@ class InviteService:
     def reopen(self, user_id: int) -> None:
         user = self._manageable_parent(user_id)
         user.is_active = True
+        self.db.commit()
+
+    def unlink(self, user_id: int, player_id: int) -> None:
+        """Take away this parent's access to this child - the wrong address, or a
+        parent who should no longer see them. The account survives if they have another
+        child; if that was the last one, the age-group role goes too, because the role
+        is what access actually hangs on."""
+        user = self._manageable_parent(user_id)
+        link = next((g for g in user.guardian_of if g.player_id == player_id), None)
+        if link is None:
+            raise NotFoundError("They aren't linked to that child")
+        self._access.require_player(self.db, link.player, UserRole.COACH)
+        cohort_id = link.player.cohort_id
+        user.guardian_of.remove(link)
+        self.db.flush()
+        # Asked of the database, not of the loaded collection: a link added by another
+        # request in this session may not be on the object we are holding.
+        still_here = self.db.scalar(
+            select(func.count())
+            .select_from(PlayerGuardian)
+            .join(Player, Player.id == PlayerGuardian.player_id)
+            .where(PlayerGuardian.user_id == user.id, Player.cohort_id == cohort_id)
+        )
+        if not still_here:
+            # No child left in that age group: the viewer role has nothing to stand on.
+            for role in [
+                r
+                for r in user.roles
+                if r.scope_type == RoleScope.COHORT and r.scope_id == cohort_id
+            ]:
+                user.roles.remove(role)
+            user.session_version += 1  # whatever they have open stops working now
         self.db.commit()
 
     def set_email_signin(self, user_id: int, allowed: bool) -> None:

@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Minus, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { $api, errorMessage, type Schema } from "@/lib/api/client";
+import { $api, errorMessage, type Schema, invalidatePath } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -128,9 +128,9 @@ export function ResultEntry({
           awards: Object.entries(awards).flatMap(([typeId, set]) => [...set].map((player_id) => ({ award_type_id: Number(typeId), player_id }))),
         },
       });
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/team-seasons"] });
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/players"] });
+      invalidatePath(qc, "/api/v1/fixtures");
+      invalidatePath(qc, "/api/v1/team-seasons");
+      invalidatePath(qc, "/api/v1/players");
       toast.success("Result saved");
       router.replace(`${base}/fixtures/${fixture.id}`);
     } catch (err) {

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { KeyRound, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { $api, errorMessage, type Schema } from "@/lib/api/client";
+import { $api, errorMessage, type Schema, invalidatePath } from "@/lib/api/client";
 import { useMe } from "@/lib/me-context";
 import { Card } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
@@ -47,7 +47,7 @@ export function UsersManager() {
   const [roles, setRolesState] = useState<Role[]>([]);
   const [resetFor, setResetFor] = useState<User | null>(null);
   const [newPassword, setNewPassword] = useState("");
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["get", "/api/v1/users"] });
+  const invalidate = () => invalidatePath(qc, "/api/v1/users");
 
   function openNew() {
     setEditing("new");
@@ -74,7 +74,7 @@ export function UsersManager() {
         toast.success("Saved");
       }
       invalidate();
-      if (editing !== "new" && editing?.id === me.id) qc.invalidateQueries({ queryKey: ["get", "/api/v1/auth/me"] });
+      if (editing !== "new" && editing?.id === me.id) invalidatePath(qc, "/api/v1/auth/me");
       setEditing(null);
     } catch (err) {
       toast.error(errorMessage(err));

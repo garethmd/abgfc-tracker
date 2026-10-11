@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { $api, errorMessage, type Schema } from "@/lib/api/client";
+import { $api, errorMessage, type Schema, invalidatePath } from "@/lib/api/client";
 import { useMe } from "@/lib/me-context";
 import { Card } from "@/components/stat-card";
 import { SectionTitle } from "@/components/page-header";
@@ -33,9 +33,9 @@ export function StructureManager() {
   const [birthYear, setBirthYear] = useState("");
   const [colour, setColour] = useState(SWATCHES[0]);
   const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ["get", "/api/v1/cohorts"] });
-    qc.invalidateQueries({ queryKey: ["get", "/api/v1/club-teams"] });
-    qc.invalidateQueries({ queryKey: ["get", "/api/v1/auth/me"] });
+    invalidatePath(qc, "/api/v1/cohorts");
+    invalidatePath(qc, "/api/v1/club-teams");
+    invalidatePath(qc, "/api/v1/auth/me");
   };
 
   async function onCohort(e: React.FormEvent) {

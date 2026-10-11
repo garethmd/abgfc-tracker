@@ -854,6 +854,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/parents/{user_id}/children/{player_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Unlink Parent
+         * @description Remove this parent's access to this child. Their account survives if they have
+         *     another child here; otherwise they lose the age group with it.
+         */
+        delete: operations["unlink_parent_api_v1_parents__user_id__children__player_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/parents/{user_id}/close": {
         parameters: {
             query?: never;
@@ -5198,6 +5219,38 @@ export interface operations {
             header?: never;
             path: {
                 invite_id: number;
+            };
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unlink_parent_api_v1_parents__user_id__children__player_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+                player_id: number;
             };
             cookie?: {
                 abgfc_session?: string | null;

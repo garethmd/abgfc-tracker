@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Check, FileSpreadsheet, MapPin, Plus } from "lucide-react";
 import { seasonSpreadsheetUrl } from "@/lib/reports";
 import { toast } from "sonner";
-import { $api, errorMessage } from "@/lib/api/client";
+import { $api, errorMessage, invalidatePath } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
 import { Card } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
@@ -40,9 +40,9 @@ export function SeasonsManager() {
   const update = $api.useMutation("patch", "/api/v1/team-seasons/{team_season_id}");
 
   const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ["get", "/api/v1/club-teams"] });
-    qc.invalidateQueries({ queryKey: ["get", "/api/v1/team-seasons"] });
-    qc.invalidateQueries({ queryKey: ["get", "/api/v1/auth/me"] });
+    invalidatePath(qc, "/api/v1/club-teams");
+    invalidatePath(qc, "/api/v1/team-seasons");
+    invalidatePath(qc, "/api/v1/auth/me");
   };
 
   async function onStart(e: React.FormEvent) {

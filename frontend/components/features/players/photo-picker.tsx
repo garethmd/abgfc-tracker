@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Camera, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { errorMessage, fetchClient, type Schema } from "@/lib/api/client";
+import { errorMessage, fetchClient, type Schema, invalidatePath } from "@/lib/api/client";
 import { PlayerAvatar } from "@/components/player-avatar";
 import { Button } from "@/components/ui/button";
 
@@ -15,8 +15,8 @@ export function PhotoPicker({ player, onChanged }: { player: Schema["PlayerRead"
   const [busy, setBusy] = useState(false);
 
   const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ["get", "/api/v1/players"] });
-    qc.invalidateQueries({ queryKey: ["get", "/api/v1/team-seasons"] });
+    invalidatePath(qc, "/api/v1/players");
+    invalidatePath(qc, "/api/v1/team-seasons");
     onChanged?.();
   };
 

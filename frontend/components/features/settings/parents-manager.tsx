@@ -2,15 +2,14 @@
 
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, LogOut, Mail, Plus, Trash2, UserRound, UserX } from "lucide-react";
+import { Check, Copy, LogOut, Mail, Plus, Trash2, UserCheck, UserRound, UserX } from "lucide-react";
 import { toast } from "sonner";
-import { $api, errorMessage, type Schema } from "@/lib/api/client";
+import { $api, errorMessage, type Schema, invalidatePath } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
 import { Card } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -24,13 +23,19 @@ import {
 import { ErrorState } from "@/components/error-state";
 import { WhatsAppIcon, whatsAppUrl } from "@/components/whatsapp";
 import { formatDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 type Row = Schema["PlayerAccessRead"];
 type Invite = Schema["InviteRead"];
 type Created = Schema["InviteCreated"];
 type Guardian = Schema["GuardianRead"];
 /** A parent to act on, and which action. */
-type Action = { user: { id: number; name: string }; kind: "close" | "sign-out" };
+type Action = {
+  user: { id: number; name: string };
+  kind: "close" | "sign-out" | "reopen" | "unlink";
+  /** unlink only: which child's access is being taken away. */
+  player?: { id: number; name: string };
+};
 
 /** Who can see the club because of a child in this squad, and inviting more.
  *  Parents sign in with an emailed link, so there is no password to hand out. */
@@ -51,9 +56,11 @@ export function ParentsManager() {
   const revoke = $api.useMutation("delete", "/api/v1/invitations/{invite_id}");
   const close = $api.useMutation("post", "/api/v1/parents/{user_id}/close");
   const signOut = $api.useMutation("post", "/api/v1/parents/{user_id}/sign-out");
+  const reopen = $api.useMutation("post", "/api/v1/parents/{user_id}/reopen");
+  const unlink = $api.useMutation("delete", "/api/v1/parents/{user_id}/children/{player_id}");
 
   function invalidate() {
-    qc.invalidateQueries({ queryKey: ["get", "/api/v1/team-seasons"] });
+    invalidatePath(qc, "/api/v1/team-seasons");
   }
 
   async function onRevoke() {
@@ -74,21 +81,58 @@ export function ParentsManager() {
   }
   async function onAct() {
     if (!acting) return;
-    const m = acting.kind === "close" ? close : signOut;
+    const path = { user_id: acting.user.id };
     try {
-      await m.mutateAsync({ params: { path: { user_id: acting.user.id } } });
+      if (acting.kind === "unlink" && acting.player) {
+        await unlink.mutateAsync({
+          params: { path: { ...path, player_id: acting.player.id } },
+        });
+        toast.success(`${acting.user.name} can no longer see ${acting.player.name}`);
+      } else if (acting.kind === "close") {
+        await close.mutateAsync({ params: { path } });
+        toast.success(`${acting.user.name} can no longer sign in`);
+      } else if (acting.kind === "reopen") {
+        await reopen.mutateAsync({ params: { path } });
+        toast.success(`${acting.user.name} can sign in again`);
+      } else {
+        await signOut.mutateAsync({ params: { path } });
+        toast.success(`${acting.user.name} signed out on every device`);
+      }
       invalidate();
-      toast.success(
-        acting.kind === "close"
-          ? `${acting.user.name} can no longer sign in`
-          : `${acting.user.name} signed out on every device`,
-      );
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
       setActing(null);
     }
   }
+
+  const BUSY = [close, signOut, reopen, unlink].some((m) => m.isPending);
+  const COPY: Record<Action["kind"], { title: (a: Action) => string; body: string; cta: string; danger: boolean }> = {
+    unlink: {
+      title: (a) => `Stop ${a.user.name} seeing ${a.player?.name}?`,
+      body: "Their account stays, along with any other children they have here. If this was their only one, they lose access altogether.",
+      cta: "Remove",
+      danger: true,
+    },
+    close: {
+      title: (a) => `Close ${a.user.name}'s account?`,
+      body: "They won't be able to sign in again until you re-open it. Nothing they can see is deleted.",
+      cta: "Close account",
+      danger: true,
+    },
+    reopen: {
+      title: (a) => `Let ${a.user.name} back in?`,
+      body: "They'll be able to sign in again with the same email or passkey. Nothing else changes.",
+      cta: "Re-open",
+      danger: false,
+    },
+    "sign-out": {
+      title: (a) => `Sign ${a.user.name} out everywhere?`,
+      body: "Every phone and computer they're signed in on is signed out. They keep their access and can sign in again.",
+      cta: "Sign out",
+      danger: false,
+    },
+  };
 
   if (q.isPending) return <Skeleton className="h-64 rounded-xl" />;
   if (q.error) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
@@ -107,40 +151,54 @@ export function ParentsManager() {
 
       <Card className="divide-y divide-border/40">
         {rows.map((r) => (
-          <div key={r.player.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
-            <span className="min-w-28 flex-1 text-sm font-medium">{r.player.display_name}</span>
-            <div className="flex min-w-0 flex-[2] flex-wrap items-center gap-1.5">
-              {r.guardians.map((g) => (
-                <GuardianBadge
-                  key={g.id}
-                  guardian={g}
-                  onAct={(kind) =>
-                    setActing({ user: { id: g.user_id, name: g.display_name ?? g.email ?? "They" }, kind })
-                  }
-                />
-              ))}
-              {r.pending.map((p) => (
-                <Badge key={p.id} variant="outline" className="max-w-full gap-1 border-dashed">
-                  <Mail className="size-3 shrink-0" />
-                  <span className="truncate">{p.email}</span>
-                  <span className="text-muted-foreground">· invited</span>
-                  <button
-                    type="button"
-                    onClick={() => setRevoking(p)}
-                    aria-label={`Cancel the invitation to ${p.email}`}
-                    className="ml-0.5 text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="size-3" />
-                  </button>
-                </Badge>
-              ))}
+          <div key={r.player.id} className="px-4 py-3">
+            <div className="flex items-center gap-3">
+              <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                {r.player.display_name}
+              </span>
               {r.guardians.length === 0 && r.pending.length === 0 && (
                 <span className="text-xs text-muted-foreground">Nobody yet</span>
               )}
+              <Button size="sm" variant="outline" className="h-9 shrink-0" onClick={() => setInviting(r)}>
+                <Plus className="size-4" /> {r.pending.length ? "Resend" : "Invite"}
+              </Button>
             </div>
-            <Button size="sm" variant="outline" className="h-9" onClick={() => setInviting(r)}>
-              <Plus className="size-4" /> {r.pending.length ? "Resend" : "Invite"}
-            </Button>
+
+            {/* One line per person: at phone width, three icons and a name cannot share
+                a row with the child's name without the name becoming "S…". */}
+            {(r.guardians.length > 0 || r.pending.length > 0) && (
+              <ul className="mt-2 space-y-1.5">
+                {r.guardians.map((g) => (
+                  <GuardianRow
+                    key={g.id}
+                    guardian={g}
+                    onAct={(kind) =>
+                      setActing({
+                        user: { id: g.user_id, name: g.display_name ?? g.email ?? "They" },
+                        kind,
+                        player: { id: r.player.id, name: r.player.display_name },
+                      })
+                    }
+                  />
+                ))}
+                {r.pending.map((p) => (
+                  <li key={p.id} className="flex items-center gap-2 text-xs">
+                    <Mail className="size-3.5 shrink-0 text-muted-foreground" />
+                    <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                      {p.email} · invited
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setRevoking(p)}
+                      aria-label={`Cancel the invitation to ${p.email}`}
+                      className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-destructive"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         ))}
         {rows.length === 0 && (
@@ -194,29 +252,25 @@ export function ParentsManager() {
 
       <Dialog open={acting !== null} onOpenChange={(o) => !o && setActing(null)}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {acting?.kind === "close"
-                ? `Close ${acting?.user.name}'s account?`
-                : `Sign ${acting?.user.name} out everywhere?`}
-            </DialogTitle>
-            <DialogDescription>
-              {acting?.kind === "close"
-                ? "They won't be able to sign in again until you reopen it. Nothing they can see is deleted."
-                : "Every phone and computer they're signed in on is signed out. They keep their access and can ask for a new link."}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" className="h-11" onClick={() => setActing(null)}>Cancel</Button>
-            <Button
-              variant={acting?.kind === "close" ? "destructive" : "default"}
-              className="h-11"
-              onClick={onAct}
-              disabled={close.isPending || signOut.isPending}
-            >
-              {acting?.kind === "close" ? "Close account" : "Sign out"}
-            </Button>
-          </DialogFooter>
+          {acting && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{COPY[acting.kind].title(acting)}</DialogTitle>
+                <DialogDescription>{COPY[acting.kind].body}</DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="gap-2">
+                <Button variant="outline" className="h-11" onClick={() => setActing(null)}>Cancel</Button>
+                <Button
+                  variant={COPY[acting.kind].danger ? "destructive" : "default"}
+                  className="h-11"
+                  onClick={onAct}
+                  disabled={BUSY}
+                >
+                  {COPY[acting.kind].cta}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -243,39 +297,69 @@ export function ParentsManager() {
   );
 }
 
-function GuardianBadge({
+function GuardianRow({
   guardian: g,
   onAct,
 }: {
   guardian: Guardian;
-  onAct: (kind: "close" | "sign-out") => void;
+  onAct: (kind: Action["kind"]) => void;
+}) {
+  const name = g.display_name ?? g.email ?? "This parent";
+  return (
+    <li className="flex items-center gap-2 text-xs">
+      <UserRound className="size-3.5 shrink-0 text-muted-foreground" />
+      <span className="min-w-0 flex-1 truncate">
+        {name}
+        {!g.is_active && <span className="text-muted-foreground"> · closed</span>}
+        {g.passkey_count > 0 && <span className="text-muted-foreground"> · passkey</span>}
+      </span>
+      {g.is_active ? (
+        <>
+          <RowButton label={`Sign ${name} out everywhere`} title="Sign out everywhere" onClick={() => onAct("sign-out")}>
+            <LogOut className="size-3.5" />
+          </RowButton>
+          <RowButton label={`Stop ${name} seeing this child`} title="Remove access to this child" danger onClick={() => onAct("unlink")}>
+            <Trash2 className="size-3.5" />
+          </RowButton>
+          <RowButton label={`Close ${name}'s account`} title="Close their account" danger onClick={() => onAct("close")}>
+            <UserX className="size-3.5" />
+          </RowButton>
+        </>
+      ) : (
+        <RowButton label={`Let ${name} back in`} title="Re-open this account" onClick={() => onAct("reopen")}>
+          <UserCheck className="size-3.5" />
+        </RowButton>
+      )}
+    </li>
+  );
+}
+
+function RowButton({
+  label,
+  title,
+  danger,
+  onClick,
+  children,
+}: {
+  label: string;
+  title: string;
+  danger?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
 }) {
   return (
-    <span className="inline-flex max-w-full items-center gap-1 rounded-md bg-secondary px-2 py-1 text-xs">
-      <UserRound className="size-3 shrink-0" />
-      <span className="truncate">{g.display_name ?? g.email}</span>
-      {!g.is_active && <span className="text-muted-foreground">· closed</span>}
-      <button
-        type="button"
-        onClick={() => onAct("sign-out")}
-        aria-label={`Sign ${g.display_name ?? g.email} out everywhere`}
-        title="Sign out everywhere"
-        className="ml-0.5 text-muted-foreground hover:text-foreground"
-      >
-        <LogOut className="size-3" />
-      </button>
-      {g.is_active && (
-        <button
-          type="button"
-          onClick={() => onAct("close")}
-          aria-label={`Close ${g.display_name ?? g.email}'s account`}
-          title="Close account"
-          className="text-muted-foreground hover:text-destructive"
-        >
-          <UserX className="size-3" />
-        </button>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={title}
+      className={cn(
+        "flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent",
+        danger ? "hover:text-destructive" : "hover:text-foreground",
       )}
-    </span>
+    >
+      {children}
+    </button>
   );
 }
 

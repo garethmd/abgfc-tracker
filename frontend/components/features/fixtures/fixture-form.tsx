@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { $api, errorMessage, type Schema } from "@/lib/api/client";
+import { $api, errorMessage, type Schema, invalidatePath } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
 import { toLocalInput, VENUE_LABEL, STATUS_LABEL } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -63,7 +63,7 @@ export function FixtureForm({ fixture }: { fixture?: Fixture }) {
       if (teamId === "__new__") {
         const t = await createTeam.mutateAsync({ body: { name: newTeam.trim() } });
         oppositionId = t.id;
-        qc.invalidateQueries({ queryKey: ["get", "/api/v1/teams"] });
+        invalidatePath(qc, "/api/v1/teams");
       }
       const common = {
         competition_id: Number(competitionId),
@@ -84,7 +84,7 @@ export function FixtureForm({ fixture }: { fixture?: Fixture }) {
       } else {
         saved = await create.mutateAsync({ body: { ...common, team_season_id: teamSeason.id, status } });
       }
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });
+      invalidatePath(qc, "/api/v1/fixtures");
       toast.success(fixture ? "Fixture updated" : "Fixture added");
       router.replace(`${base}/fixtures/${saved.id}`);
     } catch (err) {

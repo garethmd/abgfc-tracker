@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 import { useTeam } from "@/lib/team-context";
 import { toast } from "sonner";
-import { $api, errorMessage, type Schema } from "@/lib/api/client";
+import { $api, errorMessage, type Schema, invalidatePath } from "@/lib/api/client";
 import { Card } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +29,7 @@ export function CompetitionsManager() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [type, setType] = useState<Schema["CompetitionType"]>("league");
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["get", "/api/v1/competitions"] });
+  const invalidate = () => invalidatePath(qc, "/api/v1/competitions");
 
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();

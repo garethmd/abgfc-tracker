@@ -507,3 +507,67 @@ def test_invite_without_an_address_for_whatsapp(
     assert user.password_hash is None and [g.player_id for g in user.guardian_of] == [archie.id]
     # Both parents of one child can be invited separately without clashing
     assert _invite(auth_client, archie.id, None).status_code == 201
+
+
+# --- undoing access -------------------------------------------------------------------
+
+
+def test_reopening_an_account_a_coach_closed(auth_client: TestClient, db, demo: DemoSeason):
+    """What Gareth hit on the live site: closed by mistake, and no way back."""
+    parent = _accept_as_parent(auth_client, demo.players["Archie"].id)
+    user = db.scalar(select(User).where(User.email == "mum@example.com"))
+    auth_client.post(f"{API}/parents/{user.id}/close")
+    assert parent.get(f"{API}/auth/me").status_code == 401
+
+    # Re-inviting says what is actually true, and points at the right button
+    r = _invite(auth_client, demo.players["Archie"].id)
+    assert r.status_code == 409 and "closed" in r.json()["detail"]
+    assert "Re-open" in r.json()["detail"]
+
+    assert auth_client.post(f"{API}/parents/{user.id}/reopen").status_code == 204
+    fresh = TestClient(auth_client.app)
+    fresh.post(f"{API}/auth/signin-link", json={"email": "mum@example.com"})
+    db.expire_all()
+    assert db.scalar(select(User).where(User.email == "mum@example.com")).is_active
+
+
+def test_removing_one_childs_access(auth_client: TestClient, db, demo: DemoSeason):
+    """Not the same as closing the account: the other child stays."""
+    archie, max_ = demo.players["Archie"], demo.players["Max"]
+    parent = _accept_as_parent(auth_client, archie.id)
+    user = db.scalar(select(User).where(User.email == "mum@example.com"))
+    db.add(PlayerGuardian(user_id=user.id, player_id=max_.id))
+    db.commit()
+
+    assert auth_client.delete(f"{API}/parents/{user.id}/children/{archie.id}").status_code == 204
+    db.expire_all()
+    user = db.scalar(select(User).where(User.email == "mum@example.com"))
+    assert [g.player_id for g in user.guardian_of] == [max_.id]
+    # Max is in the same age group, so they keep the role and stay signed in
+    assert len(user.roles) == 1
+    assert parent.get(f"{API}/auth/me").status_code == 200
+
+    # Removing the last child takes the age group with it, and ends the session
+    assert auth_client.delete(f"{API}/parents/{user.id}/children/{max_.id}").status_code == 204
+    db.expire_all()
+    user = db.scalar(select(User).where(User.email == "mum@example.com"))
+    assert user.guardian_of == [] and user.roles == []
+    assert parent.get(f"{API}/auth/me").status_code == 401
+    # ...and the coach can now invite that address afresh
+    assert _invite(auth_client, archie.id).status_code == 201
+
+
+def test_unlinking_is_scoped_like_everything_else(
+    client: TestClient, auth_client: TestClient, db, demo: DemoSeason
+):
+    _accept_as_parent(auth_client, demo.players["Archie"].id)
+    user = db.scalar(select(User).where(User.email == "mum@example.com"))
+    make_user(db, "far_coach", (UserRole.COACH, RoleScope.TEAM, demo.team_season.club_team_id + 1))
+    db.commit()
+    login_as(client, "far_coach")
+    r = client.delete(f"{API}/parents/{user.id}/children/{demo.players['Archie'].id}")
+    assert r.status_code == 403
+    # And a child they were never linked to is a 404, not a silent success
+    login_as(client, "coach")
+    r = auth_client.delete(f"{API}/parents/{user.id}/children/{demo.players['Teddy'].id}")
+    assert r.status_code == 404

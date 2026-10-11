@@ -1,3 +1,4 @@
+import type { QueryClient } from "@tanstack/react-query";
 import createFetchClient, { type Middleware } from "openapi-fetch";
 import createClient from "openapi-react-query";
 import type { components, paths } from "./schema";
@@ -51,4 +52,20 @@ export function errorMessage(error: unknown, fallback = "Something went wrong"):
     }
   }
   return fallback;
+}
+
+/** Refetch every query whose path *starts with* `prefix`.
+ *
+ *  `invalidateQueries({ queryKey: ["get", "/api/v1/team-seasons"] })` looks like it
+ *  does this, but TanStack compares key elements for equality, and the path element of
+ *  a templated query is the whole template - "/api/v1/team-seasons/{team_season_id}/squad".
+ *  So that call matched nothing at all, silently. This compares the string properly.
+ */
+export function invalidatePath(qc: QueryClient, ...prefixes: string[]) {
+  return qc.invalidateQueries({
+    predicate: (q) => {
+      const path = q.queryKey[1];
+      return typeof path === "string" && prefixes.some((p) => path.startsWith(p));
+    },
+  });
 }

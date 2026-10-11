@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Award, CloudRain, FileDown, MapPin, MoreHorizontal, Pencil, Radio, Trash2 } from "lucide-react";
 import { matchdaySheetUrl } from "@/lib/reports";
 import { toast } from "sonner";
-import { $api, errorMessage, type Schema } from "@/lib/api/client";
+import { $api, errorMessage, type Schema, invalidatePath } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
 import { formatLongDate, formatTime, STATUS_LABEL, VENUE_LABEL } from "@/lib/format";
 import { PageHeader, SectionTitle } from "@/components/page-header";
@@ -45,8 +45,8 @@ export default function FixtureDetailPage({ params }: PageProps<"/[team]/fixture
     if (!confirm("Delete this fixture and everything recorded against it?")) return;
     try {
       await del.mutateAsync({ params: { path: { fixture_id: fixtureId } } });
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/team-seasons"] });
+      invalidatePath(qc, "/api/v1/fixtures");
+      invalidatePath(qc, "/api/v1/team-seasons");
       toast.success("Fixture deleted");
       router.replace(`${base}/fixtures`);
     } catch (err) {

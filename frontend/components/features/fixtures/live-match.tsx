@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Flag, MoreHorizontal, Trash2, Undo2, Users, X } from "lucide-react";
 import { toast } from "sonner";
-import { $api, errorMessage, type Schema } from "@/lib/api/client";
+import { $api, errorMessage, type Schema, invalidatePath } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -64,7 +64,7 @@ export function LineUp({ fixture, squad, preselect, guests: namedGuests }: { fix
         body: { player_ids: picked },
       });
       qc.setQueryData(fixtureKey(fixture.id), d);
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });
+      invalidatePath(qc, "/api/v1/fixtures");
       toast.success("Kick off!");
     } catch (err) {
       toast.error(errorMessage(err));
@@ -191,9 +191,9 @@ export function LiveMatch({ fixture, squad, teamName, base }: { fixture: Fixture
     setConfirming(null);
     run(() => finish.mutateAsync(path), (d) => {
       apply(d);
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/team-seasons"] });
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/players"] });
+      invalidatePath(qc, "/api/v1/fixtures");
+      invalidatePath(qc, "/api/v1/team-seasons");
+      invalidatePath(qc, "/api/v1/players");
       toast.success("Full time - now pick the player of the match");
       router.replace(`${base}/fixtures/${fixture.id}/entry`);
     });
@@ -202,7 +202,7 @@ export function LiveMatch({ fixture, squad, teamName, base }: { fixture: Fixture
   function onAbandon() {
     setConfirming(null);
     run(() => abandon.mutateAsync(path), () => {
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });
+      invalidatePath(qc, "/api/v1/fixtures");
       toast.success("Live match discarded");
       router.replace(`${base}/fixtures/${fixture.id}`);
     });

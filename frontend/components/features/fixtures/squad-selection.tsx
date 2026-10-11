@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Clock, MapPin, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { $api, errorMessage, type Schema } from "@/lib/api/client";
+import { $api, errorMessage, type Schema, invalidatePath } from "@/lib/api/client";
 import { formatTime } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -118,8 +118,8 @@ export function SquadSelection({
 
   function invalidate() {
     qc.invalidateQueries({ queryKey: selectionKey(fixture.id) });
-    qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });
-    qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures/{fixture_id}"] });
+    invalidatePath(qc, "/api/v1/fixtures");
+    invalidatePath(qc, "/api/v1/fixtures/{fixture_id}");
   }
 
   const kickoffAt = kickoff ? `${fixture.kickoff_at.slice(0, 10)}T${kickoff}:00` : fixture.kickoff_at;

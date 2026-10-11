@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { MessageSquareText, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { $api, errorMessage, type Schema } from "@/lib/api/client";
+import { $api, errorMessage, type Schema, invalidatePath } from "@/lib/api/client";
 import { formatDate, formatTime, toLocalInput } from "@/lib/format";
 import { SectionTitle } from "@/components/page-header";
 import { Card } from "@/components/stat-card";
@@ -27,7 +27,7 @@ export function MatchNotes({ fixtureId, canEdit }: { fixtureId: number; canEdit:
   const [body, setBody] = useState("");
   const [author, setAuthor] = useState("");
   const [sentAt, setSentAt] = useState("");
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures/{fixture_id}/notes"] });
+  const invalidate = () => invalidatePath(qc, "/api/v1/fixtures/{fixture_id}/notes");
 
   function open(n: Note | "new") {
     setEditing(n);

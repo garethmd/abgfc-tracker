@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Check, ExternalLink, Minus, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { $api, errorMessage, type Schema } from "@/lib/api/client";
+import { $api, errorMessage, type Schema, invalidatePath } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
@@ -91,9 +91,9 @@ export default function ImportFixturesPage() {
     });
     try {
       const res = await apply.mutateAsync({ params: { path: { team_season_id: teamSeason.id } }, body: { rows: decisions } });
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/teams"] });
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/competitions"] });
+      invalidatePath(qc, "/api/v1/fixtures");
+      invalidatePath(qc, "/api/v1/teams");
+      invalidatePath(qc, "/api/v1/competitions");
       const extras = [
         res.new_teams.length ? `${res.new_teams.length} new opposition` : null,
         res.new_competitions.length ? `${res.new_competitions.length} new competition${res.new_competitions.length > 1 ? "s" : ""}` : null,

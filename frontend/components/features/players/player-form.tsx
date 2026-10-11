@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { $api, errorMessage, type Schema } from "@/lib/api/client";
+import { $api, errorMessage, type Schema, invalidatePath } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,8 +89,8 @@ export function PlayerForm({ player, member, onSaved }: { player?: Player; membe
           }
         }
       }
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/players"] });
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/team-seasons"] });
+      invalidatePath(qc, "/api/v1/players");
+      invalidatePath(qc, "/api/v1/team-seasons");
       toast.success(player ? "Player updated" : "Player added");
       onSaved?.(saved);
     } catch (err) {

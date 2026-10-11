@@ -41,6 +41,13 @@ def reopen_parent(user_id: int, db: DB, access: Access, settings: Config):
     InviteService(db, access, settings).reopen(user_id)
 
 
+@router.delete("/parents/{user_id}/children/{player_id}", status_code=204)
+def unlink_parent(user_id: int, player_id: int, db: DB, access: Access, settings: Config):
+    """Remove this parent's access to this child. Their account survives if they have
+    another child here; otherwise they lose the age group with it."""
+    InviteService(db, access, settings).unlink(user_id, player_id)
+
+
 @router.post("/parents/{user_id}/email-signin", status_code=204)
 def set_parent_email_signin(user_id: int, allowed: bool, db: DB, access: Access, settings: Config):
     """Let this parent keep using emailed links even though they have a passkey - for a

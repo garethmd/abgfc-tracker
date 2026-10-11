@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, Pencil, Plus, Shield, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { $api, errorMessage, type Schema } from "@/lib/api/client";
+import { $api, errorMessage, type Schema, invalidatePath } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
 import { Card } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
@@ -45,7 +45,7 @@ export function OppositionList() {
   const [homeGround, setHomeGround] = useState("");
   const [mergeInto, setMergeInto] = useState("");
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["get", "/api/v1/teams"] });
+  const invalidate = () => invalidatePath(qc, "/api/v1/teams");
 
   function openFor(t: Team | "new") {
     setEditing(t);
@@ -92,7 +92,7 @@ export function OppositionList() {
         params: { path: { team_id: merging.from.id } },
         body: { into_team_id: merging.into.id },
       });
-      qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });
+      invalidatePath(qc, "/api/v1/fixtures");
       invalidate();
       toast.success(`Merged into ${merging.into.name}`);
       setMerging(null);
