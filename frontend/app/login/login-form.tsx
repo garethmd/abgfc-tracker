@@ -1,8 +1,10 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { fetchClient, errorMessage } from "@/lib/api/client";
+import { PasskeyCancelled, passkeysSupported, signInWithPasskey } from "@/lib/passkeys";
+import { Fingerprint } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +18,7 @@ export function LoginForm() {
   // Coaches have a password; parents are emailed a link. Password stays the default so
   // nothing changes for the people who sign in every week.
   const [mode, setMode] = useState<"password" | "link">("password");
+  const canUsePasskey = useSyncExternalStore(() => () => {}, passkeysSupported, () => false);
   const [email, setEmail] = useState("");
   const [linkSent, setLinkSent] = useState(false);
 
@@ -32,6 +35,22 @@ export function LoginForm() {
     const next = params.get("next");
     // Full reload on purpose: nothing cached from a previous user may survive a sign-in.
     window.location.assign(next && next.startsWith("/") ? next : "/");
+  }
+
+  async function onPasskey() {
+    setPending(true);
+    setError(null);
+    try {
+      await signInWithPasskey();
+      // Full reload on purpose: nothing cached for a previous user may survive.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      window.location.assign("/");
+    } catch (err) {
+      setPending(false);
+      // Dismissing the Face ID sheet isn't a failure worth a red message.
+      if (err instanceof PasskeyCancelled) return;
+      setError("That didn't work. Try the sign-in link below, or ask your coach.");
+    }
   }
 
   async function onRequestLink(e: React.FormEvent) {
@@ -128,12 +147,22 @@ export function LoginForm() {
       <Button type="submit" className="h-11 w-full" disabled={pending}>
         {pending ? "Signing in…" : "Sign in"}
       </Button>
+      {canUsePasskey && (
+        <>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
+          </div>
+          <Button type="button" variant="outline" className="h-11 w-full" onClick={onPasskey} disabled={pending}>
+            <Fingerprint className="size-4" /> Sign in with Face ID or a fingerprint
+          </Button>
+        </>
+      )}
       <button
         type="button"
         onClick={() => { setMode("link"); setError(null); }}
         className="w-full text-center text-sm text-muted-foreground underline-offset-4 hover:underline"
       >
-        Parent? Email me a sign-in link
+        Parent with no passkey? Email me a link
       </button>
     </form>
   );

@@ -9,17 +9,59 @@ the same row the age-group coach holds at a higher level. Nothing in
 `services/access.py` changed to support them. What marks them out is a
 `player_guardians` link to their child, which grants nothing today.
 
-## Why no password
+## Why no password — and why not an emailed link either
 
 A parent opens this app twice a month. A password set in September is forgotten by
-October, and there is no self-service reset — so every forgotten password would become a
-message to the club. Once invitations are emailed, the same mechanism is a complete
-login: *enter your email, we send you a link*. So parents have no password at all, and
-coaches keep theirs (they sign in constantly, often on bad signal at the pitch).
+October, and there is no self-service reset, so every forgotten password becomes a
+message to the club.
+
+Emailed sign-in links were the first answer and are **not** the answer.
+[NIST SP 800-63B-4](https://pages.nist.gov/800-63-4/sp800-63b.html) is explicit: *"Email
+SHALL NOT be used for out-of-band authentication"* — an inbox is usually guarded by a
+password, mail can be intercepted, and delivery can be rerouted. It permits email only
+for confirming an address or as a recovery artifact.
+
+So a parent signs in with a **passkey**: a key pair bound to this domain, unlocked by
+Face ID, a fingerprint or the device PIN. We hold the public half only, so a copy of the
+database is worth nothing; and the browser will not offer the credential to any other
+origin, so a convincing fake of this site cannot collect it. With user verification it is
+a multi-factor authenticator at AAL2 — stronger than the password this replaced, and
+less work for the parent.
+
+Coaches keep passwords: they sign in constantly, often on bad signal at the pitch.
 
 The two paths can't cross. A parent account has `password_hash = NULL`, so
 `POST /auth/login` can never authenticate one. A coach has no `email`, so
 `POST /auth/signin-link` never issues a link for them. `tests/test_invites.py` pins both.
+
+## Passkeys
+
+`services/passkeys.py`, following [OWASP's Passkey Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Passkey_Security_Cheat_Sheet.html).
+
+- **Registration always happens for an account already signed in** — straight after
+  accepting an invitation, or from Settings → Signing in to add a second device. That is
+  what binds the credential to the right person.
+- **Sign-in names no account.** The credential is discoverable, so the authenticator says
+  which account it holds; nothing typed, and nothing reveals whether an account exists.
+- **Challenges live server-side** in `webauthn_challenges`, bound to purpose and account,
+  consumed by deletion. A registration challenge can never be spent on an authentication.
+- **User verification is required** on both ceremonies — a passkey without it would be
+  single-factor.
+- `users.webauthn_handle` is 32 random bytes. It travels to the authenticator, so it
+  carries nothing personal.
+- **Several per parent is encouraged** (phone and laptop); the last one can't be removed
+  unless there's another way in.
+
+**Registering a passkey retires that account's emailed links** — otherwise a failed
+passkey could quietly fall back to something weaker, which is exactly what OWASP warns
+against. A coach can re-open them for one named parent whose device can't hold a passkey
+(no screen lock, or iOS before 16 / Android before 10) from the Parents tab. Deliberate,
+per account, visible — never automatic.
+
+Recovery for a lost device is a **new invitation from the coach**, not an email link.
+They know the parent personally, which is stronger proofing than any inbox check. In
+practice it rarely comes up: passkeys sync through iCloud Keychain and Google Password
+Manager, so a new phone usually already has one.
 
 ## The flow
 

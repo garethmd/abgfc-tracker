@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { use, useState } from "react";
+import { use, useState, useSyncExternalStore } from "react";
 import { fetchClient, errorMessage, type Schema } from "@/lib/api/client";
+import { PasskeyCancelled, passkeysSupported, registerPasskey } from "@/lib/passkeys";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +21,9 @@ export default function InvitePage({ params }: PageProps<"/invite/[token]">) {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // Set once the account exists: from here the only thing left is the passkey.
+  const [registering, setRegistering] = useState(false);
+  const canUsePasskey = useSyncExternalStore(() => () => {}, passkeysSupported, () => false);
 
   const q = useQuery({
     queryKey: ["invite", token],
@@ -50,10 +54,62 @@ export default function InvitePage({ params }: PageProps<"/invite/[token]">) {
       setError(errorMessage(error, "That didn't work"));
       return;
     }
+    // The account exists and we're signed in. Offer the passkey before leaving - this
+    // is the one moment they're guaranteed to be here, and it's what they'll use from
+    // now on. A phone that can't hold one just goes straight in.
+    if (canUsePasskey) {
+      setRegistering(true);
+      return;
+    }
     // Full reload on purpose: the session cookie is new, and nothing cached for a
     // previous user may survive a sign-in (see docs/06-frontend.md).
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign("/");
+  }
+
+  async function onCreatePasskey() {
+    setPending(true);
+    setError(null);
+    try {
+      await registerPasskey();
+    } catch (err) {
+      setPending(false);
+      if (!(err instanceof PasskeyCancelled)) {
+        setError("That didn't work - you can set it up later in Settings.");
+        return;
+      }
+      // Dismissed: they're still signed in, so let them carry on without one.
+    }
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.assign("/");
+  }
+
+  if (registering) {
+    return (
+      <Shell>
+        <div className="space-y-4 rounded-xl bg-card p-6 shadow-sm ring-1 ring-border/60">
+          <h2 className="text-base font-semibold">One last thing</h2>
+          <p className="text-sm text-muted-foreground">
+            Set up Face ID, your fingerprint or your phone&apos;s PIN so you can get back in
+            with a tap. There&apos;s no password to remember, and it only works on this app.
+          </p>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button type="button" className="h-12 w-full text-base" onClick={onCreatePasskey} disabled={pending}>
+            {pending ? "Setting up…" : "Set it up"}
+          </Button>
+          <button
+            type="button"
+            onClick={() => {
+              // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+              window.location.assign("/");
+            }}
+            className="w-full text-center text-sm text-muted-foreground underline-offset-4 hover:underline"
+          >
+            Not now
+          </button>
+        </div>
+      </Shell>
+    );
   }
 
   return (
