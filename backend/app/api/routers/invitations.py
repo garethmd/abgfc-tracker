@@ -41,6 +41,13 @@ def reopen_parent(user_id: int, db: DB, access: Access, settings: Config):
     InviteService(db, access, settings).reopen(user_id)
 
 
+@router.delete("/parents/{user_id}", status_code=204)
+def delete_parent(user_id: int, db: DB, access: Access, settings: Config):
+    """Erase a parent's account. Use *close* to suspend one; this is for a parent who
+    has asked to be taken off, and it frees the address to be invited again."""
+    InviteService(db, access, settings).delete_parent(user_id)
+
+
 @router.delete("/parents/{user_id}/children/{player_id}", status_code=204)
 def unlink_parent(user_id: int, player_id: int, db: DB, access: Access, settings: Config):
     """Remove this parent's access to this child. Their account survives if they have

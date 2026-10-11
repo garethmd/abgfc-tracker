@@ -571,3 +571,40 @@ def test_unlinking_is_scoped_like_everything_else(
     login_as(client, "coach")
     r = auth_client.delete(f"{API}/parents/{user.id}/children/{demo.players['Teddy'].id}")
     assert r.status_code == 404
+
+
+def test_deleting_a_parent_frees_the_address(auth_client: TestClient, db, demo: DemoSeason):
+    """Closing keeps the row; deleting removes it, so they can be invited afresh."""
+    archie = demo.players["Archie"]
+    parent = _accept_as_parent(auth_client, archie.id)
+    user = db.scalar(select(User).where(User.email == "mum@example.com"))
+    user_id = user.id
+
+    assert auth_client.delete(f"{API}/parents/{user_id}").status_code == 204
+    assert parent.get(f"{API}/auth/me").status_code == 401
+    db.expire_all()
+    assert db.scalar(select(User).where(User.email == "mum@example.com")) is None
+    # Everything hanging off it went too
+    assert db.scalar(select(PlayerGuardian).where(PlayerGuardian.user_id == user_id)) is None
+
+    # And the address is free: a brand new invitation, not "you already have an account"
+    r = _invite(auth_client, archie.id)
+    assert r.status_code == 201
+    token = r.json()["link"].rsplit("/", 1)[1]
+    fresh = TestClient(auth_client.app)
+    r = fresh.post(f"{API}/auth/invitations/{token}/accept", json={"display_name": "Jo Again"})
+    assert r.status_code == 200 and r.json()["display_name"] == "Jo Again"
+
+
+def test_a_coachs_login_cannot_be_deleted_this_way(auth_client: TestClient, db):
+    coach = db.scalar(select(User).where(User.username == "coach"))
+    assert auth_client.delete(f"{API}/parents/{coach.id}").status_code == 404
+
+
+def test_deleting_is_scoped_like_the_rest(client: TestClient, auth_client: TestClient, db, demo):
+    _accept_as_parent(auth_client, demo.players["Archie"].id)
+    user = db.scalar(select(User).where(User.email == "mum@example.com"))
+    make_user(db, "distant", (UserRole.COACH, RoleScope.TEAM, demo.team_season.club_team_id + 1))
+    db.commit()
+    login_as(client, "distant")
+    assert client.delete(f"{API}/parents/{user.id}").status_code == 403

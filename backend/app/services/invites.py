@@ -230,6 +230,22 @@ class InviteService:
             user.session_version += 1  # whatever they have open stops working now
         self.db.commit()
 
+    def delete_parent(self, user_id: int) -> None:
+        """Remove the account outright - every guardian link, role, passkey and unused
+        link goes with it (FK cascades).
+
+        Closing an account keeps the row, which is right for "they've stopped playing"
+        but wrong for "take me off your system": a parent asking to be removed should
+        be removed, and the address should be free to invite again. Only a parent
+        account can go this way; an account with a password is a coach's and is managed
+        in /admin.
+        """
+        user = self._manageable_parent(user_id)
+        if user.password_hash is not None:  # pragma: no cover - _manageable_parent first
+            raise ValidationError("That's a coach's login - manage it in Coaches")
+        self.db.delete(user)
+        self.db.commit()
+
     def set_email_signin(self, user_id: int, allowed: bool) -> None:
         """The exception for a parent whose phone can't hold a passkey - too old, or no
         screen lock, so nothing can verify them. Deliberate, per account, and visible in

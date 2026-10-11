@@ -32,7 +32,7 @@ type Guardian = Schema["GuardianRead"];
 /** A parent to act on, and which action. */
 type Action = {
   user: { id: number; name: string };
-  kind: "close" | "sign-out" | "reopen" | "unlink";
+  kind: "close" | "sign-out" | "reopen" | "unlink" | "delete";
   /** unlink only: which child's access is being taken away. */
   player?: { id: number; name: string };
 };
@@ -58,6 +58,7 @@ export function ParentsManager() {
   const signOut = $api.useMutation("post", "/api/v1/parents/{user_id}/sign-out");
   const reopen = $api.useMutation("post", "/api/v1/parents/{user_id}/reopen");
   const unlink = $api.useMutation("delete", "/api/v1/parents/{user_id}/children/{player_id}");
+  const erase = $api.useMutation("delete", "/api/v1/parents/{user_id}");
 
   function invalidate() {
     invalidatePath(qc, "/api/v1/team-seasons");
@@ -91,6 +92,9 @@ export function ParentsManager() {
       } else if (acting.kind === "close") {
         await close.mutateAsync({ params: { path } });
         toast.success(`${acting.user.name} can no longer sign in`);
+      } else if (acting.kind === "delete") {
+        await erase.mutateAsync({ params: { path } });
+        toast.success(`${acting.user.name}'s account deleted`);
       } else if (acting.kind === "reopen") {
         await reopen.mutateAsync({ params: { path } });
         toast.success(`${acting.user.name} can sign in again`);
@@ -106,12 +110,18 @@ export function ParentsManager() {
     }
   }
 
-  const BUSY = [close, signOut, reopen, unlink].some((m) => m.isPending);
+  const BUSY = [close, signOut, reopen, unlink, erase].some((m) => m.isPending);
   const COPY: Record<Action["kind"], { title: (a: Action) => string; body: string; cta: string; danger: boolean }> = {
     unlink: {
       title: (a) => `Stop ${a.user.name} seeing ${a.player?.name}?`,
       body: "Their account stays, along with any other children they have here. If this was their only one, they lose access altogether.",
       cta: "Remove",
+      danger: true,
+    },
+    delete: {
+      title: (a) => `Delete ${a.user.name}'s account?`,
+      body: "Everything about the account goes - their access, their passkeys, the lot - and the email address can be invited again. Use Close instead if they might come back.",
+      cta: "Delete",
       danger: true,
     },
     close: {
@@ -326,9 +336,14 @@ function GuardianRow({
           </RowButton>
         </>
       ) : (
-        <RowButton label={`Let ${name} back in`} title="Re-open this account" onClick={() => onAct("reopen")}>
-          <UserCheck className="size-3.5" />
-        </RowButton>
+        <>
+          <RowButton label={`Let ${name} back in`} title="Re-open this account" onClick={() => onAct("reopen")}>
+            <UserCheck className="size-3.5" />
+          </RowButton>
+          <RowButton label={`Delete ${name}'s account`} title="Delete the account for good" danger onClick={() => onAct("delete")}>
+            <Trash2 className="size-3.5" />
+          </RowButton>
+        </>
       )}
     </li>
   );

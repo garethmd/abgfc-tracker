@@ -9051,6 +9051,58 @@
         ]
       }
     },
+    "/api/v1/parents/{user_id}": {
+      "delete": {
+        "description": "Erase a parent's account. Use *close* to suspend one; this is for a parent who\nhas asked to be taken off, and it frees the address to be invited again.",
+        "operationId": "delete_parent_api_v1_parents__user_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Parent",
+        "tags": [
+          "invitations"
+        ]
+      }
+    },
     "/api/v1/parents/{user_id}/children/{player_id}": {
       "delete": {
         "description": "Remove this parent's access to this child. Their account survives if they have\nanother child here; otherwise they lose the age group with it.",
