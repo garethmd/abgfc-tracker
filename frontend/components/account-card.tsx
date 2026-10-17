@@ -17,6 +17,8 @@ export function AccountCard() {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const change = $api.useMutation("post", "/api/v1/auth/change-password");
+  const setFirst = $api.useMutation("post", "/api/v1/auth/set-password");
+  const { refetch } = useMe();
 
   async function logout() {
     await fetchClient.POST("/api/v1/auth/logout");
@@ -28,8 +30,14 @@ export function AccountCard() {
   async function onChange(e: React.FormEvent) {
     e.preventDefault();
     try {
-      await change.mutateAsync({ body: { current_password: current, new_password: next } });
-      toast.success("Password changed");
+      if (me.has_password) {
+        await change.mutateAsync({ body: { current_password: current, new_password: next } });
+      } else {
+        // They joined before passwords existed; being signed in is the proof.
+        await setFirst.mutateAsync({ body: { new_password: next } });
+        refetch();
+      }
+      toast.success(me.has_password ? "Password changed" : "Password set");
       setOpen(false);
       setCurrent("");
       setNext("");
@@ -56,20 +64,32 @@ export function AccountCard() {
           <p className="truncate text-xs capitalize text-muted-foreground">{roleLabel}</p>
         </div>
         <div className="flex shrink-0 gap-2">
-          {/* Parents have no password - they sign in with an emailed link. */}
-          {me.has_password && (
-            <Button variant="outline" size="sm" onClick={() => setOpen(true)}><KeyRound className="size-4" /><span className="hidden sm:inline">Password</span></Button>
-          )}
+          <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+            <KeyRound className="size-4" />
+            <span className="hidden sm:inline">{me.has_password ? "Password" : "Set password"}</span>
+          </Button>
           <Button variant="outline" size="sm" onClick={logout}><LogOut className="size-4" /><span className="hidden sm:inline">Sign out</span></Button>
         </div>
       </Card>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Change password</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>{me.has_password ? "Change password" : "Set a password"}</DialogTitle>
+          </DialogHeader>
           <form onSubmit={onChange} className="space-y-4">
-            <Field label="Current password"><Input type="password" autoComplete="current-password" className="h-11" value={current} onChange={(e) => setCurrent(e.target.value)} required /></Field>
+            {!me.has_password && (
+              <p className="text-sm text-muted-foreground">
+                You joined before passwords, so you sign in with a link we email you.
+                Setting one means you can just sign in.
+              </p>
+            )}
+            {me.has_password && (
+              <Field label="Current password"><Input type="password" autoComplete="current-password" className="h-11" value={current} onChange={(e) => setCurrent(e.target.value)} required /></Field>
+            )}
             <Field label="New password"><Input type="password" autoComplete="new-password" className="h-11" value={next} onChange={(e) => setNext(e.target.value)} minLength={8} required /></Field>
-            <Button type="submit" className="h-11 w-full" disabled={change.isPending}>Change password</Button>
+            <Button type="submit" className="h-11 w-full" disabled={change.isPending || setFirst.isPending}>
+              {me.has_password ? "Change password" : "Set password"}
+            </Button>
           </form>
         </DialogContent>
       </Dialog>

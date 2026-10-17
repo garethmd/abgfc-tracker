@@ -17,7 +17,6 @@ from app.config import get_settings
 from app.core.ratelimit import signin_links, token_attempts
 from app.models import Passkey, User
 from app.services.bootstrap import DemoSeason
-from tests.conftest import login_as, make_user
 
 API = "/api/v1"
 ORIGIN = "http://localhost:3000"
@@ -143,7 +142,10 @@ def _parent(auth_client: TestClient, demo: DemoSeason, email="mum@example.com") 
     )
     token = r.json()["link"].rsplit("/", 1)[1]
     parent = TestClient(auth_client.app)
-    parent.post(f"{API}/auth/invitations/{token}/accept", json={"display_name": "Jo"})
+    parent.post(
+        f"{API}/auth/invitations/{token}/accept",
+        json={"display_name": "Jo", "password": "correct horse"},
+    )
     return parent
 
 
@@ -183,9 +185,9 @@ def test_register_a_passkey_then_sign_in_with_it(auth_client: TestClient, db, de
 
     stored = db.scalar(select(Passkey))
     assert stored.last_used_at is not None
-    # Only the public half is kept, and the handle carries nothing personal
+    # Only the public half of the credential is kept, and the handle, which travels
+    # to the authenticator, carries nothing personal
     user = db.scalar(select(User).where(User.email == "mum@example.com"))
-    assert user.password_hash is None
     assert b"mum@example.com" not in user.webauthn_handle
 
 
@@ -253,85 +255,68 @@ def test_registering_needs_a_session(auth_client: TestClient):
     assert anon.post(f"{API}/auth/passkeys", json={"credential": {}}).status_code == 401
 
 
-# --- what a passkey does to the emailed link --------------------------------------------
+# --- a passkey alongside a password ------------------------------------------------
 
 
-def test_a_passkey_retires_the_email_link(auth_client: TestClient, db, demo: DemoSeason, caplog):
-    """A failed passkey must not quietly fall back to something weaker."""
+def test_a_passkey_is_an_extra_not_a_replacement(
+    auth_client: TestClient, db, demo: DemoSeason, caplog
+):
+    """Both ways in keep working. The password is the baseline every device can manage;
+    the passkey is the better one for devices that can."""
     parent = _parent(auth_client, demo)
+    device = SoftWebauthnDevice()
+    _register(parent, device)
+
+    # The passkey signs them in
+    assert _signin(TestClient(auth_client.app), device).status_code == 200
+    # ...and so does the password
+    assert (
+        TestClient(auth_client.app)
+        .post(
+            f"{API}/auth/login",
+            json={"username": "mum@example.com", "password": "correct horse"},
+        )
+        .status_code
+        == 200
+    )
+    # ...and a forgotten password still reaches them, because email now only recovers
     client = TestClient(auth_client.app)
     with caplog.at_level("INFO", logger="abgfc.email"):
         assert (
-            client.post(f"{API}/auth/signin-link", json={"email": "mum@example.com"}).status_code
+            client.post(
+                f"{API}/auth/forgot-password", json={"email": "mum@example.com"}
+            ).status_code
             == 204
         )
-    assert [r for r in caplog.records if r.name == "abgfc.email"]  # link sent: no passkey yet
-
-    caplog.clear()
-    _register(parent, SoftWebauthnDevice())
-    with caplog.at_level("INFO", logger="abgfc.email"):
-        r = client.post(f"{API}/auth/signin-link", json={"email": "mum@example.com"})
-    # Still 204 - an outsider learns nothing - but nothing is sent
-    assert r.status_code == 204
-    assert not [rec for rec in caplog.records if rec.name == "abgfc.email"]
-
-
-def test_a_coach_can_re_enable_email_for_one_parent(
-    auth_client: TestClient, db, demo: DemoSeason, caplog
-):
-    """The exception for a phone that can't hold a passkey: deliberate, per account."""
-    parent = _parent(auth_client, demo)
-    _register(parent, SoftWebauthnDevice())
-    user = db.scalar(select(User).where(User.email == "mum@example.com"))
-
-    rows = auth_client.get(f"{API}/team-seasons/{demo.team_season.id}/parents").json()["players"]
-    archie = next(r for r in rows if r["player"]["display_name"] == "Archie")
-    assert archie["guardians"][0]["passkey_count"] == 1
-    assert archie["guardians"][0]["allow_email_signin"] is False
-
-    assert auth_client.post(f"{API}/parents/{user.id}/email-signin?allowed=true").status_code == 204
-    client = TestClient(auth_client.app)
-    caplog.clear()
-    with caplog.at_level("INFO", logger="abgfc.email"):
-        client.post(f"{API}/auth/signin-link", json={"email": "mum@example.com"})
-    assert [r for r in caplog.records if r.name == "abgfc.email"]  # sending again
-
-
-def test_only_a_coach_of_that_child_may_change_it(
-    client: TestClient, auth_client: TestClient, db, demo: DemoSeason
-):
-    _parent(auth_client, demo)
-    user = db.scalar(select(User).where(User.email == "mum@example.com"))
-    from app.models import RoleScope, UserRole
-
-    make_user(
-        db, "other_coach", (UserRole.COACH, RoleScope.TEAM, demo.team_season.club_team_id + 1)
-    )
-    db.commit()
-    login_as(client, "other_coach")
-    assert client.post(f"{API}/parents/{user.id}/email-signin?allowed=true").status_code == 403
+    assert "/reset/" in "\n".join(r.getMessage() for r in caplog.records if r.name == "abgfc.email")
 
 
 # --- removing them ----------------------------------------------------------------------
 
 
-def test_the_last_passkey_cannot_be_removed_without_a_way_back(
+def test_the_last_passkey_can_go_when_a_password_remains(
     auth_client: TestClient, db, demo: DemoSeason
 ):
     parent = _parent(auth_client, demo)
-    phone, laptop = SoftWebauthnDevice(), SoftWebauthnDevice()
-    _register(parent, phone, "iPhone")
-    _register(parent, laptop, "Laptop")
-    keys = parent.get(f"{API}/auth/passkeys").json()
+    _register(parent, SoftWebauthnDevice(), "iPhone")
+    only = parent.get(f"{API}/auth/passkeys").json()[0]["id"]
+    # Their password is still a way in, so removing the last device is fine
+    assert parent.delete(f"{API}/auth/passkeys/{only}").status_code == 204
+    assert parent.get(f"{API}/auth/passkeys").json() == []
 
-    assert parent.delete(f"{API}/auth/passkeys/{keys[0]['id']}").status_code == 204
-    r = parent.delete(f"{API}/auth/passkeys/{keys[1]['id']}")
-    assert r.status_code == 422 and "only way in" in r.json()["detail"]
 
-    # Unless a coach has turned email sign-in back on
+def test_a_passwordless_parent_cannot_remove_their_only_passkey(
+    auth_client: TestClient, db, demo: DemoSeason
+):
+    """Someone who joined before passwords and then added a passkey has one way in."""
+    parent = _parent(auth_client, demo)
+    _register(parent, SoftWebauthnDevice(), "iPhone")
     user = db.scalar(select(User).where(User.email == "mum@example.com"))
-    auth_client.post(f"{API}/parents/{user.id}/email-signin?allowed=true")
-    assert parent.delete(f"{API}/auth/passkeys/{keys[1]['id']}").status_code == 204
+    user.password_hash = None
+    db.commit()
+    only = parent.get(f"{API}/auth/passkeys").json()[0]["id"]
+    r = parent.delete(f"{API}/auth/passkeys/{only}")
+    assert r.status_code == 422 and "only way in" in r.json()["detail"]
 
 
 def test_one_parent_cannot_remove_anothers(auth_client: TestClient, demo: DemoSeason):

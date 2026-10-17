@@ -162,10 +162,9 @@ class PasskeyService:
         passkey = self.db.get(Passkey, passkey_id)
         if passkey is None or passkey.user_id != user.id:
             raise NotFoundError("No such passkey")
-        if len(user.passkeys) == 1 and not user.allow_email_signin:
+        if len(user.passkeys) == 1 and user.password_hash is None:
             raise ValidationError(
-                "That's your only way in. Add another device first, or ask your coach to "
-                "turn email sign-in back on."
+                "That's your only way in. Set a password first, or add another device."
             )
         user.passkeys.remove(passkey)
         self.db.commit()

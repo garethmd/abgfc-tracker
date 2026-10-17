@@ -29,7 +29,7 @@ def _link_from_log(caplog) -> str:
     """The sign-in link only exists in the email; the console backend logs it. Take the
     *last* one: a test that invites and then asks for a sign-in link logs two."""
     text = "\n".join(r.getMessage() for r in caplog.records if r.name == "abgfc.email")
-    found = re.findall(r"https?://\S+/(?:invite|signin)/([\w-]+)", text)
+    found = re.findall(r"https?://\S+/(?:invite|signin|reset)/([\w-]+)", text)
     assert found, f"no link in the email log:\n{text}"
     return found[-1]
 
@@ -67,11 +67,14 @@ def test_invite_accept_and_see_the_club(auth_client: TestClient, db, demo: DemoS
     assert r.json()["invited_by"] == "Club admin"
     assert parent.get(f"{API}/auth/invitations/{token}").status_code == 200  # still live
 
-    r = parent.post(f"{API}/auth/invitations/{token}/accept", json={"display_name": "Jo Smith"})
+    r = parent.post(
+        f"{API}/auth/invitations/{token}/accept",
+        json={"display_name": "Jo Smith", "password": "correct horse"},
+    )
     assert r.status_code == 200, r.text
     me = r.json()
     assert me["username"] == "mum@example.com" and me["display_name"] == "Jo Smith"
-    assert me["email"] == "mum@example.com" and me["has_password"] is False
+    assert me["email"] == "mum@example.com" and me["has_password"] is True
     assert me["roles"] == [{"role": "viewer", "scope_type": "cohort", "scope_id": archie.cohort_id}]
     # The multi-team role the age-group coach has: every team in the age group, read-only
     assert sorted(t["team"]["name"] for t in me["teams"]) == ["Blacks", "Blues", "Reds", "Whites"]
@@ -80,7 +83,6 @@ def test_invite_accept_and_see_the_club(auth_client: TestClient, db, demo: DemoS
     # Signed in on the spot - no password was ever set
     assert parent.get(f"{API}/auth/me").status_code == 200
     user = db.scalar(select(User).where(User.email == "mum@example.com"))
-    assert user.password_hash is None
     assert [g.player_id for g in user.guardian_of] == [archie.id]
 
     # A viewer reads but cannot write, and the coach-only reports stay shut
@@ -108,7 +110,10 @@ def test_one_parent_two_children_one_account(auth_client: TestClient, db, demo: 
 
     second = _invite(auth_client, max_.id).json()["link"].rsplit("/", 1)[1]
     with caplog.at_level("INFO", logger="abgfc.email"):
-        r = parent.post(f"{API}/auth/invitations/{second}/accept", json={"display_name": "Jo"})
+        r = parent.post(
+            f"{API}/auth/invitations/{second}/accept",
+            json={"display_name": "Jo", "password": "correct horse"},
+        )
     # Not signed straight in: holding a link must not be enough to join an account
     assert r.status_code == 409 and "already has an account" in r.json()["detail"]
     users = db.scalars(select(User).where(User.email == "mum@example.com")).all()
@@ -141,7 +146,7 @@ def test_an_invitation_cannot_take_over_a_coachs_login(
     client = TestClient(auth_client.app)
     r = client.post(
         f"{API}/auth/invitations/{token}/accept",
-        json={"display_name": "Chancer", "email": "boss@example.com"},
+        json={"display_name": "Chancer", "email": "boss@example.com", "password": "correct horse"},
     )
     assert r.status_code == 409 and "coach's login" in r.json()["detail"]
     assert client.get(f"{API}/auth/me").status_code == 401
@@ -156,7 +161,11 @@ def test_an_invitation_cannot_take_over_a_coachs_login(
     )
     r = client.post(
         f"{API}/auth/invitations/{token}/accept",
-        json={"display_name": "Jo", "email": "someone.else@example.com"},
+        json={
+            "display_name": "Jo",
+            "email": "someone.else@example.com",
+            "password": "correct horse",
+        },
     )
     assert r.status_code == 200 and r.json()["email"] == "mum@example.com"
 
@@ -169,11 +178,15 @@ def test_a_link_works_once(auth_client: TestClient, demo: DemoSeason):
     parent = TestClient(auth_client.app)
     assert (
         parent.post(
-            f"{API}/auth/invitations/{token}/accept", json={"display_name": "Jo"}
+            f"{API}/auth/invitations/{token}/accept",
+            json={"display_name": "Jo", "password": "correct horse"},
         ).status_code
         == 200
     )
-    r = parent.post(f"{API}/auth/invitations/{token}/accept", json={"display_name": "Jo"})
+    r = parent.post(
+        f"{API}/auth/invitations/{token}/accept",
+        json={"display_name": "Jo", "password": "correct horse"},
+    )
     assert r.status_code == 404
     assert parent.get(f"{API}/auth/invitations/{token}").status_code == 404
 
@@ -213,30 +226,94 @@ def test_reinviting_replaces_the_earlier_link(auth_client: TestClient, demo: Dem
 def _accept_as_parent(auth_client: TestClient, player_id: int, email="mum@example.com"):
     token = _invite(auth_client, player_id, email).json()["link"].rsplit("/", 1)[1]
     parent = TestClient(auth_client.app)
-    parent.post(f"{API}/auth/invitations/{token}/accept", json={"display_name": "Jo"})
+    parent.post(
+        f"{API}/auth/invitations/{token}/accept",
+        json={"display_name": "Jo", "password": "correct horse"},
+    )
     return parent
 
 
-def test_sign_in_link(auth_client: TestClient, demo: DemoSeason, caplog):
+def test_forgotten_password(auth_client: TestClient, demo: DemoSeason, caplog):
+    """A parent with a password gets a reset link - email used to recover, not to
+    authenticate - and setting a new one signs them in."""
     _accept_as_parent(auth_client, demo.players["Archie"].id)
     client = TestClient(auth_client.app)
     with caplog.at_level("INFO", logger="abgfc.email"):
-        r = client.post(f"{API}/auth/signin-link", json={"email": "mum@example.com"})
+        r = client.post(f"{API}/auth/forgot-password", json={"email": "mum@example.com"})
     assert r.status_code == 204
+    text = "\n".join(rec.getMessage() for rec in caplog.records if rec.name == "abgfc.email")
+    assert "/reset/" in text and "Reset your ABGFC password" in text
     token = _link_from_log(caplog)
 
     assert client.get(f"{API}/auth/me").status_code == 401
-    r = client.post(f"{API}/auth/signin-link/{token}")
-    assert r.status_code == 200 and r.json()["email"] == "mum@example.com"
+    r = client.post(f"{API}/auth/reset-password/{token}", json={"new_password": "a new one"})
+    assert r.status_code == 200, r.text
     assert client.get(f"{API}/auth/me").status_code == 200
+    # The new password works and the old one doesn't
+    fresh = TestClient(auth_client.app)
+    assert (
+        fresh.post(
+            f"{API}/auth/login", json={"username": "mum@example.com", "password": "correct horse"}
+        ).status_code
+        == 401
+    )
+    assert (
+        fresh.post(
+            f"{API}/auth/login", json={"username": "mum@example.com", "password": "a new one"}
+        ).status_code
+        == 200
+    )
     # Once only
-    assert client.post(f"{API}/auth/signin-link/{token}").status_code == 404
+    assert (
+        client.post(
+            f"{API}/auth/reset-password/{token}", json={"new_password": "a third one"}
+        ).status_code
+        == 404
+    )
+
+
+def test_a_parent_from_before_passwords_is_undisturbed(
+    auth_client: TestClient, db, demo: DemoSeason, caplog
+):
+    """Graham and Chris joined before passwords existed. Their emailed sign-in links
+    must keep working until they choose to set one."""
+    parent = _accept_as_parent(auth_client, demo.players["Archie"].id)
+    legacy = db.scalar(select(User).where(User.email == "mum@example.com"))
+    legacy.password_hash = None  # as their rows actually are
+    db.commit()
+
+    client = TestClient(auth_client.app)
+    with caplog.at_level("INFO", logger="abgfc.email"):
+        assert (
+            client.post(
+                f"{API}/auth/forgot-password", json={"email": "mum@example.com"}
+            ).status_code
+            == 204
+        )
+    text = "\n".join(rec.getMessage() for rec in caplog.records if rec.name == "abgfc.email")
+    assert "/signin/" in text  # the link they have always had, not a reset
+    assert client.post(f"{API}/auth/signin-link/{_link_from_log(caplog)}").status_code == 200
+    assert client.get(f"{API}/auth/me").json()["has_password"] is False
+
+    # And they can set one whenever they like, with no current password to give
+    assert (
+        parent.post(f"{API}/auth/set-password", json={"new_password": "chosen later"}).status_code
+        == 204
+    )
+    assert client.get(f"{API}/auth/me").json()["has_password"] is True
+    fresh = TestClient(auth_client.app)
+    assert (
+        fresh.post(
+            f"{API}/auth/login", json={"username": "mum@example.com", "password": "chosen later"}
+        ).status_code
+        == 200
+    )
 
 
 def test_signin_link_does_not_leak_who_has_an_account(auth_client: TestClient, caplog):
     client = TestClient(auth_client.app)
     with caplog.at_level("INFO", logger="abgfc.email"):
-        r = client.post(f"{API}/auth/signin-link", json={"email": "nobody@example.com"})
+        r = client.post(f"{API}/auth/forgot-password", json={"email": "nobody@example.com"})
     assert r.status_code == 204  # same answer as for a real address
     assert "nobody@example.com" not in "\n".join(
         rec.getMessage() for rec in caplog.records if rec.name == "abgfc.email"
@@ -247,7 +324,7 @@ def test_signin_links_are_rate_limited(auth_client: TestClient, demo: DemoSeason
     _accept_as_parent(auth_client, demo.players["Archie"].id)
     client = TestClient(auth_client.app)
     codes = [
-        client.post(f"{API}/auth/signin-link", json={"email": "mum@example.com"}).status_code
+        client.post(f"{API}/auth/forgot-password", json={"email": "mum@example.com"}).status_code
         for _ in range(7)
     ]
     assert codes[:5] == [204] * 5 and codes[5:] == [429, 429]
@@ -258,7 +335,9 @@ def test_a_coach_cannot_be_sent_a_signin_link(auth_client: TestClient, caplog):
     client = TestClient(auth_client.app)
     with caplog.at_level("INFO", logger="abgfc.email"):
         assert (
-            client.post(f"{API}/auth/signin-link", json={"email": "coach@example.com"}).status_code
+            client.post(
+                f"{API}/auth/forgot-password", json={"email": "coach@example.com"}
+            ).status_code
             == 204
         )
     assert not [r for r in caplog.records if r.name == "abgfc.email"]
@@ -363,7 +442,7 @@ def test_parents_tab_lists_access_per_child(auth_client: TestClient, db, demo: D
 
     # Coaches only - a parent can't see the list of parents
     parent = TestClient(auth_client.app)
-    parent.post(f"{API}/auth/signin-link", json={"email": "mum@example.com"})
+    parent.post(f"{API}/auth/forgot-password", json={"email": "mum@example.com"})
     assert parent.get(f"{API}/team-seasons/{demo.team_season.id}/parents").status_code == 401
 
 
@@ -414,7 +493,10 @@ def test_a_second_child_still_playing_keeps_the_account(
     parent = _accept_as_parent(auth_client, archie.id)
     second = _invite(auth_client, max_.id).json()["link"].rsplit("/", 1)[1]
     with caplog.at_level("INFO", logger="abgfc.email"):
-        parent.post(f"{API}/auth/invitations/{second}/accept", json={"display_name": "Jo"})
+        parent.post(
+            f"{API}/auth/invitations/{second}/accept",
+            json={"display_name": "Jo", "password": "correct horse"},
+        )
         parent.post(f"{API}/auth/signin-link/{_link_from_log(caplog)}")
 
     archie.left_date = datetime.now().date()
@@ -435,7 +517,7 @@ def test_sign_out_everywhere_keeps_the_account(auth_client: TestClient, db, demo
     assert user.is_active is True  # they can ask for a new link
 
     fresh = TestClient(auth_client.app)
-    fresh.post(f"{API}/auth/signin-link", json={"email": "mum@example.com"})
+    fresh.post(f"{API}/auth/forgot-password", json={"email": "mum@example.com"})
     assert db.scalar(select(User).where(User.email == "mum@example.com")).is_active
 
 
@@ -492,19 +574,34 @@ def test_invite_without_an_address_for_whatsapp(
     # The landing page knows it must ask for an address
     assert parent.get(f"{API}/auth/invitations/{token}").json()["email"] is None
     # ...and refuses without one
-    r = parent.post(f"{API}/auth/invitations/{token}/accept", json={"display_name": "Jo"})
+    r = parent.post(
+        f"{API}/auth/invitations/{token}/accept",
+        json={"display_name": "Jo", "password": "correct horse"},
+    )
     assert r.status_code == 422 and "email" in r.json()["detail"].lower()
     assert parent.get(f"{API}/auth/invitations/{token}").status_code == 200  # not spent
 
     r = parent.post(
         f"{API}/auth/invitations/{token}/accept",
-        json={"display_name": "Jo Smith", "email": "Jo.Smith@Example.com "},
+        json={
+            "display_name": "Jo Smith",
+            "email": "Jo.Smith@Example.com ",
+            "password": "correct horse",
+        },
     )
     assert r.status_code == 200, r.text
     assert r.json()["email"] == "jo.smith@example.com"  # normalised
     assert parent.get(f"{API}/auth/me").status_code == 200
     user = db.scalar(select(User).where(User.email == "jo.smith@example.com"))
-    assert user.password_hash is None and [g.player_id for g in user.guardian_of] == [archie.id]
+    assert [g.player_id for g in user.guardian_of] == [archie.id]
+    # The password they chose works at the ordinary sign-in
+    assert (
+        parent.post(
+            f"{API}/auth/login",
+            json={"username": "jo.smith@example.com", "password": "correct horse"},
+        ).status_code
+        == 200
+    )
     # Both parents of one child can be invited separately without clashing
     assert _invite(auth_client, archie.id, None).status_code == 201
 
@@ -526,7 +623,7 @@ def test_reopening_an_account_a_coach_closed(auth_client: TestClient, db, demo: 
 
     assert auth_client.post(f"{API}/parents/{user.id}/reopen").status_code == 204
     fresh = TestClient(auth_client.app)
-    fresh.post(f"{API}/auth/signin-link", json={"email": "mum@example.com"})
+    fresh.post(f"{API}/auth/forgot-password", json={"email": "mum@example.com"})
     db.expire_all()
     assert db.scalar(select(User).where(User.email == "mum@example.com")).is_active
 
@@ -592,7 +689,10 @@ def test_deleting_a_parent_frees_the_address(auth_client: TestClient, db, demo: 
     assert r.status_code == 201
     token = r.json()["link"].rsplit("/", 1)[1]
     fresh = TestClient(auth_client.app)
-    r = fresh.post(f"{API}/auth/invitations/{token}/accept", json={"display_name": "Jo Again"})
+    r = fresh.post(
+        f"{API}/auth/invitations/{token}/accept",
+        json={"display_name": "Jo Again", "password": "correct horse"},
+    )
     assert r.status_code == 200 and r.json()["display_name"] == "Jo Again"
 
 

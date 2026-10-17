@@ -9,30 +9,33 @@ the same row the age-group coach holds at a higher level. Nothing in
 `services/access.py` changed to support them. What marks them out is a
 `player_guardians` link to their child, which grants nothing today.
 
-## Why no password — and why not an emailed link either
+## How they sign in
 
-A parent opens this app twice a month. A password set in September is forgotten by
-October, and there is no self-service reset, so every forgotten password becomes a
-message to the club.
+**A password, chosen when they accept the invitation.** Email is used only to recover
+it. That distinction matters: [NIST SP 800-63B-4](https://pages.nist.gov/800-63-4/sp800-63b.html)
+says *"Email SHALL NOT be used for out-of-band authentication"* — but it permits email
+for recovery. A memorised secret is an approved authenticator; an emailed link used as
+the routine way in is not.
 
-Emailed sign-in links were the first answer and are **not** the answer.
-[NIST SP 800-63B-4](https://pages.nist.gov/800-63-4/sp800-63b.html) is explicit: *"Email
-SHALL NOT be used for out-of-band authentication"* — an inbox is usually guarded by a
-password, mail can be intercepted, and delivery can be rerouted. It permits email only
-for confirming an address or as a recovery artifact.
+This replaced two earlier attempts, and the reasons are worth keeping:
 
-So a parent signs in with a **passkey**: a key pair bound to this domain, unlocked by
-Face ID, a fingerprint or the device PIN. We hold the public half only, so a copy of the
-database is worth nothing; and the browser will not offer the credential to any other
-origin, so a convincing fake of this site cannot collect it. With user verification it is
-a multi-factor authenticator at AAL2 — stronger than the password this replaced, and
-less work for the parent.
+- **Emailed sign-in links** (the first design) are what NIST forbids, and the whole
+  system quietly depended on them.
+- **Passkeys as the only method** (the second) failed in the field. Registration depends
+  on the device, the browser and the platform's state; one parent in five couldn't
+  complete it, and each failure lands on a volunteer coach. In particular an invitation
+  opened from WhatsApp runs in an in-app WebView, where passkey creation is unreliable
+  or impossible.
 
-Coaches keep passwords: they sign in constantly, often on bad signal at the pitch.
+A password works in every browser, including WhatsApp's, on every device, with nothing
+to fail. The session lasts 90 days, so it is rarely typed.
 
-The two paths can't cross. A parent account has `password_hash = NULL`, so
-`POST /auth/login` can never authenticate one. A coach has no `email`, so
-`POST /auth/signin-link` never issues a link for them. `tests/test_invites.py` pins both.
+**Passkeys remain, as an optional extra** — see below. Better for devices that support
+them, never required, never a blocker.
+
+**Parents who joined before passwords existed** keep their emailed sign-in links until
+they choose to set one in Settings → Account. Nothing forces them, and nobody was
+locked out by the change.
 
 ## Passkeys
 

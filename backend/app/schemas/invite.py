@@ -72,10 +72,15 @@ class InviteAccept(_WithOptionalEmail):
     """`email` is required when the invitation didn't carry one."""
 
     display_name: str = Field(min_length=1, max_length=100)
+    password: str = Field(min_length=8, max_length=200)
 
 
-class SigninLinkRequest(_WithEmail):
+class ForgotPasswordRequest(_WithEmail):
     pass
+
+
+class PasswordReset(InputModel):
+    new_password: str = Field(min_length=8, max_length=200)
 
 
 class GuardianRead(ORMModel):
@@ -85,8 +90,8 @@ class GuardianRead(ORMModel):
     email: str | None
     is_active: bool
     last_signed_in: datetime | None
-    passkey_count: int  # 0 = still signing in with emailed links
-    allow_email_signin: bool  # a coach's exception for a device that can't hold one
+    passkey_count: int  # a passkey is an optional extra on top of their password
+    has_password: bool  # false = joined before passwords; still uses emailed links
 
 
 class PlayerAccessRead(ORMModel):

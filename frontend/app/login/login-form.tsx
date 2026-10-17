@@ -57,7 +57,7 @@ export function LoginForm() {
     e.preventDefault();
     setPending(true);
     setError(null);
-    const { error } = await fetchClient.POST("/api/v1/auth/signin-link", {
+    const { error } = await fetchClient.POST("/api/v1/auth/forgot-password", {
       body: { email: email.trim().toLowerCase() },
     });
     setPending(false);
@@ -74,8 +74,8 @@ export function LoginForm() {
       <div className="space-y-3 rounded-xl bg-card p-6 text-center shadow-sm ring-1 ring-border/60">
         <h2 className="text-base font-semibold">Check your email</h2>
         <p className="text-sm text-muted-foreground">
-          If {email.trim().toLowerCase()} has an account, a sign-in link is on its way. It
-          lasts 15 minutes.
+          If {email.trim().toLowerCase()} has an account, a link to get back in is on its
+          way. It works once and doesn&apos;t last long.
         </p>
         <Button type="button" variant="ghost" className="h-11 w-full" onClick={() => { setLinkSent(false); setEmail(""); }}>
           Use a different address
@@ -88,7 +88,7 @@ export function LoginForm() {
     return (
       <form onSubmit={onRequestLink} className="space-y-4 rounded-xl bg-card p-6 shadow-sm ring-1 ring-border/60">
         <div className="space-y-2">
-          <Label htmlFor="email">Email address</Label>
+          <Label htmlFor="email">Your email address</Label>
           <Input
             id="email"
             type="email"
@@ -104,14 +104,14 @@ export function LoginForm() {
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
         <Button type="submit" className="h-11 w-full" disabled={pending || !email.trim()}>
-          {pending ? "Sending…" : "Email me a sign-in link"}
+          {pending ? "Sending…" : "Email me a link"}
         </Button>
         <button
           type="button"
           onClick={() => { setMode("password"); setError(null); }}
           className="w-full text-center text-sm text-muted-foreground underline-offset-4 hover:underline"
         >
-          Sign in with a password instead
+Back to signing in
         </button>
       </form>
     );
@@ -162,7 +162,7 @@ export function LoginForm() {
         onClick={() => { setMode("link"); setError(null); }}
         className="w-full text-center text-sm text-muted-foreground underline-offset-4 hover:underline"
       >
-        Parent with no passkey? Email me a link
+Forgotten your password?
       </button>
     </form>
   );

@@ -6,7 +6,12 @@ from app.core.security import SESSION_COOKIE, create_session_token
 from app.models import User, UserRole
 from app.repositories.club import ClubTeamRepository, CohortRepository, TeamSeasonRepository
 from app.schemas.auth import ChangePasswordRequest, CohortAccess, LoginRequest, MeRead, TeamAccess
-from app.schemas.invite import InviteAccept, InvitePreview, SigninLinkRequest
+from app.schemas.invite import (
+    ForgotPasswordRequest,
+    InviteAccept,
+    InvitePreview,
+    PasswordReset,
+)
 from app.schemas.passkey import (
     PasskeyAuthenticate,
     PasskeyRead,
@@ -30,13 +35,36 @@ def login(data: LoginRequest, response: Response, db: DB, settings: Config):
 # --- parents: no password, just a link ---------------------------------------------
 
 
-@router.post("/signin-link", status_code=204)
-def request_signin_link(data: SigninLinkRequest, request: Request, db: DB, settings: Config):
-    """Email a sign-in link. Always 204, whether or not that address has an account -
-    an unauthenticated caller doesn't get to find out which addresses are registered."""
+@router.post("/forgot-password", status_code=204)
+def forgot_password(data: ForgotPasswordRequest, request: Request, db: DB, settings: Config):
+    """Email a way back in: a reset link, or - for a parent from before passwords - the
+    sign-in link they have always used. Always 204, whether or not that address has an
+    account; an unauthenticated caller doesn't get to find out which are registered."""
     signin_links.check(f"email:{data.email}")
     signin_links.check(f"ip:{_client(request)}")
-    InviteService(db, None, settings).request_signin_link(data.email)
+    InviteService(db, None, settings).forgot_password(data.email)
+
+
+@router.post("/reset-password/{token}", response_model=MeRead)
+def reset_password(
+    token: str,
+    data: PasswordReset,
+    request: Request,
+    response: Response,
+    db: DB,
+    settings: Config,
+):
+    """Spend the reset link, set the new password and sign in. Other sessions end."""
+    token_attempts.check(f"ip:{_client(request)}")
+    user = InviteService(db, None, settings).reset_password(token, data.new_password)
+    return _sign_in(response, user, db, settings)
+
+
+@router.post("/set-password", status_code=204)
+def set_first_password(data: PasswordReset, db: DB, settings: Config, user: CurrentUser):
+    """A parent who joined before passwords, choosing one. Being signed in is the proof;
+    there is no current password to give."""
+    InviteService(db, None, settings).set_first_password(user, data.new_password)
 
 
 @router.post("/signin-link/{token}", response_model=MeRead)

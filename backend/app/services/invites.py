@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.config import Settings
 from app.core.errors import ConflictError, ForbiddenError, NotFoundError, ValidationError
-from app.core.security import hash_login_token, new_login_token
+from app.core.security import hash_login_token, hash_password, new_login_token
 from app.models import (
     LoginToken,
     Player,
@@ -241,18 +241,12 @@ class InviteService:
         in /admin.
         """
         user = self._manageable_parent(user_id)
-        if user.password_hash is not None:  # pragma: no cover - _manageable_parent first
-            raise ValidationError("That's a coach's login - manage it in Coaches")
+        # Parents have passwords now, so a password no longer tells a parent from a
+        # coach. What does is the roles they hold: a parent has exactly the cohort
+        # viewer row. Anything more belongs to a coach and is managed in /admin.
+        if any(r.role != UserRole.VIEWER or r.scope_type != RoleScope.COHORT for r in user.roles):
+            raise ValidationError("That account is a coach's - manage it in Coaches")
         self.db.delete(user)
-        self.db.commit()
-
-    def set_email_signin(self, user_id: int, allowed: bool) -> None:
-        """The exception for a parent whose phone can't hold a passkey - too old, or no
-        screen lock, so nothing can verify them. Deliberate, per account, and visible in
-        the Parents tab, rather than an automatic fallback an attacker could invoke
-        simply by claiming a passkey failed."""
-        user = self._manageable_parent(user_id)
-        user.allow_email_signin = allowed
         self.db.commit()
 
     def sign_out_everywhere(self, user_id: int) -> None:
@@ -322,12 +316,11 @@ class InviteService:
         player = token.player
         if player.cohort_id is None:
             raise ValidationError("That child is not in an age group yet")
-        # No password: this account can only ever be reached by an emailed link.
         user = User(
             username=email,
             email=email,
             display_name=data.display_name,
-            password_hash=None,
+            password_hash=hash_password(data.password),
         )
         self.db.add(user)
         self.db.flush()
@@ -345,7 +338,7 @@ class InviteService:
         A coach's account is never adopted at all - that would hand a parent a login
         with write access.
         """
-        if user.password_hash is not None:
+        if any(r.role != UserRole.VIEWER or r.scope_type != RoleScope.COHORT for r in user.roles):
             raise ConflictError(
                 "That address is already a coach's login here - ask your coach to invite "
                 "a different address"
@@ -359,17 +352,70 @@ class InviteService:
             "and add this child"
         )
 
-    def request_signin_link(self, email: str) -> None:
-        """Always succeeds from the caller's point of view: whether an account exists is
-        not something an unauthenticated request gets to learn."""
+    def forgot_password(self, email: str) -> None:
+        """One door for "I can't get in", whichever kind of account it is.
+
+        A parent with a password gets a reset link - email used to recover, which is
+        what the standards permit. A parent from before passwords existed gets the
+        sign-in link they have always had, so this change disturbs nobody.
+
+        Always succeeds from the caller's point of view: whether an address has an
+        account is not something an unauthenticated request gets to learn.
+        """
         user = self.users.get_by_email(email)
-        if user is None or not user.is_active or user.password_hash is not None:
+        if user is None or not user.is_active:
             return
-        if not user.email_signin_permitted:
-            # They have a passkey. A failed passkey must not quietly fall back to a
-            # weaker method, so this is silent: the response is 204 either way.
-            return
-        self._issue_signin(user, email)
+        if user.password_hash is None:
+            self._issue_signin(user, email)
+        else:
+            self._issue_reset(user, email)
+
+    def _issue_reset(self, user: User, email: str) -> None:
+        raw, token_hash = new_login_token()
+        self.db.add(
+            LoginToken(
+                token_hash=token_hash,
+                purpose=TokenPurpose.RESET,
+                email=email,
+                user_id=user.id,
+                expires_at=_now() + timedelta(minutes=self.settings.reset_link_expiry_minutes),
+            )
+        )
+        self.db.commit()
+        link = f"{self.settings.public_base_url.rstrip('/')}/reset/{raw}"
+        try:
+            EmailService(self.settings).send(
+                email,
+                "Reset your ABGFC password",
+                f"Hello{' ' + user.display_name if user.display_name else ''},\n\n"
+                f"Choose a new password for the ABGFC app here:\n\n{link}\n\n"
+                f"It works once and lasts {self.settings.reset_link_expiry_minutes} "
+                "minutes. If you didn't ask for it, ignore this email - your password "
+                "has not changed.\n",
+            )
+        except EmailError:
+            pass  # they can ask for another
+
+    def reset_password(self, raw: str, new_password: str) -> User:
+        """Spend the reset link and set the new password. Every other session ends:
+        if somebody else had got in, this is what removes them."""
+        token = self._consume(raw, TokenPurpose.RESET)
+        user = self.users.get(token.user_id)
+        if user is None or not user.is_active:
+            raise ForbiddenError("That account has been closed - ask your coach")
+        user.password_hash = hash_password(new_password)
+        user.session_version += 1
+        self.db.commit()
+        self.db.refresh(user)
+        return user
+
+    def set_first_password(self, user: User, new_password: str) -> None:
+        """For a parent who joined before passwords. No current password to check -
+        they are already signed in, which is the proof."""
+        if user.password_hash is not None:
+            raise ValidationError("You already have a password - change it instead")
+        user.password_hash = hash_password(new_password)
+        self.db.commit()
 
     def _issue_signin(self, user: User, email: str, player_id: int | None = None) -> None:
         """Email a sign-in link. `player_id` rides along when the link also proves the
@@ -510,7 +556,7 @@ def _guardian_read(g: PlayerGuardian) -> GuardianRead:
         is_active=g.user.is_active,
         last_signed_in=None,
         passkey_count=len(g.user.passkeys),
-        allow_email_signin=g.user.allow_email_signin,
+        has_password=g.user.password_hash is not None,
     )
 
 

@@ -56,7 +56,8 @@ class TokenPurpose(StrEnum):
     """What an emailed single-use link is for."""
 
     INVITE = "invite"  # no account yet; accepting creates one
-    SIGNIN = "signin"  # an existing passwordless account signing in
+    SIGNIN = "signin"  # a passwordless account signing in (parents from before passwords)
+    RESET = "reset"  # forgotten password: prove the inbox, then choose a new one
 
 
 class UserRole(StrEnum):

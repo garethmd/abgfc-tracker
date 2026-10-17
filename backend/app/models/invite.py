@@ -27,7 +27,7 @@ class LoginToken(TimestampMixin, Base):
         CheckConstraint(check_in("purpose", TokenPurpose), name="purpose"),
         CheckConstraint(
             "(purpose = 'invite' AND player_id IS NOT NULL AND user_id IS NULL) "
-            "OR (purpose = 'signin' AND user_id IS NOT NULL)",
+            "OR (purpose IN ('signin', 'reset') AND user_id IS NOT NULL)",
             name="purpose_target",
         ),
     )

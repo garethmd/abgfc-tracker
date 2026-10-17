@@ -5,7 +5,7 @@ const SESSION_COOKIE = "abgfc_session";
 // Optimistic gate only: presence of the cookie. The API validates the signature on every
 // request and the client redirects to /login on a 401.
 // Pages a parent reaches from an email, before they have an account or a session.
-const PUBLIC_PREFIXES = ["/invite/", "/signin/"];
+const PUBLIC_PREFIXES = ["/invite/", "/signin/", "/reset/"];
 
 export function proxy(request: NextRequest) {
   const hasSession = request.cookies.has(SESSION_COOKIE);

@@ -38,6 +38,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/forgot-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Forgot Password
+         * @description Email a way back in: a reset link, or - for a parent from before passwords - the
+         *     sign-in link they have always used. Always 204, whether or not that address has an
+         *     account; an unauthenticated caller doesn't get to find out which are registered.
+         */
+        post: operations["forgot_password_api_v1_auth_forgot_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/invitations/{token}": {
         parameters: {
             query?: never;
@@ -229,7 +251,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/signin-link": {
+    "/api/v1/auth/reset-password/{token}": {
         parameters: {
             query?: never;
             header?: never;
@@ -239,11 +261,31 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Request Signin Link
-         * @description Email a sign-in link. Always 204, whether or not that address has an account -
-         *     an unauthenticated caller doesn't get to find out which addresses are registered.
+         * Reset Password
+         * @description Spend the reset link, set the new password and sign in. Other sessions end.
          */
-        post: operations["request_signin_link_api_v1_auth_signin_link_post"];
+        post: operations["reset_password_api_v1_auth_reset_password__token__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/set-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set First Password
+         * @description A parent who joined before passwords, choosing one. Being signed in is the proof;
+         *     there is no current password to give.
+         */
+        post: operations["set_first_password_api_v1_auth_set_password_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -910,27 +952,6 @@ export interface paths {
          * @description Stop this parent getting in - a child who has left, or a lost phone. Immediate.
          */
         post: operations["close_parent_api_v1_parents__user_id__close_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/parents/{user_id}/email-signin": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Set Parent Email Signin
-         * @description Let this parent keep using emailed links even though they have a passkey - for a
-         *     phone that can't hold one. Never automatic.
-         */
-        post: operations["set_parent_email_signin_api_v1_parents__user_id__email_signin_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1997,6 +2018,11 @@ export interface components {
             /** Url */
             url?: string | null;
         };
+        /** ForgotPasswordRequest */
+        ForgotPasswordRequest: {
+            /** Email */
+            email: string;
+        };
         /** FormEntry */
         FormEntry: {
             /** Fixture Id */
@@ -2075,12 +2101,12 @@ export interface components {
         };
         /** GuardianRead */
         GuardianRead: {
-            /** Allow Email Signin */
-            allow_email_signin: boolean;
             /** Display Name */
             display_name: string | null;
             /** Email */
             email: string | null;
+            /** Has Password */
+            has_password: boolean;
             /** Id */
             id: number;
             /** Is Active */
@@ -2286,6 +2312,8 @@ export interface components {
             display_name: string;
             /** Email */
             email?: string | null;
+            /** Password */
+            password: string;
         };
         /**
          * InviteCreate
@@ -2558,6 +2586,11 @@ export interface components {
             };
             /** Label */
             label?: string | null;
+        };
+        /** PasswordReset */
+        PasswordReset: {
+            /** New Password */
+            new_password: string;
         };
         /**
          * PlayerAccessRead
@@ -2907,11 +2940,6 @@ export interface components {
             /** New Password */
             new_password: string;
         };
-        /** SigninLinkRequest */
-        SigninLinkRequest: {
-            /** Email */
-            email: string;
-        };
         /** SquadMemberRead */
         SquadMemberRead: {
             /** Id */
@@ -3199,6 +3227,37 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    forgot_password_api_v1_auth_forgot_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgotPasswordRequest"];
             };
         };
         responses: {
@@ -3549,16 +3608,53 @@ export interface operations {
             };
         };
     };
-    request_signin_link_api_v1_auth_signin_link_post: {
+    reset_password_api_v1_auth_reset_password__token__post: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                token: string;
+            };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SigninLinkRequest"];
+                "application/json": components["schemas"]["PasswordReset"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_first_password_api_v1_auth_set_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                abgfc_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordReset"];
             };
         };
         responses: {
@@ -5331,39 +5427,6 @@ export interface operations {
     close_parent_api_v1_parents__user_id__close_post: {
         parameters: {
             query?: never;
-            header?: never;
-            path: {
-                user_id: number;
-            };
-            cookie?: {
-                abgfc_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    set_parent_email_signin_api_v1_parents__user_id__email_signin_post: {
-        parameters: {
-            query: {
-                allowed: boolean;
-            };
             header?: never;
             path: {
                 user_id: number;

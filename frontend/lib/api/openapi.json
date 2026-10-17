@@ -1601,6 +1601,23 @@
         "title": "FixtureVideoUpdate",
         "type": "object"
       },
+      "ForgotPasswordRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "maxLength": 255,
+            "minLength": 3,
+            "pattern": "^[^@\\s]+@[^@\\s.]+\\.[^@\\s]+$",
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "ForgotPasswordRequest",
+        "type": "object"
+      },
       "FormEntry": {
         "properties": {
           "fixture_id": {
@@ -1841,10 +1858,6 @@
       },
       "GuardianRead": {
         "properties": {
-          "allow_email_signin": {
-            "title": "Allow Email Signin",
-            "type": "boolean"
-          },
           "display_name": {
             "anyOf": [
               {
@@ -1866,6 +1879,10 @@
               }
             ],
             "title": "Email"
+          },
+          "has_password": {
+            "title": "Has Password",
+            "type": "boolean"
           },
           "id": {
             "title": "Id",
@@ -1904,7 +1921,7 @@
           "is_active",
           "last_signed_in",
           "passkey_count",
-          "allow_email_signin"
+          "has_password"
         ],
         "title": "GuardianRead",
         "type": "object"
@@ -2600,10 +2617,17 @@
               }
             ],
             "title": "Email"
+          },
+          "password": {
+            "maxLength": 200,
+            "minLength": 8,
+            "title": "Password",
+            "type": "string"
           }
         },
         "required": [
-          "display_name"
+          "display_name",
+          "password"
         ],
         "title": "InviteAccept",
         "type": "object"
@@ -3426,6 +3450,22 @@
           "credential"
         ],
         "title": "PasskeyRegister",
+        "type": "object"
+      },
+      "PasswordReset": {
+        "additionalProperties": false,
+        "properties": {
+          "new_password": {
+            "maxLength": 200,
+            "minLength": 8,
+            "title": "New Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "new_password"
+        ],
+        "title": "PasswordReset",
         "type": "object"
       },
       "PlayerAccessRead": {
@@ -4511,23 +4551,6 @@
         "title": "SetPasswordRequest",
         "type": "object"
       },
-      "SigninLinkRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "email": {
-            "maxLength": 255,
-            "minLength": 3,
-            "pattern": "^[^@\\s]+@[^@\\s.]+\\.[^@\\s]+$",
-            "title": "Email",
-            "type": "string"
-          }
-        },
-        "required": [
-          "email"
-        ],
-        "title": "SigninLinkRequest",
-        "type": "object"
-      },
       "SquadMemberRead": {
         "properties": {
           "id": {
@@ -5474,6 +5497,41 @@
         ]
       }
     },
+    "/api/v1/auth/forgot-password": {
+      "post": {
+        "description": "Email a way back in: a reset link, or - for a parent from before passwords - the\nsign-in link they have always used. Always 204, whether or not that address has an\naccount; an unauthenticated caller doesn't get to find out which are registered.",
+        "operationId": "forgot_password_api_v1_auth_forgot_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Forgot Password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/invitations/{token}": {
       "get": {
         "description": "What the invitation is for. Reading does not spend the token - mail scanners\nfollow links, and spending it here would break the invitation before the parent\never saw it.",
@@ -5945,15 +6003,86 @@
         ]
       }
     },
-    "/api/v1/auth/signin-link": {
+    "/api/v1/auth/reset-password/{token}": {
       "post": {
-        "description": "Email a sign-in link. Always 204, whether or not that address has an account -\nan unauthenticated caller doesn't get to find out which addresses are registered.",
-        "operationId": "request_signin_link_api_v1_auth_signin_link_post",
+        "description": "Spend the reset link, set the new password and sign in. Other sessions end.",
+        "operationId": "reset_password_api_v1_auth_reset_password__token__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SigninLinkRequest"
+                "$ref": "#/components/schemas/PasswordReset"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reset Password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/set-password": {
+      "post": {
+        "description": "A parent who joined before passwords, choosing one. Being signed in is the proof;\nthere is no current password to give.",
+        "operationId": "set_first_password_api_v1_auth_set_password_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "abgfc_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Abgfc Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordReset"
               }
             }
           },
@@ -5974,7 +6103,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Request Signin Link",
+        "summary": "Set First Password",
         "tags": [
           "auth"
         ]
@@ -9211,67 +9340,6 @@
           }
         },
         "summary": "Close Parent",
-        "tags": [
-          "invitations"
-        ]
-      }
-    },
-    "/api/v1/parents/{user_id}/email-signin": {
-      "post": {
-        "description": "Let this parent keep using emailed links even though they have a passkey - for a\nphone that can't hold one. Never automatic.",
-        "operationId": "set_parent_email_signin_api_v1_parents__user_id__email_signin_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "title": "User Id",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "allowed",
-            "required": true,
-            "schema": {
-              "title": "Allowed",
-              "type": "boolean"
-            }
-          },
-          {
-            "in": "cookie",
-            "name": "abgfc_session",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Abgfc Session"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Set Parent Email Signin",
         "tags": [
           "invitations"
         ]

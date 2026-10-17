@@ -37,9 +37,10 @@ class User(TimestampMixin, Base):
     # The handle a passkey is registered against. Deliberately random rather than the
     # email: it travels to the authenticator, so it must carry nothing personal.
     webauthn_handle: Mapped[bytes | None] = mapped_column(LargeBinary(64), unique=True)
-    # A passkey normally retires emailed sign-in links for that account. This re-opens
-    # them for the odd parent whose phone can't hold a passkey - set by a coach, per
-    # account, deliberately, never as an automatic fallback.
+    # Was a coach's exception when a passkey blocked emailed sign-in. Passwords made
+    # that gate unnecessary - email is now only ever used to reset - so nothing reads
+    # this any more. Kept rather than migrated away; remove when something else changes
+    # this table.
     allow_email_signin: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
 
     roles: Mapped[list["UserRole"]] = relationship(
@@ -61,11 +62,10 @@ class User(TimestampMixin, Base):
         return bool(self.passkeys)
 
     @property
-    def email_signin_permitted(self) -> bool:
-        """Email links are how an account starts and how a passkey-less one carries on.
-        Once a passkey exists they stop, so that a failed passkey can never quietly fall
-        back to a weaker method - unless a coach has allowed it for this account."""
-        return not self.passkeys or self.allow_email_signin
+    def needs_password(self) -> bool:
+        """A parent from before passwords existed. They keep their emailed sign-in links
+        until they choose to set one - nobody is locked out by this changing."""
+        return self.password_hash is None
 
 
 class UserRole(Base):

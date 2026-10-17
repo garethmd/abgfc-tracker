@@ -21,7 +21,9 @@ class Settings(BaseSettings):
     database_url: str = f"sqlite:///{REPO_DIR / 'data' / 'abgfc.db'}"
     media_dir: Path = REPO_DIR / "data" / "media"
     secret_key: str = Field(default=DEV_SECRET_KEY, min_length=16)
-    session_max_age_seconds: int = 60 * 60 * 24 * 30
+    # Long on purpose: this is read-only club information on a parent's own phone, and
+    # a sign-in they have to repeat is a sign-in they'll ask a coach for help with.
+    session_max_age_seconds: int = 60 * 60 * 24 * 90
     cookie_secure: bool | None = None  # None = follow env (Secure in production)
     cors_origins: list[str] = ["http://localhost:3000"]
     # Used by `scripts/seed.py` to create the initial coach login.
@@ -46,6 +48,7 @@ class Settings(BaseSettings):
     webauthn_challenge_ttl_seconds: int = 300
     invite_expiry_hours: int = 24 * 14
     signin_link_expiry_minutes: int = 15
+    reset_link_expiry_minutes: int = 30
 
     @property
     def rp_id(self) -> str:
