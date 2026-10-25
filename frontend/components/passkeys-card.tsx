@@ -20,8 +20,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-/** The devices this person can sign in with. Only shown to accounts that have no
- *  password - a coach signs in with one and has no use for this. */
+/** The devices this person can sign in with, on top of however they sign in now.
+ *  Shown to everyone: a passkey is an optional extra, not a replacement, and gating it
+ *  on "has no password" would have hidden it from every parent who sets one. */
 export function PasskeysCard() {
   const { me } = useMe();
   const qc = useQueryClient();
@@ -29,10 +30,8 @@ export function PasskeysCard() {
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState<{ id: number; label: string } | null>(null);
 
-  const list = $api.useQuery("get", "/api/v1/auth/passkeys", {}, { enabled: !me.has_password });
+  const list = $api.useQuery("get", "/api/v1/auth/passkeys");
   const remove = $api.useMutation("delete", "/api/v1/auth/passkeys/{passkey_id}");
-
-  if (me.has_password) return null;
 
   async function onAdd() {
     setAdding(true);
@@ -71,8 +70,9 @@ export function PasskeysCard() {
           <Skeleton className="h-12" />
         ) : keys.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            You sign in with a link emailed to you. Set up Face ID, a fingerprint or your
-            phone&apos;s PIN and you can get in with a tap instead.
+            {me.has_password
+              ? "You sign in with your password. Set up Face ID, a fingerprint or your phone's PIN and you can get in with a tap instead."
+              : "You sign in with a link emailed to you. Set up Face ID, a fingerprint or your phone's PIN and you can get in with a tap instead."}
           </p>
         ) : (
           <ul className="divide-y divide-border/40">

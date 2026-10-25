@@ -1,7 +1,6 @@
 "use client";
 
 import { useTeam } from "@/lib/team-context";
-import { useMe } from "@/lib/me-context";
 import { PageHeader, SectionTitle } from "@/components/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -14,7 +13,6 @@ import { ParentsManager } from "@/components/features/settings/parents-manager";
 
 export default function SettingsPage() {
   const { team, canEdit } = useTeam();
-  const { me } = useMe();
   return (
     <div className="mx-auto max-w-2xl">
       <PageHeader title="Settings" description={`ABGFC ${team.name}`} />
@@ -37,12 +35,10 @@ export default function SettingsPage() {
         <ThemeToggle />
       </section>
 
-      {!me.has_password && (
-        <section className="mt-10">
-          <SectionTitle>Signing in</SectionTitle>
-          <PasskeysCard />
-        </section>
-      )}
+      <section className="mt-10">
+        <SectionTitle>Signing in</SectionTitle>
+        <PasskeysCard />
+      </section>
 
       <section className="mt-10">
         <SectionTitle>Account</SectionTitle>
