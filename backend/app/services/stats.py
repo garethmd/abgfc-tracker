@@ -229,7 +229,10 @@ def player_rows(
                 goals_per_game=round(t.goals / t.appearances, 2) if t.appearances else 0.0,
                 awards=[
                     AwardCount(
-                        award_type_id=at.id, award_type_code=at.code, count=t.awards.get(at.id, 0)
+                        award_type_id=at.id,
+                        award_type_code=at.code,
+                        award_type_name=at.name,
+                        count=t.awards.get(at.id, 0),
                     )
                     for at in award_types
                 ],
@@ -311,7 +314,10 @@ class StatsService:
             team_season_id=team_season_id,
             competition_type=competition_type,
             award_types=[
-                AwardCount(award_type_id=a.id, award_type_code=a.code, count=0) for a in award_types
+                AwardCount(
+                    award_type_id=a.id, award_type_code=a.code, award_type_name=a.name, count=0
+                )
+                for a in award_types
             ],
             rows=rows,
         )

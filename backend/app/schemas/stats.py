@@ -29,6 +29,9 @@ class FormEntry(BaseModel):
 class AwardCount(BaseModel):
     award_type_id: int
     award_type_code: str
+    # The award's own name ("Captain"). Sent so no client has to turn a code into
+    # something a parent can read - "blues_captain" was reaching the screen.
+    award_type_name: str
     count: int
 
 

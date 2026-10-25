@@ -128,6 +128,10 @@
             "title": "Award Type Id",
             "type": "integer"
           },
+          "award_type_name": {
+            "title": "Award Type Name",
+            "type": "string"
+          },
           "count": {
             "title": "Count",
             "type": "integer"
@@ -136,6 +140,7 @@
         "required": [
           "award_type_id",
           "award_type_code",
+          "award_type_name",
           "count"
         ],
         "title": "AwardCount",

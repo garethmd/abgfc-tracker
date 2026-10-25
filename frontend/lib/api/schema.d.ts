@@ -1602,6 +1602,8 @@ export interface components {
             award_type_code: string;
             /** Award Type Id */
             award_type_id: number;
+            /** Award Type Name */
+            award_type_name: string;
             /** Count */
             count: number;
         };

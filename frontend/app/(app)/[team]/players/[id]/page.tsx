@@ -89,7 +89,7 @@ export default function PlayerPage({ params }: PageProps<"/[team]/players/[id]">
             <Stat label="Assists" value={totals.assists} />
             <Stat label="Per game" value={totals.goals_per_game.toFixed(2)} />
             {totals.awards.map((a) => (
-              <Stat key={a.award_type_id} label={awardLabel(a.award_type_code)} value={a.count} />
+              <Stat key={a.award_type_id} label={shortAward(a.award_type_name)} value={a.count} />
             ))}
           </Card>
           {totals.own_goals > 0 && (
@@ -168,6 +168,7 @@ export default function PlayerPage({ params }: PageProps<"/[team]/players/[id]">
   );
 }
 
-function awardLabel(code: string) {
-  return code === "coaches_potm" ? "Coaches' POTM" : code === "parents_potm" ? "Parents' POTM" : code;
+/** "Coaches' Player of the Match" doesn't fit a stat tile. */
+function shortAward(name: string) {
+  return name.replace(/Player of the Match/i, "POTM");
 }

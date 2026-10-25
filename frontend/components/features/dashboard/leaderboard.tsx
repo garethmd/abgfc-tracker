@@ -7,10 +7,9 @@ import { EmptyState } from "@/components/empty-state";
 import { Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const AWARD_SHORT: Record<string, string> = { coaches_potm: "Coaches' POTM", parents_potm: "Parents' POTM" };
-
-function awardLabel(code: string) {
-  return AWARD_SHORT[code] ?? code.replace(/^[a-z0-9-]+_/, "").replace(/_/g, " ");
+/** The API sends each award's name; only the longest needs shortening for a column. */
+function awardLabel(name: string) {
+  return name.replace(/Player of the Match/i, "POTM");
 }
 
 export function Leaderboard({ board, base = "" }: { board: Schema["Leaderboard"]; base?: string }) {
@@ -38,7 +37,7 @@ export function Leaderboard({ board, base = "" }: { board: Schema["Leaderboard"]
               <Th title="Goals per game">GPG</Th>
               {board.award_types.map((a) => (
                 <Th key={a.award_type_id} title={a.award_type_code}>
-                  {awardLabel(a.award_type_code)}
+                  {awardLabel(a.award_type_name)}
                 </Th>
               ))}
             </tr>

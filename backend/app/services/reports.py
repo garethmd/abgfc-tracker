@@ -134,7 +134,12 @@ def gather(
             )
         }
         blank_awards = [
-            AwardCount(award_type_id=a.award_type_id, award_type_code=a.award_type_code, count=0)
+            AwardCount(
+                award_type_id=a.award_type_id,
+                award_type_code=a.award_type_code,
+                award_type_name=a.award_type_name,
+                count=0,
+            )
             for a in (rows[0].awards if rows else [])
         ]
         rows = rows + [
@@ -345,27 +350,24 @@ def render(data: MatchdayData) -> bytes:
         f"Squad  ·  {len(rows) - len(guests)} players"
         + (f"  +  {len(guests)} guest" + ("s" if len(guests) > 1 else "") if guests else "")
     )
-    award_codes = [a.award_type_code for a in rows[0].awards] if rows else []
+    award_names = [a.award_type_name for a in rows[0].awards] if rows else []
     # columns: #, Player, Pos, Apps, Goals, Assists, awards..., Avail, Start, Sub
     fixed = {"#": 8, "Apps": 13, "Goals": 11, "Assists": 13, "Avail": 14}
     award_w = 26  # wide enough for "COACHES' POTM" with breathing room
-    name_w = W - sum(fixed.values()) - award_w * len(award_codes) - 14  # 14 = Pos
+    name_w = W - sum(fixed.values()) - award_w * len(award_names) - 14  # 14 = Pos
     headers = (
         ["#", "Player", "Pos", "Apps", "Goals", "Assists"]
-        + [
-            {"coaches_potm": "Coaches' POTM", "parents_potm": "Parents' POTM"}.get(
-                c, c.split("_", 1)[-1][:8]
-            )
-            for c in award_codes
-        ]
+        # The award's own name, shortened only where it would not fit a column. The
+        # code used to leak through here as "captain"-ish truncations.
+        + [n.replace("Player of the Match", "POTM")[:13] for n in award_names]
         + ["Avail"]
     )
     widths = (
         [fixed["#"], name_w, 14, fixed["Apps"], fixed["Goals"], fixed["Assists"]]
-        + [award_w] * len(award_codes)
+        + [award_w] * len(award_names)
         + [fixed["Avail"]]
     )
-    aligns = ["C", "L", "C", "C", "C", "C"] + ["C"] * len(award_codes) + ["C"]
+    aligns = ["C", "L", "C", "C", "C", "C"] + ["C"] * len(award_names) + ["C"]
 
     pdf.set_font("Helvetica", "B", 7.5)
     pdf.set_text_color(*MUTED)

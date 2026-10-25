@@ -89,7 +89,14 @@ def test_highlights_tie_lists_every_name_and_zero_is_empty():
             assists=assists,
             own_goals=0,
             goals_per_game=goals,
-            awards=[AwardCount(award_type_id=1, award_type_code="coaches_potm", count=potm)],
+            awards=[
+                AwardCount(
+                    award_type_id=1,
+                    award_type_code="coaches_potm",
+                    award_type_name="Coaches' Player of the Match",
+                    count=potm,
+                )
+            ],
             minutes=None,
         )
 

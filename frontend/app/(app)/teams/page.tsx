@@ -11,7 +11,7 @@ export default function TeamsPage() {
   const { me } = useMe();
   return (
     <PlainShell>
-      <PageHeader title="Your teams" description="Pick a team to coach." />
+      <PageHeader title="Your teams" description="Pick a team to look at." />
       <Card className="divide-y divide-border/40 overflow-hidden">
         {me.teams.map((t) => (
           <Link key={t.team.id} href={`/${t.team.slug}`} className="flex min-h-16 items-center gap-3 px-4 py-3 hover:bg-accent/50">
