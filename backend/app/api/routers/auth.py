@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, Response
 
 from app.api.deps import DB, Access, Config, CurrentUser
-from app.core.ratelimit import signin_links, token_attempts
+from app.core.ratelimit import password_attempts, signin_links, token_attempts
 from app.core.security import SESSION_COOKIE, create_session_token
 from app.models import User, UserRole
 from app.repositories.club import ClubTeamRepository, CohortRepository, TeamSeasonRepository
@@ -25,10 +25,20 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=MeRead)
-def login(data: LoginRequest, response: Response, db: DB, settings: Config):
-    """Username and password - coaches and admins. Unchanged, and a parent account can
-    never come through here: it has no password hash to match."""
+def login(data: LoginRequest, request: Request, response: Response, db: DB, settings: Config):
+    """Username and password - coaches, admins, and parents, whose username is their
+    email address.
+
+    Throttled per account and per IP: an unauthenticated password endpoint with no limit
+    is an open invitation to guess. The budget is forgotten on success.
+    """
+    who, ip = f"pw:{data.username.strip().lower()}", f"pw-ip:{_client(request)}"
+    message = "Too many sign-in attempts - wait a few minutes and try again"
+    password_attempts.check(who, message)
+    password_attempts.check(ip, message)
     user = AuthService(db).authenticate(data.username, data.password)
+    password_attempts.clear(who)
+    password_attempts.clear(ip)
     return _sign_in(response, user, db, settings)
 
 

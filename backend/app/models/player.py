@@ -1,7 +1,18 @@
-from datetime import date
+from datetime import date, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, ForeignKey, Index, Integer, String, Text, UniqueConstraint, text
+from sqlalchemy import (
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -68,6 +79,34 @@ class PlayerGuardian(TimestampMixin, Base):
 
     user: Mapped["User"] = relationship(back_populates="guardian_of")
     player: Mapped["Player"] = relationship(back_populates="guardians")
+
+
+class ParentAccessLog(Base):
+    """Who could see which child, and when - an append-only record that outlives the
+    account.
+
+    A parent account is exactly its guardian links, so removing the last child removes
+    the account (see `services/invites.py`). That is right for the account and wrong for
+    the record: "who used to be able to see my child?" is a safeguarding question and a
+    deleted row answers nothing. So the answer lives here instead, and none of the user
+    ids are foreign keys - a cascade would delete the very history this exists to keep.
+    The parent's name and address are copied in for the same reason.
+
+    Rows are never updated and never deleted.
+    """
+
+    __tablename__ = "parent_access_log"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # Deliberately not FKs: the account they point at is meant to be deletable.
+    user_id: Mapped[int] = mapped_column(Integer, index=True)
+    parent_name: Mapped[str | None] = mapped_column(String(100))
+    parent_email: Mapped[str | None] = mapped_column(String(255))
+    by_user_id: Mapped[int | None] = mapped_column(Integer)
+    # A player is never hard-deleted (left_date instead), so this one can be real.
+    player_id: Mapped[int] = mapped_column(ForeignKey("players.id", ondelete="CASCADE"), index=True)
+    action: Mapped[str] = mapped_column(String(16))  # granted | revoked
+    at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
 class SquadMember(TimestampMixin, Base):

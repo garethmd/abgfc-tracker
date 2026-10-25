@@ -22,7 +22,7 @@ from app.models.match import Appearance, MatchEvent, PlayerStint
 from app.models.media import Media, MediaLink
 from app.models.note import MatchNote
 from app.models.passkey import Passkey, WebAuthnChallenge
-from app.models.player import Player, PlayerGuardian, SquadMember
+from app.models.player import ParentAccessLog, Player, PlayerGuardian, SquadMember
 from app.models.season import Season
 from app.models.selection import FixtureSelection, GuestPlayer, UnavailablePlayer
 from app.models.team import Team
@@ -53,6 +53,7 @@ __all__ = [
     "Passkey",
     "WebAuthnChallenge",
     "Player",
+    "ParentAccessLog",
     "PlayerGuardian",
     "PlayerStint",
     "Position",

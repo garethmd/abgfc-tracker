@@ -113,8 +113,11 @@ export interface paths {
         put?: never;
         /**
          * Login
-         * @description Username and password - coaches and admins. Unchanged, and a parent account can
-         *     never come through here: it has no password hash to match.
+         * @description Username and password - coaches, admins, and parents, whose username is their
+         *     email address.
+         *
+         *     Throttled per account and per IP: an unauthenticated password endpoint with no limit
+         *     is an open invitation to guess. The budget is forgotten on success.
          */
         post: operations["login_api_v1_auth_login_post"];
         delete?: never;
@@ -908,8 +911,8 @@ export interface paths {
         post?: never;
         /**
          * Delete Parent
-         * @description Erase a parent's account. Use *close* to suspend one; this is for a parent who
-         *     has asked to be taken off, and it frees the address to be invited again.
+         * @description Erase a parent's account - the shortcut for removing every child at once. Frees
+         *     the address to be invited again.
          */
         delete: operations["delete_parent_api_v1_parents__user_id__delete"];
         options?: never;
@@ -929,47 +932,10 @@ export interface paths {
         post?: never;
         /**
          * Unlink Parent
-         * @description Remove this parent's access to this child. Their account survives if they have
-         *     another child here; otherwise they lose the age group with it.
+         * @description Remove this parent's access to this child. If it was their last child anywhere,
+         *     the account goes with it - an account is exactly its links.
          */
         delete: operations["unlink_parent_api_v1_parents__user_id__children__player_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/parents/{user_id}/close": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Close Parent
-         * @description Stop this parent getting in - a child who has left, or a lost phone. Immediate.
-         */
-        post: operations["close_parent_api_v1_parents__user_id__close_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/parents/{user_id}/reopen": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Reopen Parent */
-        post: operations["reopen_parent_api_v1_parents__user_id__reopen_post"];
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1273,7 +1239,7 @@ export interface paths {
         /**
          * Team Parents
          * @description Each child in the squad with the parents who can see the club and any invitation
-         *     still outstanding, plus parents whose children have all left - the accounts to close.
+         *     still outstanding, plus parents whose children have all left - the accounts to remove.
          */
         get: operations["team_parents_api_v1_team_seasons__team_season_id__parents_get"];
         put?: never;
@@ -2111,8 +2077,6 @@ export interface components {
             has_password: boolean;
             /** Id */
             id: number;
-            /** Is Active */
-            is_active: boolean;
             /** Last Signed In */
             last_signed_in: string | null;
             /** Passkey Count */
@@ -2411,7 +2375,7 @@ export interface components {
         /**
          * LeaverRead
          * @description A parent account whose children have all left the club. Access doesn't lapse on
-         *     its own, so these are listed for a coach to close.
+         *     its own, so these are listed for a coach to remove.
          */
         LeaverRead: {
             /** Children */
@@ -2420,8 +2384,6 @@ export interface components {
             display_name: string | null;
             /** Email */
             email: string | null;
-            /** Is Active */
-            is_active: boolean;
             /** User Id */
             user_id: number;
         };
@@ -5401,68 +5363,6 @@ export interface operations {
             path: {
                 user_id: number;
                 player_id: number;
-            };
-            cookie?: {
-                abgfc_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    close_parent_api_v1_parents__user_id__close_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                user_id: number;
-            };
-            cookie?: {
-                abgfc_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    reopen_parent_api_v1_parents__user_id__reopen_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                user_id: number;
             };
             cookie?: {
                 abgfc_session?: string | null;

@@ -6,10 +6,15 @@ they are. Nothing new in `services/access.py`; the link is what will later let t
 a photo or a note to their own child, and what tells us whose access to close when a
 child leaves.
 
-They have no password. The invitation link and every later sign-in link are the same
-mechanism: a 256-bit single-use token, stored only as a sha256 hash, that expires.
-Coaches are untouched by all of this - `POST /auth/login` still takes a username and a
-password and never reaches this module.
+A parent chooses a password when they accept; email only ever resets it. Tokens here -
+invitation, reset, and the sign-in links that predate passwords - are all the same
+mechanism: a 256-bit single-use value, stored only as a sha256 hash, that expires.
+
+**An account exists exactly as long as it has a child linked.** Removing the last child
+removes the account, so there is no closed or dormant parent to reason about: three
+sources of truth that could disagree (links, roles, `is_active`) became one. What the
+account can no longer tell us - who used to see a child - is kept in `parent_access_log`,
+which is append-only and outlives it.
 """
 
 from datetime import datetime, timedelta
@@ -22,6 +27,7 @@ from app.core.errors import ConflictError, ForbiddenError, NotFoundError, Valida
 from app.core.security import hash_login_token, hash_password, new_login_token
 from app.models import (
     LoginToken,
+    ParentAccessLog,
     Player,
     PlayerGuardian,
     RoleScope,
@@ -75,15 +81,6 @@ class InviteService:
         if data.email:
             existing = self.users.get_by_email(data.email)
             if existing and any(g.player_id == player.id for g in existing.guardian_of):
-                # A closed account still holds its guardian links, so "already has
-                # access" would be a lie - and the coach needs to know which button to
-                # reach for, not be told to go away.
-                if not existing.is_active:
-                    raise ConflictError(
-                        f"{data.email} already has an account for "
-                        f"{player.display_name}, but it's closed. Re-open it instead of "
-                        "inviting them again."
-                    )
                 raise ConflictError(f"{data.email} can already see {player.display_name}")
 
         # One live link per address and child: re-inviting replaces the old one. With no
@@ -176,39 +173,28 @@ class InviteService:
                     user_id=g.user_id,
                     display_name=g.user.display_name,
                     email=g.user.email,
-                    is_active=g.user.is_active,
                     children=[],
                 ),
             )
             row.children.append(g.player.display_name)
-        return [r for r in out.values() if r.is_active]
+        return list(out.values())
 
-    # --- closing an account ------------------------------------------------------
-
-    def close(self, user_id: int) -> None:
-        """Child left, or the account should simply go. Deactivating takes effect on the
-        very next request; bumping the version kills any cookie already issued."""
-        user = self._manageable_parent(user_id)
-        user.is_active = False
-        user.session_version += 1
-        self.db.commit()
-
-    def reopen(self, user_id: int) -> None:
-        user = self._manageable_parent(user_id)
-        user.is_active = True
-        self.db.commit()
+    # --- removing access ---------------------------------------------------------
 
     def unlink(self, user_id: int, player_id: int) -> None:
-        """Take away this parent's access to this child - the wrong address, or a
-        parent who should no longer see them. The account survives if they have another
-        child; if that was the last one, the age-group role goes too, because the role
-        is what access actually hangs on."""
+        """Take away this parent's access to this child.
+
+        If that was their last child anywhere, the account goes too: an account is its
+        links, and one with none would be a ghost that no coach could reach - every
+        management call here needs a child to prove the coach's authority over.
+        """
         user = self._manageable_parent(user_id)
         link = next((g for g in user.guardian_of if g.player_id == player_id), None)
         if link is None:
             raise NotFoundError("They aren't linked to that child")
         self._access.require_player(self.db, link.player, UserRole.COACH)
         cohort_id = link.player.cohort_id
+        self._log(user, player_id, "revoked")
         user.guardian_of.remove(link)
         self.db.flush()
         # Asked of the database, not of the loaded collection: a link added by another
@@ -228,16 +214,23 @@ class InviteService:
             ]:
                 user.roles.remove(role)
             user.session_version += 1  # whatever they have open stops working now
+        # Asked of the database for the same reason as above.
+        any_child_left = self.db.scalar(
+            select(func.count())
+            .select_from(PlayerGuardian)
+            .where(PlayerGuardian.user_id == user.id)
+        )
+        if not any_child_left:
+            self.db.delete(user)
         self.db.commit()
 
     def delete_parent(self, user_id: int) -> None:
         """Remove the account outright - every guardian link, role, passkey and unused
         link goes with it (FK cascades).
 
-        Closing an account keeps the row, which is right for "they've stopped playing"
-        but wrong for "take me off your system": a parent asking to be removed should
-        be removed, and the address should be free to invite again. Only a parent
-        account can go this way; an account with a password is a coach's and is managed
+        This is the shortcut for every child at once - "take me off your system" - and
+        the address is free to invite again afterwards. Only a parent account can go this
+        way; anything holding more than the cohort viewer row is a coach's and is managed
         in /admin.
         """
         user = self._manageable_parent(user_id)
@@ -246,6 +239,8 @@ class InviteService:
         # viewer row. Anything more belongs to a coach and is managed in /admin.
         if any(r.role != UserRole.VIEWER or r.scope_type != RoleScope.COHORT for r in user.roles):
             raise ValidationError("That account is a coach's - manage it in Coaches")
+        for link in user.guardian_of:
+            self._log(user, link.player_id, "revoked")
         self.db.delete(user)
         self.db.commit()
 
@@ -254,6 +249,26 @@ class InviteService:
         user = self._manageable_parent(user_id)
         user.session_version += 1
         self.db.commit()
+
+    def _log(self, user: User, player_id: int, action: str, by: int | None = None) -> None:
+        """One append-only line per grant or revocation. The parent's name and address are
+        copied in because the account they describe is meant to be deletable.
+
+        `by` is passed where the acting user isn't the caller: accepting an invitation
+        happens unauthenticated, so the coach on record is the one who invited them.
+        """
+        self.db.add(
+            ParentAccessLog(
+                user_id=user.id,
+                parent_name=user.display_name,
+                parent_email=user.email,
+                # self.access, not self._access: accepting an invitation has no caller,
+                # and the property raises rather than returning None.
+                by_user_id=by if by is not None else (self.access.user.id if self.access else None),
+                player_id=player_id,
+                action=action,
+            )
+        )
 
     def _manageable_parent(self, user_id: int) -> User:
         """A coach may manage a parent if they could have invited them - that is, if they
@@ -326,6 +341,7 @@ class InviteService:
         self.db.flush()
 
         _grant(user, player)
+        self._log(user, player.id, "granted", by=token.invited_by_user_id)
         self.db.commit()
         return self.users.get(user.id)
 
@@ -343,8 +359,6 @@ class InviteService:
                 "That address is already a coach's login here - ask your coach to invite "
                 "a different address"
             )
-        if not user.is_active:
-            raise ForbiddenError("That account has been closed - ask your coach")
         token = self._consume(raw, TokenPurpose.INVITE)
         self._issue_signin(user, email, player_id=token.player_id)
         raise ConflictError(
@@ -454,6 +468,7 @@ class InviteService:
         if token.player_id is not None:
             # Following this link is the proof that the address is theirs.
             _grant(user, token.player)
+            self._log(user, token.player_id, "granted", by=token.invited_by_user_id)
             self.db.commit()
             self.db.refresh(user)
         return user
@@ -525,8 +540,8 @@ class InviteService:
                 "the Aldershot Boys & Girls FC app - fixtures, results and who's "
                 "available each week.\n\n"
                 f"Open this link to get started:\n\n{link}\n\n"
-                "There is no password to remember: when you come back, the app emails "
-                "you a link to sign in.\n\n"
+                "You'll choose a password on the way in, and we'll only ever email you "
+                "if you need to set a new one.\n\n"
                 f"The invitation lasts {self.settings.invite_expiry_hours // 24} days.\n",
             )
             return True
@@ -553,7 +568,6 @@ def _guardian_read(g: PlayerGuardian) -> GuardianRead:
         user_id=g.user_id,
         display_name=g.user.display_name,
         email=g.user.email,
-        is_active=g.user.is_active,
         last_signed_in=None,
         passkey_count=len(g.user.passkeys),
         has_password=g.user.password_hash is not None,

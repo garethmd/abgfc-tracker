@@ -21,9 +21,12 @@ class Settings(BaseSettings):
     database_url: str = f"sqlite:///{REPO_DIR / 'data' / 'abgfc.db'}"
     media_dir: Path = REPO_DIR / "data" / "media"
     secret_key: str = Field(default=DEV_SECRET_KEY, min_length=16)
-    # Long on purpose: this is read-only club information on a parent's own phone, and
-    # a sign-in they have to repeat is a sign-in they'll ask a coach for help with.
-    session_max_age_seconds: int = 60 * 60 * 24 * 90
+    # 30 days from the last authentication, and activity does not extend it. NIST SP
+    # 800-63B-4: "A definite reauthentication overall timeout SHALL be established, which
+    # SHOULD be no more than 30 days at AAL1", and only reauthentication resets it - so
+    # refreshing the cookie on each request would mean no definite timeout at all. An
+    # optional passkey is what keeps this cheap for a parent (docs/13-parents.md).
+    session_max_age_seconds: int = 60 * 60 * 24 * 30
     cookie_secure: bool | None = None  # None = follow env (Secure in production)
     cors_origins: list[str] = ["http://localhost:3000"]
     # Used by `scripts/seed.py` to create the initial coach login.

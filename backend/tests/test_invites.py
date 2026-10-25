@@ -9,7 +9,7 @@ from sqlalchemy import select
 
 from app.core.ratelimit import signin_links, token_attempts
 from app.core.security import create_session_token
-from app.models import LoginToken, PlayerGuardian, RoleScope, User, UserRole
+from app.models import LoginToken, ParentAccessLog, PlayerGuardian, RoleScope, User, UserRole
 from app.services.bootstrap import DemoSeason
 from tests.conftest import login_as, make_user
 
@@ -233,6 +233,55 @@ def _accept_as_parent(auth_client: TestClient, player_id: int, email="mum@exampl
     return parent
 
 
+def test_a_parent_with_a_long_email_can_sign_in(auth_client: TestClient, demo: DemoSeason):
+    """`LoginRequest.username` was capped at 50 while a parent's username is their email,
+    so anyone with a longer address was refused at the schema before authentication was
+    even attempted."""
+    long_email = "charlotte.fitzwilliam-harrington.parent@verylongdomainname.example.com"
+    assert len(long_email) > 50
+    _accept_as_parent(auth_client, demo.players["Archie"].id, long_email)
+
+    fresh = TestClient(auth_client.app)
+    r = fresh.post(f"{API}/auth/login", json={"username": long_email, "password": "correct horse"})
+    assert r.status_code == 200, r.json()
+    assert fresh.get(f"{API}/auth/me").json()["email"] == long_email
+
+
+def test_password_guessing_is_throttled(auth_client: TestClient, demo: DemoSeason):
+    """An unauthenticated password endpoint with no limit is an open invitation. Cyber
+    Essentials allows no more than 10 guesses in 5 minutes."""
+    client = TestClient(auth_client.app)
+    attempt = {"username": "coach", "password": "wrong"}
+    codes = [client.post(f"{API}/auth/login", json=attempt).status_code for _ in range(10)]
+    assert codes == [401] * 10
+    blocked = client.post(f"{API}/auth/login", json=attempt)
+    assert blocked.status_code == 429
+    # Even the right password now waits - the point is to slow the guesser down
+    right = client.post(f"{API}/auth/login", json={"username": "coach", "password": "secret"})
+    assert right.status_code == 429
+
+
+def test_a_good_password_forgets_the_failures(auth_client: TestClient, demo: DemoSeason):
+    """Otherwise a coach who fumbles it twice a week eventually locks themselves out."""
+    client = TestClient(auth_client.app)
+    for _ in range(9):
+        client.post(f"{API}/auth/login", json={"username": "coach", "password": "wrong"})
+    assert (
+        client.post(
+            f"{API}/auth/login", json={"username": "coach", "password": "secret"}
+        ).status_code
+        == 200
+    )
+    for _ in range(9):
+        client.post(f"{API}/auth/login", json={"username": "coach", "password": "wrong"})
+    assert (
+        client.post(
+            f"{API}/auth/login", json={"username": "coach", "password": "secret"}
+        ).status_code
+        == 200
+    )
+
+
 def test_forgotten_password(auth_client: TestClient, demo: DemoSeason, caplog):
     """A parent with a password gets a reset link - email used to recover, not to
     authenticate - and setting a new one signs them in."""
@@ -434,7 +483,6 @@ def test_parents_tab_lists_access_per_child(auth_client: TestClient, db, demo: D
     assert body["leavers"] == []
     by_name = {r["player"]["display_name"]: r for r in body["players"]}
     assert by_name["Archie"]["guardians"][0]["email"] == "mum@example.com"
-    assert by_name["Archie"]["guardians"][0]["is_active"] is True
     assert by_name["Archie"]["pending"] == []
     assert by_name["Max"]["pending"][0]["email"] == "max.dad@example.com"
     assert by_name["Max"]["guardians"] == []
@@ -457,13 +505,13 @@ def test_closing_an_account_locks_the_parent_out(auth_client: TestClient, db, de
     assert db.scalar(select(PlayerGuardian).where(PlayerGuardian.user_id == user.id)) is not None
 
 
-# --- closing an account ---------------------------------------------------------------
+# --- removing access ------------------------------------------------------------------
 
 
-def test_a_child_leaving_surfaces_the_parent_to_close(
+def test_a_child_leaving_surfaces_the_parent_to_remove(
     auth_client: TestClient, db, demo: DemoSeason
 ):
-    """Access doesn't lapse by itself - the Parents tab says whose account to close."""
+    """Access doesn't lapse by itself - the Parents tab says whose account to remove."""
     archie = demo.players["Archie"]
     parent = _accept_as_parent(auth_client, archie.id)
     url = f"{API}/team-seasons/{demo.team_season.id}/parents"
@@ -474,16 +522,16 @@ def test_a_child_leaving_surfaces_the_parent_to_close(
     leavers = auth_client.get(url).json()["leavers"]
     assert len(leavers) == 1
     assert leavers[0]["email"] == "mum@example.com" and leavers[0]["children"] == ["Archie"]
-    # Still in until somebody closes it
+    # Still in until somebody removes them
     assert parent.get(f"{API}/auth/me").status_code == 200
 
     user_id = leavers[0]["user_id"]
-    assert auth_client.post(f"{API}/parents/{user_id}/close").status_code == 204
+    assert auth_client.delete(f"{API}/parents/{user_id}").status_code == 204
     assert parent.get(f"{API}/auth/me").status_code == 401
-    assert auth_client.get(url).json()["leavers"] == []  # closed accounts drop off
-    # And can be let back in
-    assert auth_client.post(f"{API}/parents/{user_id}/reopen").status_code == 204
-    assert len(auth_client.get(url).json()["leavers"]) == 1
+    assert auth_client.get(url).json()["leavers"] == []
+    # Gone, not dormant. (Re-inviting for Archie is refused because *he* has left, which
+    # is a different rule - the address itself is free, see the next test.)
+    assert db.get(User, user_id) is None
 
 
 def test_a_second_child_still_playing_keeps_the_account(
@@ -505,6 +553,72 @@ def test_a_second_child_still_playing_keeps_the_account(
     assert auth_client.get(url).json()["leavers"] == []
 
 
+def test_the_address_is_invitable_again_after_removal(
+    auth_client: TestClient, db, demo: DemoSeason
+):
+    """There is no closed state to collide with: a removed parent is simply unknown."""
+    archie = demo.players["Archie"]
+    _accept_as_parent(auth_client, archie.id)
+    user = db.scalar(select(User).where(User.email == "mum@example.com"))
+    assert auth_client.delete(f"{API}/parents/{user.id}").status_code == 204
+
+    again = _invite(auth_client, archie.id, "mum@example.com")
+    assert again.status_code == 201
+    token = again.json()["link"].rsplit("/", 1)[1]
+    fresh = TestClient(auth_client.app)
+    r = fresh.post(
+        f"{API}/auth/invitations/{token}/accept",
+        json={"display_name": "Mum", "password": "correct horse"},
+    )
+    assert r.status_code == 200
+    assert fresh.get(f"{API}/auth/me").status_code == 200
+
+
+def test_the_access_log_outlives_the_account(auth_client: TestClient, db, demo: DemoSeason):
+    """The one thing a deleted account can't tell us - who could see this child - so it
+    lives in its own append-only table with no FK to users."""
+    archie = demo.players["Archie"]
+    _accept_as_parent(auth_client, archie.id)
+    user = db.scalar(select(User).where(User.email == "mum@example.com"))
+    user_id = user.id
+
+    def log():
+        return db.scalars(
+            select(ParentAccessLog)
+            .where(ParentAccessLog.user_id == user_id)
+            .order_by(ParentAccessLog.id)
+        ).all()
+
+    granted = log()
+    assert [r.action for r in granted] == ["granted"]
+    assert granted[0].player_id == archie.id
+    assert granted[0].parent_email == "mum@example.com"
+
+    assert auth_client.delete(f"{API}/parents/{user_id}").status_code == 204
+    db.expire_all()
+    assert db.get(User, user_id) is None  # the account is gone...
+    rows = log()  # ...and the record is not
+    assert [r.action for r in rows] == ["granted", "revoked"]
+    # Readable without the account: the name and address are copied in, and the coach who
+    # did it is on record.
+    assert rows[1].parent_name == granted[0].parent_name  # copied in, not looked up
+    assert rows[1].parent_email == "mum@example.com"
+    assert rows[1].by_user_id == db.scalar(select(User.id).where(User.username == "coach"))
+
+
+def test_removing_one_child_logs_only_that_child(auth_client: TestClient, db, demo: DemoSeason):
+    archie, max_ = demo.players["Archie"], demo.players["Max"]
+    _accept_as_parent(auth_client, archie.id)
+    user = db.scalar(select(User).where(User.email == "mum@example.com"))
+    db.add(PlayerGuardian(user_id=user.id, player_id=max_.id))
+    db.commit()
+
+    auth_client.delete(f"{API}/parents/{user.id}/children/{archie.id}")
+    db.expire_all()
+    revoked = db.scalars(select(ParentAccessLog).where(ParentAccessLog.action == "revoked")).all()
+    assert [r.player_id for r in revoked] == [archie.id]
+
+
 def test_sign_out_everywhere_keeps_the_account(auth_client: TestClient, db, demo: DemoSeason):
     """A phone left on a bus: kill the sessions, keep the access."""
     parent = _accept_as_parent(auth_client, demo.players["Archie"].id)
@@ -521,7 +635,7 @@ def test_sign_out_everywhere_keeps_the_account(auth_client: TestClient, db, demo
     assert db.scalar(select(User).where(User.email == "mum@example.com")).is_active
 
 
-def test_only_a_coach_of_that_child_may_close_the_account(
+def test_only_a_coach_of_that_child_may_remove_the_account(
     client: TestClient, auth_client: TestClient, db, demo: DemoSeason
 ):
     _accept_as_parent(auth_client, demo.players["Archie"].id)
@@ -532,12 +646,12 @@ def test_only_a_coach_of_that_child_may_close_the_account(
     db.commit()
 
     login_as(client, "reds_coach")
-    assert client.post(f"{API}/parents/{user.id}/close").status_code == 403
+    assert client.delete(f"{API}/parents/{user.id}").status_code == 403
     login_as(client, "blues_viewer")
-    assert client.post(f"{API}/parents/{user.id}/close").status_code == 403
-    # A coach account is not a parent and can't be closed through this route
+    assert client.delete(f"{API}/parents/{user.id}").status_code == 403
+    # A coach account is not a parent and can't be removed through this route
     coach = db.scalar(select(User).where(User.username == "coach"))
-    assert auth_client.post(f"{API}/parents/{coach.id}/close").status_code == 404
+    assert auth_client.delete(f"{API}/parents/{coach.id}").status_code == 404
 
 
 def test_the_note_a_coach_sends_with_the_link(auth_client: TestClient, demo: DemoSeason):
@@ -609,27 +723,8 @@ def test_invite_without_an_address_for_whatsapp(
 # --- undoing access -------------------------------------------------------------------
 
 
-def test_reopening_an_account_a_coach_closed(auth_client: TestClient, db, demo: DemoSeason):
-    """What Gareth hit on the live site: closed by mistake, and no way back."""
-    parent = _accept_as_parent(auth_client, demo.players["Archie"].id)
-    user = db.scalar(select(User).where(User.email == "mum@example.com"))
-    auth_client.post(f"{API}/parents/{user.id}/close")
-    assert parent.get(f"{API}/auth/me").status_code == 401
-
-    # Re-inviting says what is actually true, and points at the right button
-    r = _invite(auth_client, demo.players["Archie"].id)
-    assert r.status_code == 409 and "closed" in r.json()["detail"]
-    assert "Re-open" in r.json()["detail"]
-
-    assert auth_client.post(f"{API}/parents/{user.id}/reopen").status_code == 204
-    fresh = TestClient(auth_client.app)
-    fresh.post(f"{API}/auth/forgot-password", json={"email": "mum@example.com"})
-    db.expire_all()
-    assert db.scalar(select(User).where(User.email == "mum@example.com")).is_active
-
-
 def test_removing_one_childs_access(auth_client: TestClient, db, demo: DemoSeason):
-    """Not the same as closing the account: the other child stays."""
+    """One child of two: the account stays. The last one: it goes."""
     archie, max_ = demo.players["Archie"], demo.players["Max"]
     parent = _accept_as_parent(auth_client, archie.id)
     user = db.scalar(select(User).where(User.email == "mum@example.com"))
@@ -644,11 +739,13 @@ def test_removing_one_childs_access(auth_client: TestClient, db, demo: DemoSeaso
     assert len(user.roles) == 1
     assert parent.get(f"{API}/auth/me").status_code == 200
 
-    # Removing the last child takes the age group with it, and ends the session
-    assert auth_client.delete(f"{API}/parents/{user.id}/children/{max_.id}").status_code == 204
+    # Removing the last child removes the account: an account is exactly its links, and
+    # one with none would be a ghost no coach could reach.
+    user_id = user.id
+    assert auth_client.delete(f"{API}/parents/{user_id}/children/{max_.id}").status_code == 204
     db.expire_all()
-    user = db.scalar(select(User).where(User.email == "mum@example.com"))
-    assert user.guardian_of == [] and user.roles == []
+    assert db.scalar(select(User).where(User.email == "mum@example.com")) is None
+    assert db.get(User, user_id) is None
     assert parent.get(f"{API}/auth/me").status_code == 401
     # ...and the coach can now invite that address afresh
     assert _invite(auth_client, archie.id).status_code == 201

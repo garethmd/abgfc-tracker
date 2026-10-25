@@ -34,6 +34,12 @@ class RateLimiter:
             hits.append(now)
             self._hits[key] = hits
 
+    def clear(self, key: str) -> None:
+        """Forget one key - called when an attempt succeeds, so a parent who gets their
+        password right on the fourth go doesn't carry the first three around."""
+        with self._lock:
+            self._hits.pop(key, None)
+
     def reset(self) -> None:
         with self._lock:
             self._hits.clear()
@@ -44,3 +50,7 @@ class RateLimiter:
 signin_links = RateLimiter(limit=5, per_seconds=15 * 60)
 # Following a link: stops someone grinding tokens against the endpoint.
 token_attempts = RateLimiter(limit=20, per_seconds=15 * 60)
+# Guessing a password. Cyber Essentials v3.3 asks for brute-force protection and allows
+# "no more than 10 guesses in 5 minutes"; throttling is preferred to locking the account,
+# because a locked-out coach at the side of a pitch is a worse outcome than a slow one.
+password_attempts = RateLimiter(limit=10, per_seconds=5 * 60)

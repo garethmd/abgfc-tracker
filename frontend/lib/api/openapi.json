@@ -1893,10 +1893,6 @@
             "title": "Id",
             "type": "integer"
           },
-          "is_active": {
-            "title": "Is Active",
-            "type": "boolean"
-          },
           "last_signed_in": {
             "anyOf": [
               {
@@ -1923,7 +1919,6 @@
           "user_id",
           "display_name",
           "email",
-          "is_active",
           "last_signed_in",
           "passkey_count",
           "has_password"
@@ -2876,7 +2871,7 @@
         "type": "object"
       },
       "LeaverRead": {
-        "description": "A parent account whose children have all left the club. Access doesn't lapse on\nits own, so these are listed for a coach to close.",
+        "description": "A parent account whose children have all left the club. Access doesn't lapse on\nits own, so these are listed for a coach to remove.",
         "properties": {
           "children": {
             "items": {
@@ -2907,10 +2902,6 @@
             ],
             "title": "Email"
           },
-          "is_active": {
-            "title": "Is Active",
-            "type": "boolean"
-          },
           "user_id": {
             "title": "User Id",
             "type": "integer"
@@ -2920,7 +2911,6 @@
           "user_id",
           "display_name",
           "email",
-          "is_active",
           "children"
         ],
         "title": "LeaverRead",
@@ -3022,7 +3012,7 @@
             "type": "string"
           },
           "username": {
-            "maxLength": 50,
+            "maxLength": 255,
             "minLength": 1,
             "title": "Username",
             "type": "string"
@@ -5635,7 +5625,7 @@
     },
     "/api/v1/auth/login": {
       "post": {
-        "description": "Username and password - coaches and admins. Unchanged, and a parent account can\nnever come through here: it has no password hash to match.",
+        "description": "Username and password - coaches, admins, and parents, whose username is their\nemail address.\n\nThrottled per account and per IP: an unauthenticated password endpoint with no limit\nis an open invitation to guess. The budget is forgotten on success.",
         "operationId": "login_api_v1_auth_login_post",
         "requestBody": {
           "content": {
@@ -9187,7 +9177,7 @@
     },
     "/api/v1/parents/{user_id}": {
       "delete": {
-        "description": "Erase a parent's account. Use *close* to suspend one; this is for a parent who\nhas asked to be taken off, and it frees the address to be invited again.",
+        "description": "Erase a parent's account - the shortcut for removing every child at once. Frees\nthe address to be invited again.",
         "operationId": "delete_parent_api_v1_parents__user_id__delete",
         "parameters": [
           {
@@ -9239,7 +9229,7 @@
     },
     "/api/v1/parents/{user_id}/children/{player_id}": {
       "delete": {
-        "description": "Remove this parent's access to this child. Their account survives if they have\nanother child here; otherwise they lose the age group with it.",
+        "description": "Remove this parent's access to this child. If it was their last child anywhere,\nthe account goes with it - an account is exactly its links.",
         "operationId": "unlink_parent_api_v1_parents__user_id__children__player_id__delete",
         "parameters": [
           {
@@ -9293,109 +9283,6 @@
           }
         },
         "summary": "Unlink Parent",
-        "tags": [
-          "invitations"
-        ]
-      }
-    },
-    "/api/v1/parents/{user_id}/close": {
-      "post": {
-        "description": "Stop this parent getting in - a child who has left, or a lost phone. Immediate.",
-        "operationId": "close_parent_api_v1_parents__user_id__close_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "title": "User Id",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "cookie",
-            "name": "abgfc_session",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Abgfc Session"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Close Parent",
-        "tags": [
-          "invitations"
-        ]
-      }
-    },
-    "/api/v1/parents/{user_id}/reopen": {
-      "post": {
-        "operationId": "reopen_parent_api_v1_parents__user_id__reopen_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "title": "User Id",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "cookie",
-            "name": "abgfc_session",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Abgfc Session"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Reopen Parent",
         "tags": [
           "invitations"
         ]
@@ -10818,7 +10705,7 @@
     },
     "/api/v1/team-seasons/{team_season_id}/parents": {
       "get": {
-        "description": "Each child in the squad with the parents who can see the club and any invitation\nstill outstanding, plus parents whose children have all left - the accounts to close.",
+        "description": "Each child in the squad with the parents who can see the club and any invitation\nstill outstanding, plus parents whose children have all left - the accounts to remove.",
         "operationId": "team_parents_api_v1_team_seasons__team_season_id__parents_get",
         "parameters": [
           {

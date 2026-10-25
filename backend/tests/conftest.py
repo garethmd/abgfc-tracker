@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session, sessionmaker
 
 import app.models  # noqa: F401
+from app.core.ratelimit import password_attempts, signin_links, token_attempts
 from app.core.security import hash_password
 from app.db.base import Base
 from app.db.session import get_db, make_engine
@@ -29,6 +30,17 @@ def demo(db: Session) -> DemoSeason:
     d = seed_demo_season(db)
     db.commit()
     return d
+
+
+@pytest.fixture(autouse=True)
+def _fresh_rate_limits():
+    """The limiters are process-global and remember across tests, and logging in as the
+    same coach dozens of times would otherwise trip the password throttle."""
+    for limiter in (signin_links, token_attempts, password_attempts):
+        limiter.reset()
+    yield
+    for limiter in (signin_links, token_attempts, password_attempts):
+        limiter.reset()
 
 
 @pytest.fixture

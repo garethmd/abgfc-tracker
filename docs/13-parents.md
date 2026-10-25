@@ -28,7 +28,7 @@ This replaced two earlier attempts, and the reasons are worth keeping:
   or impossible.
 
 A password works in every browser, including WhatsApp's, on every device, with nothing
-to fail. The session lasts 90 days, so it is rarely typed.
+to fail. The session lasts 30 days — see **Sessions** below for why not longer.
 
 **Passkeys remain, as an optional extra** — see below. Better for devices that support
 them, never required, never a blocker.
@@ -79,8 +79,9 @@ Manager, so a new phone usually already has one.
 4. They type their name and press the button. `POST /invitations/<token>/accept` creates
    the user, the guardian link and the role row, spends the token, sets the session
    cookie and lands them on the team.
-5. The cookie lasts 30 days. After that, `/login` → *Parent? Email me a sign-in link* →
-   `/signin/<token>`, which again only signs in on the button press.
+5. The next screen offers a passkey, with "Not now" in plain sight (see **Passkeys**).
+6. The cookie lasts 30 days. After that they sign in again — their password, or one touch
+   if they took the passkey.
 
 `proxy.ts` exempts `/invite/` and `/signin/` from the cookie gate: an emailed link must
 not be bounced to the coaches' sign-in page.
@@ -111,18 +112,55 @@ this is not an escalation, and `invited_by_user_id` records who did it.
 The same rule governs removal: a coach may act on a parent exactly when they could have
 invited them.
 
+**An account exists exactly as long as it has a child linked.** That one rule is what
+keeps this simple, and it was learned the hard way: guardian links, role rows and
+`is_active` were three records of whether a parent had access, and the two worst bugs here
+were simply those three disagreeing. Removing a parent's last child used to leave a row
+that no coach could reach — not closeable, not deletable, holding its email address
+forever — and a closed account could not be re-invited, because the error told the coach
+to ask a coach.
+
 | Action | Effect |
 |---|---|
-| `POST /parents/{id}/close` | `is_active = false` **and** `session_version + 1`. Dead on the next request, every device. |
-| `POST /parents/{id}/reopen` | Lets them back in; they ask for a new link. |
-| `POST /parents/{id}/sign-out` | Bumps the version only — a phone left on a bus, where they keep their access. |
+| `DELETE /parents/{id}/children/{player_id}` | The guardian link goes. **If it was their last child anywhere, the account goes with it** — links, role, passkeys and unused tokens, by cascade — and the address is free to invite again. |
+| `DELETE /parents/{id}` | The same for every child at once: "take me off your system". Not a separate state, just a shortcut. |
+| `POST /parents/{id}/sign-out` | Bumps `session_version` only — a phone left on a bus, where they keep their access. |
+
+There is deliberately **no close and no re-open**. A parent account holds nothing of its
+own — no notes, no uploads, no history; the child's record belongs to the child — so a
+dormant row preserved nothing while costing two endpoints, a dead end and a third source
+of truth. Re-inviting is one tap. `users.is_active` stays on the table because the admin
+screens use it for coaches; a parent never sets it.
 
 **Children who have left.** A guardian link outlives the child's time at the club on
 purpose. Setting a player's `left_date` does *not* remove their parent's access; instead
-the Parents tab grows a **Children who have left** section naming the accounts to close,
+the Parents tab grows a **Children who have left** section naming the accounts to remove,
 so nobody has to remember. A parent with a second child still playing is not listed.
 
+## The access log
+
+Deleting the account is right for the account and wrong for the record: *"who used to be
+able to see my child?"* is a safeguarding question, and a deleted row answers nothing.
+So the answer lives in **`parent_access_log`** — one append-only line per grant and per
+revocation, written by the same service calls that change access, never updated and never
+deleted.
+
+None of its user ids are foreign keys, which is the whole point: a cascade would delete
+the history this exists to keep. The parent's name and address are copied in for the same
+reason. The migration backfills a `granted` line for everyone who can see a child today,
+so it starts out telling the truth rather than starting empty.
+
 ## Sessions
+
+**30 days from the last authentication, and ordinary activity does not extend it.** NIST
+SP 800-63B-4 says *"A definite reauthentication overall timeout SHALL be established,
+which SHOULD be no more than 30 days at AAL1"*, and only *"successful reauthentication
+resets both timeouts"* — so refreshing the cookie on every request would mean there was no
+definite timeout at all. An inactivity timeout *"MAY be applied but is not required at
+AAL1"*, so there isn't one: it would cost usability and buy nothing required.
+
+This is what makes the optional passkey worth offering. Thirty days means roughly twelve
+reauthentications a season; twelve passwords is friction, twelve thumbprints is nothing.
 
 `users.session_version` goes into the signed cookie as `sv` and is compared on every
 request. A cookie minted before this existed carries no `sv` and is accepted as-is —
@@ -163,5 +201,6 @@ PDF and the season spreadsheet) and every write in the app.
 | Table | |
 |---|---|
 | `login_tokens` | `token_hash` (unique), `purpose` (`invite` \| `signin`), `email`, `player_id` (invites), `user_id` (sign-ins), `invited_by_user_id`, `expires_at`, `used_at`, `revoked_at`. A CHECK keeps the two shapes honest. |
-| `player_guardians` | `user_id` + `player_id`, unique together. Many-to-many: two parents per child, two children per parent. |
+| `player_guardians` | `user_id` + `player_id`, unique together. Many-to-many: two parents per child, two children per parent. **This is what says the account exists**: remove the last link and the account goes. |
+| `parent_access_log` | Append-only: `user_id`, `parent_name`, `parent_email`, `by_user_id`, `player_id`, `action` (`granted` \| `revoked`), `at`. Only `player_id` is a real FK — a cascade from `users` would delete the history it exists to keep. |
 | `users` | gains `email` (nullable, unique), `session_version`; `password_hash` becomes nullable; `username` widened to 255 because a parent's username is their email. |

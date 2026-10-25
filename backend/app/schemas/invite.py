@@ -88,7 +88,6 @@ class GuardianRead(ORMModel):
     user_id: int
     display_name: str | None
     email: str | None
-    is_active: bool
     last_signed_in: datetime | None
     passkey_count: int  # a passkey is an optional extra on top of their password
     has_password: bool  # false = joined before passwords; still uses emailed links
@@ -104,12 +103,11 @@ class PlayerAccessRead(ORMModel):
 
 class LeaverRead(ORMModel):
     """A parent account whose children have all left the club. Access doesn't lapse on
-    its own, so these are listed for a coach to close."""
+    its own, so these are listed for a coach to remove."""
 
     user_id: int
     display_name: str | None
     email: str | None
-    is_active: bool
     children: list[str]
 
 

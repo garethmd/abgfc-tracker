@@ -26,32 +26,21 @@ def create_invitation(data: InviteCreate, db: DB, access: Access, settings: Conf
 @router.get("/team-seasons/{team_season_id}/parents", response_model=TeamParentsRead)
 def team_parents(team_season_id: int, db: DB, access: Access, settings: Config):
     """Each child in the squad with the parents who can see the club and any invitation
-    still outstanding, plus parents whose children have all left - the accounts to close."""
+    still outstanding, plus parents whose children have all left - the accounts to remove."""
     return InviteService(db, access, settings).list_for_team_season(team_season_id)
-
-
-@router.post("/parents/{user_id}/close", status_code=204)
-def close_parent(user_id: int, db: DB, access: Access, settings: Config):
-    """Stop this parent getting in - a child who has left, or a lost phone. Immediate."""
-    InviteService(db, access, settings).close(user_id)
-
-
-@router.post("/parents/{user_id}/reopen", status_code=204)
-def reopen_parent(user_id: int, db: DB, access: Access, settings: Config):
-    InviteService(db, access, settings).reopen(user_id)
 
 
 @router.delete("/parents/{user_id}", status_code=204)
 def delete_parent(user_id: int, db: DB, access: Access, settings: Config):
-    """Erase a parent's account. Use *close* to suspend one; this is for a parent who
-    has asked to be taken off, and it frees the address to be invited again."""
+    """Erase a parent's account - the shortcut for removing every child at once. Frees
+    the address to be invited again."""
     InviteService(db, access, settings).delete_parent(user_id)
 
 
 @router.delete("/parents/{user_id}/children/{player_id}", status_code=204)
 def unlink_parent(user_id: int, player_id: int, db: DB, access: Access, settings: Config):
-    """Remove this parent's access to this child. Their account survives if they have
-    another child here; otherwise they lose the age group with it."""
+    """Remove this parent's access to this child. If it was their last child anywhere,
+    the account goes with it - an account is exactly its links."""
     InviteService(db, access, settings).unlink(user_id, player_id)
 
 

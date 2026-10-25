@@ -16,7 +16,10 @@ admin manages coaches.
 
 **Parents.** A parent is an ordinary account holding the same multi-team role as the
 age-group coach - `viewer` at cohort scope - plus a `player_guardians` link saying whose
-parent they are. They are invited by email or a WhatsApp link and **choose a password** when they accept.
+parent they are. **The account exists exactly as long as it has a child linked**: remove
+their last child and the account goes (no close, no reopen, no dormant state), while
+`parent_access_log` keeps the append-only record of who could see whom.
+They are invited by email or a WhatsApp link and **choose a password** when they accept.
 Email is used only to *recover* one (`POST /auth/forgot-password` -> `/reset/<token>`),
 which is what NIST SP 800-63B-4 permits - using an emailed link as the routine
 authenticator is what it forbids. A **passkey is an optional extra** on top
@@ -24,7 +27,9 @@ authenticator is what it forbids. A **passkey is an optional extra** on top
 depends on the device and fails outright in some in-app browsers, so it can't be the
 only way in. Parents invited before passwords existed keep their emailed sign-in links
 until they set one - nothing forces a migration. Coaches invite their own team's
-parents; closing or deleting an account is immediate. See `docs/13-parents.md`.
+parents; removing an account is immediate. Sessions last 30 days from the last sign-in (NIST
+AAL1's overall timeout), which is why the optional passkey is offered during onboarding.
+See `docs/13-parents.md`.
 
 **Children's data.** Everything sits behind a login and every query is scoped by the
 caller's roles (`services/access.py`); media (when added) is served through the API

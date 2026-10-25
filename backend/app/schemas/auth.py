@@ -6,7 +6,10 @@ from app.schemas.common import InputModel, ORMModel
 
 
 class LoginRequest(InputModel):
-    username: str = Field(min_length=1, max_length=50)
+    # 255, not 50: a parent's username is their email address, and `users.username` is
+    # 255 to hold one. At 50 anyone with a longer address was refused at the schema
+    # before authentication was even attempted.
+    username: str = Field(min_length=1, max_length=255)
     password: str = Field(min_length=1)
 
 

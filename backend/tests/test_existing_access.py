@@ -182,16 +182,41 @@ def test_everyone_keeps_the_access_their_role_gives_them(
     )
 
 
-def test_a_session_issued_before_the_change_still_works(client: TestClient, db, demo: DemoSeason):
-    """The cookie lifetime went from 30 to 90 days. Lengthening it must not invalidate
-    anything already issued."""
+def test_a_recent_session_survives_the_shorter_cookie(client: TestClient, db, demo: DemoSeason):
+    """The cookie is 30 days now, down from 90 (NIST AAL1's overall timeout). A session
+    inside the new window keeps working - nobody signed in this month is disturbed."""
     from app.config import get_settings
     from app.core.security import SESSION_COOKIE, create_session_token
 
     user = _parent_row(db, demo, "already.in@example.com", password=None)
     settings = get_settings()
+    assert settings.session_max_age_seconds == 60 * 60 * 24 * 30
     client.cookies.set(
         SESSION_COOKIE, create_session_token(user.id, settings.secret_key, user.session_version)
     )
     assert client.get(f"{API}/auth/me").status_code == 200
-    assert settings.session_max_age_seconds == 60 * 60 * 24 * 90
+
+
+def test_a_session_older_than_the_window_is_asked_again(client: TestClient, db, demo: DemoSeason):
+    """Shortening the window does sign out anyone idle longer than it - that is the point
+    of an overall timeout. They are asked to sign in, not locked out: a password, a
+    passkey, or for the parents who predate passwords, the emailed link they still use."""
+    from app.config import get_settings
+    from app.core.security import SESSION_COOKIE, create_session_token
+
+    user = _parent_row(db, demo, "long.ago@example.com", password=None)
+    settings = get_settings()
+    token = create_session_token(user.id, settings.secret_key, user.session_version)
+    client.cookies.set(SESSION_COOKIE, token)
+    assert client.get(f"{API}/auth/me").status_code == 200
+
+    # Stand in for "minted 31 days ago" by reading it against an already-elapsed window.
+    # get_settings() builds a fresh Settings each call, so override the dependency.
+    client.app.dependency_overrides[get_settings] = lambda: settings.model_copy(
+        update={"session_max_age_seconds": -1}
+    )
+    assert client.get(f"{API}/auth/me").status_code == 401
+    del client.app.dependency_overrides[get_settings]
+    # And the way back in still exists
+    r = client.post(f"{API}/auth/forgot-password", json={"email": "long.ago@example.com"})
+    assert r.status_code == 204

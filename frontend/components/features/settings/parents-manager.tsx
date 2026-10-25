@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, LogOut, Mail, Plus, Trash2, UserCheck, UserRound, UserX } from "lucide-react";
+import { Check, Copy, LogOut, Mail, Plus, Trash2, UserRound, UserX } from "lucide-react";
 import { toast } from "sonner";
 import { $api, errorMessage, type Schema, invalidatePath } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
@@ -32,13 +32,16 @@ type Guardian = Schema["GuardianRead"];
 /** A parent to act on, and which action. */
 type Action = {
   user: { id: number; name: string };
-  kind: "close" | "sign-out" | "reopen" | "unlink" | "delete";
+  kind: "sign-out" | "unlink" | "delete";
   /** unlink only: which child's access is being taken away. */
   player?: { id: number; name: string };
 };
 
 /** Who can see the club because of a child in this squad, and inviting more.
- *  Parents sign in with an emailed link, so there is no password to hand out. */
+ *
+ *  A parent account exists exactly as long as it has a child linked, so there is no
+ *  closed or dormant state here: you remove a child, or you remove the parent (which is
+ *  every child at once). Who could see whom is kept in the access log regardless. */
 export function ParentsManager() {
   const { teamSeason, canEdit } = useTeam();
   const qc = useQueryClient();
@@ -54,9 +57,7 @@ export function ParentsManager() {
   const [revoking, setRevoking] = useState<Invite | null>(null);
   const [acting, setActing] = useState<Action | null>(null);
   const revoke = $api.useMutation("delete", "/api/v1/invitations/{invite_id}");
-  const close = $api.useMutation("post", "/api/v1/parents/{user_id}/close");
   const signOut = $api.useMutation("post", "/api/v1/parents/{user_id}/sign-out");
-  const reopen = $api.useMutation("post", "/api/v1/parents/{user_id}/reopen");
   const unlink = $api.useMutation("delete", "/api/v1/parents/{user_id}/children/{player_id}");
   const erase = $api.useMutation("delete", "/api/v1/parents/{user_id}");
 
@@ -89,15 +90,9 @@ export function ParentsManager() {
           params: { path: { ...path, player_id: acting.player.id } },
         });
         toast.success(`${acting.user.name} can no longer see ${acting.player.name}`);
-      } else if (acting.kind === "close") {
-        await close.mutateAsync({ params: { path } });
-        toast.success(`${acting.user.name} can no longer sign in`);
       } else if (acting.kind === "delete") {
         await erase.mutateAsync({ params: { path } });
-        toast.success(`${acting.user.name}'s account deleted`);
-      } else if (acting.kind === "reopen") {
-        await reopen.mutateAsync({ params: { path } });
-        toast.success(`${acting.user.name} can sign in again`);
+        toast.success(`${acting.user.name}'s account removed`);
       } else {
         await signOut.mutateAsync({ params: { path } });
         toast.success(`${acting.user.name} signed out on every device`);
@@ -110,31 +105,19 @@ export function ParentsManager() {
     }
   }
 
-  const BUSY = [close, signOut, reopen, unlink, erase].some((m) => m.isPending);
+  const BUSY = [signOut, unlink, erase].some((m) => m.isPending);
   const COPY: Record<Action["kind"], { title: (a: Action) => string; body: string; cta: string; danger: boolean }> = {
     unlink: {
       title: (a) => `Stop ${a.user.name} seeing ${a.player?.name}?`,
-      body: "Their account stays, along with any other children they have here. If this was their only one, they lose access altogether.",
+      body: "Their account stays if they have another child here. If this was their only one, the account goes too - and you can invite them again any time.",
       cta: "Remove",
       danger: true,
     },
     delete: {
-      title: (a) => `Delete ${a.user.name}'s account?`,
-      body: "Everything about the account goes - their access, their passkeys, the lot - and the email address can be invited again. Use Close instead if they might come back.",
-      cta: "Delete",
+      title: (a) => `Remove ${a.user.name}'s account?`,
+      body: "Everything about the account goes - their access, their passkeys, the lot - and the email address can be invited again straight away.",
+      cta: "Remove",
       danger: true,
-    },
-    close: {
-      title: (a) => `Close ${a.user.name}'s account?`,
-      body: "They won't be able to sign in again until you re-open it. Nothing they can see is deleted.",
-      cta: "Close account",
-      danger: true,
-    },
-    reopen: {
-      title: (a) => `Let ${a.user.name} back in?`,
-      body: "They'll be able to sign in again with the same email or passkey. Nothing else changes.",
-      cta: "Re-open",
-      danger: false,
     },
     "sign-out": {
       title: (a) => `Sign ${a.user.name} out everywhere?`,
@@ -222,7 +205,7 @@ export function ParentsManager() {
         <div className="mt-6">
           <p className="mb-2 text-sm font-medium">Children who have left</p>
           <p className="mb-3 text-xs text-muted-foreground">
-            These parents can still sign in. Closing an account takes effect straight away.
+            These parents can still sign in. Removing an account takes effect straight away.
           </p>
           <Card className="divide-y divide-border/40">
             {leavers.map((l) => (
@@ -238,10 +221,10 @@ export function ParentsManager() {
                   variant="outline"
                   className="h-9"
                   onClick={() =>
-                    setActing({ user: { id: l.user_id, name: l.display_name ?? l.email ?? "They" }, kind: "close" })
+                    setActing({ user: { id: l.user_id, name: l.display_name ?? l.email ?? "They" }, kind: "delete" })
                   }
                 >
-                  <UserX className="size-4" /> Close account
+                  <UserX className="size-4" /> Remove account
                 </Button>
               </div>
             ))}
@@ -320,31 +303,17 @@ function GuardianRow({
       <UserRound className="size-3.5 shrink-0 text-muted-foreground" />
       <span className="min-w-0 flex-1 truncate">
         {name}
-        {!g.is_active && <span className="text-muted-foreground"> · closed</span>}
         {g.passkey_count > 0 && <span className="text-muted-foreground"> · passkey</span>}
       </span>
-      {g.is_active ? (
-        <>
-          <RowButton label={`Sign ${name} out everywhere`} title="Sign out everywhere" onClick={() => onAct("sign-out")}>
-            <LogOut className="size-3.5" />
-          </RowButton>
-          <RowButton label={`Stop ${name} seeing this child`} title="Remove access to this child" danger onClick={() => onAct("unlink")}>
-            <Trash2 className="size-3.5" />
-          </RowButton>
-          <RowButton label={`Close ${name}'s account`} title="Close their account" danger onClick={() => onAct("close")}>
-            <UserX className="size-3.5" />
-          </RowButton>
-        </>
-      ) : (
-        <>
-          <RowButton label={`Let ${name} back in`} title="Re-open this account" onClick={() => onAct("reopen")}>
-            <UserCheck className="size-3.5" />
-          </RowButton>
-          <RowButton label={`Delete ${name}'s account`} title="Delete the account for good" danger onClick={() => onAct("delete")}>
-            <Trash2 className="size-3.5" />
-          </RowButton>
-        </>
-      )}
+      <RowButton label={`Sign ${name} out everywhere`} title="Sign out everywhere" onClick={() => onAct("sign-out")}>
+        <LogOut className="size-3.5" />
+      </RowButton>
+      <RowButton label={`Stop ${name} seeing this child`} title="Remove access to this child" danger onClick={() => onAct("unlink")}>
+        <Trash2 className="size-3.5" />
+      </RowButton>
+      <RowButton label={`Remove ${name}'s account`} title="Remove their account" danger onClick={() => onAct("delete")}>
+        <UserX className="size-3.5" />
+      </RowButton>
     </li>
   );
 }
