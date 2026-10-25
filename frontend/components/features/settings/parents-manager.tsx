@@ -137,9 +137,9 @@ export function ParentsManager() {
   return (
     <>
       <p className="mb-3 text-sm text-muted-foreground">
-        Parents see the whole age group, read-only. They sign in with a link emailed to
-        them - there is no password. {withAccess} of {rows.length} children have a parent
-        signed up.
+        Parents see the whole age group, read-only. They choose a password when they
+        accept the invitation; email is only ever used to reset it. {withAccess} of{" "}
+        {rows.length} children have a parent signed up.
       </p>
 
       <Card className="divide-y divide-border/40">
