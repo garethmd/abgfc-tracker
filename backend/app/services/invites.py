@@ -1,4 +1,4 @@
-"""Parent access: invitations and passwordless sign-in.
+"""Parent access: invitations, password reset, and the account lifecycle.
 
 A parent is an ordinary account with one ordinary role - `viewer` at cohort scope, the
 same row the age-group coach has - plus a `player_guardians` link recording whose parent

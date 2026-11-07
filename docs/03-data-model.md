@@ -119,8 +119,10 @@ together), `squad_number` (partial unique per team season where not null),
 
 **`users`** — logins. `username` (unique), `email` (unique, nullable), `display_name`,
 `password_hash` (argon2id, **nullable**), `is_active`, `session_version`. No `role`
-column — roles are rows below. A coach has a username and a password; a **parent** has an
-email and no password, signing in with a link (see [Parents](13-parents.md)).
+column — roles are rows below. Everyone has a password; a coach's `username` is a
+handle, a **parent's is their email address**, which is why the column is 255 wide (see
+[Parents](13-parents.md)). `password_hash` is nullable only for parents invited before
+passwords existed.
 `session_version` is carried in the session cookie and bumped to sign every device out.
 
 **`login_tokens`** — a single-use emailed link: `token_hash` (sha256 of 256 random bits,

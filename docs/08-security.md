@@ -7,11 +7,14 @@ explicitly granted more.
 
 ## Login and sessions
 
-There are two ways in, and they never cross: **coaches and admins** have a username and
-a password; **parents** have neither and sign in with a single-use link emailed to them
-(see [Parents](13-parents.md)). A parent account has `password_hash = NULL`, so
-`POST /auth/login` can never authenticate one; a coach has no `email`, so no sign-in link
-is ever issued for them.
+**Everyone signs in with a password.** A coach types a username, a parent types their
+email address; both are `users.username`, which is why that column is 255 characters wide
+(see [Parents](13-parents.md)). A **passkey** is an optional extra for devices that can
+hold one, never a replacement. Email is used only to *recover* a password — which is what
+NIST SP 800-63B-4 permits, where an emailed link used as the routine authenticator is what
+it forbids, and what the first version of parent access did. Parents invited before
+passwords existed still have `password_hash = NULL` and keep their emailed links until
+they set one; `MeRead.has_password` is how the UI knows.
 
 1. `POST /auth/login` with username + password over HTTPS.
 2. Password verified with **argon2id** (`argon2-cffi` defaults: memory-hard, ~50 ms).
@@ -27,9 +30,13 @@ is ever issued for them.
    `users.session_version` is included in the cookie and checked per request: bumping it
    signs every device out at once. A cookie issued before versions existed carries no
    `sv` and is still accepted, so adding this signed nobody out.
-6. Passwords: min 8 chars (12 recommended); self-service change needs the current
-   password; admins can reset within their scope; the development default is refused
-   in production.
+6. Passwords: minimum 8 characters, no maximum, no composition rules, no expiry — Cyber
+   Essentials v3.3, reasoned out in [Parents → Passwords](13-parents.md#passwords).
+   **The deny list that policy is conditional on is not built yet.** Self-service change
+   needs the current password; admins can reset within their scope; the development
+   default is refused in production.
+7. Brute force is **throttled, not locked out**: 10 password attempts per 5 minutes, keyed
+   by account *and* by client IP, cleared by a correct password (`core/ratelimit.py`).
 
 Transport: Caddy terminates TLS with a Let's Encrypt certificate, redirects HTTP → HTTPS,
 sets HSTS, `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`. The API
@@ -84,7 +91,7 @@ a Blacks team admin can create Blacks coaches but not Reds', nor grant cohort or
 roles. A club admin can't demote their own club-admin role or deactivate themselves.
 For a **coach**, admin password reset is still the "forgot password" path.
 
-Parents are managed separately, by **coaches**, in Settings → Parents: inviting, closing
+Parents are managed separately, by **coaches**, in Settings → Parents: inviting, removing
 and signing out are authorised by "could you have invited them?" — coach+ on at least one
 of that parent's children — not by the admin-scope rules above. A coach granting `viewer`
 is granting strictly less than they hold themselves, so it is not an escalation.
@@ -101,8 +108,11 @@ is granting strictly less than they hold themselves, so it is not an escalation.
   readable by them, which the head coach decided explicitly in Oct 2026: there is nothing
   in match notes, player notes or photos the club wants withheld from parents.
 - **Parents' email addresses** are personal data and the only contact details the app
-  holds. They are in the database and therefore in the backups; closing an account leaves
-  the address on the row.
+  holds. They are in the database and therefore in the backups. Removing a parent's last
+  child deletes the account, and the address with it — but `parent_access_log` keeps a
+  copy **on purpose**, because "who used to be able to see my child?" is a safeguarding
+  question a deleted row cannot answer. An erasure request has to clear that table by
+  hand; weigh it against the safeguarding record before you do.
 - **Match notes** are verbatim WhatsApp text; readable by anyone with access to the
   fixture's team, writable by coaches. Don't add parsing that writes to results without
   a human confirming (see roadmap).
@@ -145,19 +155,17 @@ check by default. Say explicitly who may write it.
 
 ## Known gaps (recommended next steps)
 
-1. **No rate limiting on `POST /auth/login`.** Argon2 makes each guess ~50 ms but nothing
-   throttles a client. Deliberately left alone when parent access was added: locking out a
-   coach who fumbles their password at the pitch is its own failure. The emailed-link
-   endpoints *are* limited (`core/ratelimit.py`: 5 link requests and 20 token attempts per
-   15 minutes, per email and per IP), in process - it forgets on restart, which is fine
-   for one container.
-2. **Session revocation is now possible but not wired to passwords.**
-   `users.session_version` is in the cookie and checked per request;
-   `POST /parents/{id}/sign-out` bumps it, and closing an account bumps it too. A coach
-   changing their password still doesn't invalidate their other devices - bump it there
-   as well.
-3. **No 2FA.** Parents now have accounts, but they are read-only and sign in from an
-   email inbox, which is itself the second factor in practice. Revisit if parents ever get
-   write access beyond their own child.
+1. **No common-password deny list.** This is the one that matters: Cyber Essentials
+   permits an 8-character minimum *because* common passwords are blocked automatically,
+   and we ship the minimum without the blocking. Everything needed is a word list in the
+   repo and one check in `schemas/auth.py`. See
+   [Roadmap](12-roadmap.md#parent-onboarding-the-unfinished-half).
+2. **`POST /auth/change-password` doesn't bump `session_version`.** A password *reset*
+   does (`InviteService.reset_password`), so a compromised session is ended by the
+   recovery path but not by a voluntary change. One line in `AuthService.change_password`.
+3. **No 2FA.** A passkey is available to anyone who wants one and is single-factor-plus-
+   device rather than true 2FA. Parents are read-only, so the exposure is reading the age
+   group's fixtures and photos. Revisit if parents ever get write access beyond their own
+   child.
 4. **Timing side-channel on username existence** (argon2 is skipped for unknown users).
    Negligible here; a dummy verify would close it.

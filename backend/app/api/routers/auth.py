@@ -42,7 +42,7 @@ def login(data: LoginRequest, request: Request, response: Response, db: DB, sett
     return _sign_in(response, user, db, settings)
 
 
-# --- parents: no password, just a link ---------------------------------------------
+# --- getting back in: reset links, invitations, legacy sign-in links ---------------
 
 
 @router.post("/forgot-password", status_code=204)

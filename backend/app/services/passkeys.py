@@ -1,6 +1,12 @@
-"""Passkeys (WebAuthn) - what a parent signs in with.
+"""Passkeys (WebAuthn) - the optional extra, not the way in.
 
-Why this rather than the emailed link it replaces: NIST SP 800-63B-4 says plainly that
+The password is the baseline, because registration here depends on the device and the
+browser and fails outright in some in-app WebViews (WhatsApp's among them). A passkey is
+the better option wherever it works, and it is offered - today only in Settings - rather
+than required.
+
+Why it is worth having at all, over the emailed link it originally replaced: NIST SP
+800-63B-4 says plainly that
 "Email SHALL NOT be used for out-of-band authentication" - an inbox is usually protected
 by a password, messages can be intercepted, and delivery can be rerouted. A passkey is a
 key pair bound to our domain. We hold only the public half, so a copy of the database is

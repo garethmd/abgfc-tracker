@@ -90,7 +90,7 @@ class GuardianRead(ORMModel):
     email: str | None
     last_signed_in: datetime | None
     passkey_count: int  # a passkey is an optional extra on top of their password
-    has_password: bool  # false = joined before passwords; still uses emailed links
+    has_password: bool  # false = joined before passwords; emailed links until they set one
 
 
 class PlayerAccessRead(ORMModel):

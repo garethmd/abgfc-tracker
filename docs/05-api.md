@@ -11,15 +11,20 @@ endpoints. Interactive docs at `/api/docs` in development only.
 - `POST /auth/logout` clears the cookie. `GET /auth/me` returns the caller and what they
   can reach. `POST /auth/change-password` `{current_password, new_password}`.
 
-**Parents have no password** and use emailed single-use links instead
-([Parents](13-parents.md)). These four need no session:
+**A parent's username is their email address** and they have a password like everyone
+else; email only recovers it ([Parents](13-parents.md)). Login is throttled to 10 attempts
+per 5 minutes per account and per IP → `429`. These need no session:
 
 | Method | Path | Notes |
 |---|---|---|
-| POST | `/auth/signin-link` | `{email}` → always `204`, whether or not the address has an account |
-| POST | `/auth/signin-link/{token}` | spends the link and signs in → `MeRead` |
+| POST | `/auth/forgot-password` | `{email}` → always `204`, whether or not the address has an account |
+| POST | `/auth/reset-password/{token}` | `{new_password}` → spends the link, signs in, bumps `session_version` |
+| POST | `/auth/signin-link/{token}` | spends a legacy emailed sign-in link → `MeRead` |
 | GET | `/auth/invitations/{token}` | `InvitePreview` — does **not** spend the token |
-| POST | `/auth/invitations/{token}/accept` | `{display_name}` → creates the account and signs in |
+| POST | `/auth/invitations/{token}/accept` | `{display_name, password, email?}` → creates the account and signs in |
+
+With a session: `POST /auth/set-password` `{new_password}` for an account that has none,
+and the passkey routes (`/auth/passkeys…`, see [Parents](13-parents.md#passkeys)).
 
 Managing them needs coach+ on one of that parent's children:
 
@@ -28,7 +33,9 @@ Managing them needs coach+ on one of that parent's children:
 | POST | `/invitations` | `{email, player_id}` → `InviteCreated`, which carries `link` **once** |
 | GET | `/team-seasons/{id}/parents` | `{players, leavers}` — who can see the club, and whose child has left |
 | DELETE | `/invitations/{id}` | cancels an outstanding invitation |
-| POST | `/parents/{id}/close` · `/reopen` · `/sign-out` | deactivate (immediate), restore, or bump `session_version` |
+| DELETE | `/parents/{id}/children/{player_id}` | ends one child's link; **the account goes with the last one** |
+| DELETE | `/parents/{id}` | the same for every child at once |
+| POST | `/parents/{id}/sign-out` | bumps `session_version`; they keep their access |
 
 `MeRead` drives the frontend's routing:
 

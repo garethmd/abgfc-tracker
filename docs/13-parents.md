@@ -1,13 +1,15 @@
 # 13. Parent access
 
 Parents of the children get read access to the app. The design goal was the least
-possible administrative work for the club: no passwords to issue, no passwords to reset,
-and removal that is one tap and immediate.
+possible administrative work for the club: nothing for a coach to issue, nothing for a
+coach to reset, and removal that is one tap and immediate.
 
 A parent is an **ordinary account with an ordinary role** — `viewer` at cohort scope,
 the same row the age-group coach holds at a higher level. Nothing in
 `services/access.py` changed to support them. What marks them out is a
-`player_guardians` link to their child, which grants nothing today.
+`player_guardians` link to their child. The link grants no extra permission; it says
+whose parent this is, and it is what keeps the account alive (see **Who may invite, and
+who may remove**).
 
 ## How they sign in
 
@@ -37,13 +39,47 @@ them, never required, never a blocker.
 they choose to set one in Settings → Account. Nothing forces them, and nobody was
 locked out by the change.
 
+## Passwords
+
+**Eight characters minimum, no maximum, and nothing else required.** The authority is
+[Cyber Essentials v3.3](https://www.ncsc.gov.uk/cyberessentials/overview) — UK,
+government-backed, and the scheme a grassroots club would actually be measured against.
+It offers three acceptable password policies; the one we meet is at least 8 characters
+with no upper limit, **conditional on automatically blocking common passwords from a deny
+list**. That deny list is not built yet, so today we have the short minimum without the
+condition that licenses it. It is first on the [roadmap](12-roadmap.md#parent-onboarding-the-unfinished-half)
+for that reason.
+
+NIST SP 800-63B-4 would ask for 15 characters where a password is the only authenticator.
+It is a US federal standard for federal systems, and 15 characters typed on a phone by
+someone who has never used a password manager is how the password ends up pasted into the
+WhatsApp group. Cyber Essentials is the standard that fits this club, and it is satisfied
+with a deny list instead of with length.
+
+What we deliberately **don't** do — NIST, NCSC and Cyber Essentials all agree here:
+
+- **No composition rules.** No required capital, digit or symbol. They produce
+  `Password1!` and buy nothing.
+- **No expiry.** Forced rotation makes people pick weaker, more guessable passwords.
+- **No lockout.** Brute force is answered by **throttling**: 10 attempts per 5 minutes,
+  per account and per IP, which is the ceiling Cyber Essentials itself names. NCSC prefers
+  throttling because *"account lockout can leave legitimate users unable to access their
+  accounts"* — and a coach locked out at kick-off is a worse outcome than a slow one. A
+  correct password clears the counter, so three fumbles cost nothing.
+
+Hashing is **argon2id** (`argon2-cffi` defaults, ~50 ms). `password_hash` stays nullable
+for the parents invited before any of this existed; `MeRead.has_password` tells the UI
+which it is, so no screen has to guess.
+
 ## Passkeys
 
 `services/passkeys.py`, following [OWASP's Passkey Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Passkey_Security_Cheat_Sheet.html).
 
-- **Registration always happens for an account already signed in** — straight after
-  accepting an invitation, or from Settings → Signing in to add a second device. That is
-  what binds the credential to the right person.
+- **Registration always happens for an account already signed in** — today that means
+  Settings → Signing in, the only place the app offers it. That session is what binds the
+  credential to the right person. FIDO's own guidance is to offer one at account creation
+  and after a recovery as well; neither is built — see
+  [Roadmap](12-roadmap.md#parent-onboarding-the-unfinished-half).
 - **Sign-in names no account.** The credential is discoverable, so the authenticator says
   which account it holds; nothing typed, and nothing reveals whether an account exists.
 - **Challenges live server-side** in `webauthn_challenges`, bound to purpose and account,
@@ -55,16 +91,17 @@ locked out by the change.
 - **Several per parent is encouraged** (phone and laptop); the last one can't be removed
   unless there's another way in.
 
-**Registering a passkey retires that account's emailed links** — otherwise a failed
-passkey could quietly fall back to something weaker, which is exactly what OWASP warns
-against. A coach can re-open them for one named parent whose device can't hold a passkey
-(no screen lock, or iOS before 16 / Android before 10) from the Parents tab. Deliberate,
-per account, visible — never automatic.
+**Adding a passkey takes nothing away.** It sits beside the password, which every device
+can manage; the passkey only replaces the typing. When passkeys were the *only* way in,
+registering one retired that account's emailed links and a coach could re-open them for
+one named parent — `users.allow_email_signin` is all that survives of that, and nothing
+reads or writes it now. Don't revive the column: the password is the fallback, and a
+passkey that can fall back to something weaker is what OWASP warns against.
 
-Recovery for a lost device is a **new invitation from the coach**, not an email link.
-They know the parent personally, which is stronger proofing than any inbox check. In
-practice it rarely comes up: passkeys sync through iCloud Keychain and Google Password
-Manager, so a new phone usually already has one.
+**Losing the device is no longer a lockout.** The password still works, and if that has
+gone too, "Forgotten your password?" sends a reset link. In practice it rarely comes up:
+passkeys sync through iCloud Keychain and Google Password Manager, so a new phone usually
+already has one.
 
 ## The flow
 
@@ -76,12 +113,14 @@ Manager, so a new phone usually already has one.
 3. The parent opens the link and sees who invited them and which child. **Looking does
    not spend the token** — mail security scanners follow links, and consuming on `GET`
    would burn the invitation before the parent ever tapped it.
-4. They type their name and press the button. `POST /invitations/<token>/accept` creates
-   the user, the guardian link and the role row, spends the token, sets the session
-   cookie and lands them on the team.
-5. The next screen offers a passkey, with "Not now" in plain sight (see **Passkeys**).
-6. The cookie lasts 30 days. After that they sign in again — their password, or one touch
-   if they took the passkey.
+4. They type their name and **choose a password** — plus their email address, if the coach
+   sent the link by hand and so never typed one. `POST /invitations/<token>/accept` creates
+   the user, the guardian link and the role row, spends the token, sets the session cookie
+   and lands them on the team.
+5. The cookie lasts 30 days. After that they sign in with that password — or with one
+   touch, if they have since added a passkey in Settings. **Nothing offers them a passkey
+   on the way in**, which is the hole in this flow: a parent has to go looking for it. See
+   [Roadmap](12-roadmap.md#parent-onboarding-the-unfinished-half).
 
 `proxy.ts` exempts `/invite/` and `/signin/` from the cookie gate: an emailed link must
 not be bounced to the coaches' sign-in page.
@@ -97,10 +136,12 @@ brute-force, and verification needs an indexed lookup.
   `signin_link_expiry_minutes`).
 - Single use is enforced by **one conditional `UPDATE … WHERE used_at IS NULL`** with
   `RETURNING`, not a read-then-write, so two simultaneous taps can't both win.
-- `POST /auth/signin-link` answers `204` whether or not the address has an account; an
-  unauthenticated caller doesn't get to learn who is registered.
-- Rate limited in process (`core/ratelimit.py`): 5 link requests and 20 token attempts
-  per 15 minutes, keyed by email *and* by IP.
+- `POST /auth/forgot-password` answers `204` whether or not the address has an account; an
+  unauthenticated caller doesn't get to learn who is registered. The link lands on
+  `/reset/<token>` and is spent by `POST /auth/reset-password/<token>`, which also bumps
+  `session_version` — if somebody else had got in, that is what removes them.
+- Rate limited in process (`core/ratelimit.py`): 5 link requests and 20 token attempts per
+  15 minutes, and 10 password attempts per 5 minutes, each keyed by address *and* by IP.
 
 ## Who may invite, and who may remove
 

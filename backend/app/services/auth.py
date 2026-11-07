@@ -12,8 +12,10 @@ class AuthService:
         self.repo = UserRepository(db)
 
     def authenticate(self, username: str, password: str) -> User:
-        """Password sign-in, unchanged. A parent account has no password_hash, so it can
-        never be reached this way - they use an emailed link (services/invites.py)."""
+        """Password sign-in, for coaches and parents alike - a parent's username is their
+        email address. Throttled by the router, not here. The only accounts this can't
+        reach are the parents invited before passwords existed, whose `password_hash` is
+        NULL until they set one (services/invites.py)."""
         user = self.repo.get_by_username(username)
         if user is None or not user.is_active or not verify_password(password, user.password_hash):
             raise AuthError("Incorrect username or password")

@@ -23,13 +23,22 @@ They are invited by email or a WhatsApp link and **choose a password** when they
 Email is used only to *recover* one (`POST /auth/forgot-password` -> `/reset/<token>`),
 which is what NIST SP 800-63B-4 permits - using an emailed link as the routine
 authenticator is what it forbids. A **passkey is an optional extra** on top
-(`services/passkeys.py`), offered in Settings, never required: passkey registration
-depends on the device and fails outright in some in-app browsers, so it can't be the
-only way in. Parents invited before passwords existed keep their emailed sign-in links
-until they set one - nothing forces a migration. Coaches invite their own team's
-parents; removing an account is immediate. Sessions last 30 days from the last sign-in (NIST
-AAL1's overall timeout), which is why the optional passkey is offered during onboarding.
-See `docs/13-parents.md`.
+(`services/passkeys.py`), offered **only in Settings -> Signing in** today, never
+required: registration depends on the device and fails outright in some in-app browsers,
+so it can't be the only way in. Nothing offers one during onboarding, which is the known
+hole in the flow (`docs/12-roadmap.md`). Parents invited before passwords existed keep
+their emailed sign-in links until they set one - nothing forces a migration. Coaches
+invite their own team's parents; removing an account is immediate. Sessions last 30 days
+from the last sign-in (NIST AAL1's overall timeout) and activity does **not** extend them;
+only reauthentication resets the clock.
+Password policy is **Cyber Essentials v3.3**, not NIST: 8 characters minimum, no maximum,
+no composition rules, no expiry, and brute force **throttled rather than locked**
+(`core/ratelimit.py`: 10 attempts per 5 minutes per account and per IP, cleared by a
+correct password) - a locked-out coach at kick-off is worse than a slow one. CE allows the
+8-character minimum only alongside automatic blocking of common passwords, and **that deny
+list is not built yet**: it's the first item on the roadmap. Don't raise the minimum to 15
+instead - that's the US federal standard, and it's what gets a password written into the
+WhatsApp group. See `docs/13-parents.md`.
 
 **Children's data.** Everything sits behind a login and every query is scoped by the
 caller's roles (`services/access.py`); media (when added) is served through the API

@@ -25,8 +25,9 @@ class User(TimestampMixin, Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column(String(255), unique=True)
-    # Parents sign in with an emailed link and have no password at all; coaches have a
-    # password and (today) no email. Either column alone identifies an account.
+    # A parent's `username` *is* their email address (hence String(255)); a coach has a
+    # handle and, today, no email. Both sign in with a password; `email` is what a reset
+    # link is sent to. Either column alone identifies an account.
     email: Mapped[str | None] = mapped_column(String(255), unique=True)  # lowercased
     display_name: Mapped[str | None] = mapped_column(String(100))
     password_hash: Mapped[str | None] = mapped_column(String(255))

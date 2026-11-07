@@ -41,8 +41,8 @@ class MeRead(ORMModel):
     id: int
     username: str
     email: str | None  # parents sign in by email; coaches have none
-    has_password: bool  # false for a parent: there is no password to change
-    passkey_count: int  # 0 = they still sign in with emailed links
+    has_password: bool  # false only for a parent from before passwords: nothing to change yet
+    passkey_count: int  # 0 = password only, which is the normal case
     display_name: str | None
     roles: list[RoleRead]
     club_role: UserRole | None

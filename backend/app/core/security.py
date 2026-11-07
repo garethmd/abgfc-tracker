@@ -15,7 +15,8 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(password: str, password_hash: str | None) -> bool:
-    """False for an account with no password at all (a parent, who uses email links)."""
+    """False for an account with no password at all - a parent invited before passwords
+    existed, who still uses emailed links until they set one."""
     if not password_hash:
         return False
     try:
