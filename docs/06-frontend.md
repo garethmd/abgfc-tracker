@@ -132,6 +132,11 @@ qc.invalidateQueries({ queryKey: ["get", "/api/v1/fixtures"] });   // prefix mat
   ring-1 ring-border/60`.
 - Empty states are designed (`EmptyState`), not blank — a fresh season should look
   intentional.
+- `PoweredBy` (`components/powered-by.tsx`) is the Neural Aspect credit: the foot of every
+  authenticated page via `AppShell`, and below the card on the four pages reached without
+  a session (login, invite, sign-in link, password reset) — those are where a new parent
+  lands first, and most people otherwise live on one screen and would never scroll to a
+  single footer. Styled as muted small print, linking to neuralaspect.com in a new tab.
 
 ## Lint, types, build
 

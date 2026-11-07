@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PoweredBy } from "@/components/powered-by";
 
 export interface NavItem {
   href: string;
@@ -67,7 +68,10 @@ export function AppShell({
       </header>
 
       <main className={cn("flex-1", nav.length > 0 && "pb-24 md:pb-0")}>
-        <div className="mx-auto w-full max-w-5xl px-4 py-6 md:px-8 md:py-10">{children}</div>
+        <div className="mx-auto w-full max-w-5xl px-4 py-6 md:px-8 md:py-10">
+          {children}
+          <PoweredBy className="mt-10 border-t border-border/40 pt-6" />
+        </div>
       </main>
 
       {nav.length > 0 && (

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Suspense } from "react";
 import { LoginForm } from "./login-form";
+import { PoweredBy } from "@/components/powered-by";
 
 export const metadata = { title: "Sign in" };
 
@@ -16,6 +17,7 @@ export default function LoginPage() {
         <Suspense>
           <LoginForm />
         </Suspense>
+        <PoweredBy className="mt-8" />
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PoweredBy } from "@/components/powered-by";
 import { useQuery } from "@tanstack/react-query";
 
 type Preview = Schema["InvitePreview"];
@@ -199,6 +200,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           </h1>
         </div>
         {children}
+        <PoweredBy className="mt-8" />
       </div>
     </div>
   );

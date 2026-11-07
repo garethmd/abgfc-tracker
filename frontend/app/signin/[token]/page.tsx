@@ -5,6 +5,7 @@ import Link from "next/link";
 import { use, useState } from "react";
 import { fetchClient, errorMessage } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
+import { PoweredBy } from "@/components/powered-by";
 
 /** The page an emailed sign-in link opens. The link is only spent when the button is
  *  pressed - mail security scanners follow links, and consuming on load would mean the
@@ -58,6 +59,7 @@ export default function SigninLinkPage({ params }: PageProps<"/signin/[token]">)
             </>
           )}
         </div>
+        <PoweredBy className="mt-8" />
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import { fetchClient, errorMessage } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PoweredBy } from "@/components/powered-by";
 
 /** Where a "forgotten password" email lands. The link proves the inbox; choosing a new
  *  password here is what signs them in, and it ends every other session. */
@@ -74,6 +75,7 @@ export default function ResetPasswordPage({ params }: PageProps<"/reset/[token]"
             Anywhere else you&apos;re signed in will be signed out.
           </p>
         </form>
+        <PoweredBy className="mt-8" />
       </div>
     </div>
   );
