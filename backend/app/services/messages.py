@@ -70,7 +70,7 @@ def invite_message(player_name: str, link: str, invited_by: str | None) -> str:
         f"{player_name}'s fixtures, results and who's available each week.\n\n"
         f"{link}\n\n"
         "This link is just for you, so please don't forward it or put it in a group. "
-        "There's no password to set up: tap the link and you're in.\n"
+        "Tap it, choose a password, and you're in.\n"
     )
 
 
