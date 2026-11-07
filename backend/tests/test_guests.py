@@ -102,7 +102,54 @@ def test_the_player_page_adds_up_across_teams(auth_client: TestClient, demo: Dem
     ).json()
     agg = next(p for p in ov["players"] if p["player"]["id"] == archie.id)
     assert agg["appearances"] == 7 and agg["goals"] == 6
-    assert sorted(agg["teams"]) == ["Blues", "Reds"]
+    # Named apart: he is a Blues player who turned out for the Reds, not a Reds player.
+    assert agg["teams"] == ["Blues"] and agg["guest_teams"] == ["Reds"]
+
+
+def test_the_overview_says_whose_squad_a_guest_is_in(auth_client: TestClient, demo: DemoSeason):
+    """A guest spell is not a transfer, and the cohort table must not read as one.
+
+    That table drives the "move player" dialog: it took the *last* team name in the row
+    as the player's current team, so one guest appearance for a team sorted after their
+    own silently reassigned them. The dialog then offered every team except the one they
+    were guesting for - refusing the only move a coach actually wanted - and any move it
+    did offer failed with "not in that squad", because they never were.
+    """
+    reds = _reds_ts(auth_client)
+    fx = _fixture_for(auth_client, reds, demo, "Guest United")
+    archie = demo.players["Archie"]  # Blues squad, and still is
+    _guest_result(auth_client, fx, archie.id)
+
+    cohort_id = auth_client.get(f"{API}/cohorts").json()[0]["id"]
+    ov = auth_client.get(
+        f"{API}/cohorts/{cohort_id}/overview", params={"season_id": demo.season.id}
+    ).json()
+    row = next(p for p in ov["players"] if p["player"]["id"] == archie.id)
+
+    assert row["teams"] == ["Blues"]
+    assert row["guest_teams"] == ["Reds"]
+    assert row["current_team_season_id"] == demo.team_season.id
+
+
+def test_the_overview_follows_a_real_move(auth_client: TestClient, demo: DemoSeason):
+    """And when they genuinely move, the current team is the new one - with the old team
+    still named, because the appearances they made there are still theirs."""
+    reds = _reds_ts(auth_client)
+    archie = demo.players["Archie"]
+    r = auth_client.post(
+        f"{API}/players/{archie.id}/move",
+        json={"from_team_season_id": demo.team_season.id, "to_team_season_id": reds},
+    )
+    assert r.status_code == 200, r.text
+
+    cohort_id = auth_client.get(f"{API}/cohorts").json()[0]["id"]
+    ov = auth_client.get(
+        f"{API}/cohorts/{cohort_id}/overview", params={"season_id": demo.season.id}
+    ).json()
+    row = next(p for p in ov["players"] if p["player"]["id"] == archie.id)
+
+    assert row["current_team_season_id"] == reds
+    assert row["teams"] == ["Blues", "Reds"] and row["guest_teams"] == []
 
 
 def test_a_player_from_another_age_group_is_refused(auth_client: TestClient, demo: DemoSeason):

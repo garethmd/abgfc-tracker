@@ -121,7 +121,14 @@ class CohortPlayerRow(BaseModel):
     """A player's appearances across every team in the age group - the fairness view."""
 
     player: PlayerSummary
+    # Teams whose squad they are (or were) in this season, in team order.
     teams: list[str]
+    # Teams they only turned out for. A guest spell is not a change of team, and
+    # conflating the two made the overview read as though they had been transferred.
+    guest_teams: list[str]
+    # The team-season whose squad they are in *now* - what "move this player" acts on.
+    # None if they are in nobody's current squad (left the club, or guest appearances only).
+    current_team_season_id: int | None
     appearances: int
     starts: int
     goals: int

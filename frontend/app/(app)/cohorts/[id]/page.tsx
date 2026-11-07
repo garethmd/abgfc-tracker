@@ -116,11 +116,19 @@ export default function CohortOverviewPage({ params }: PageProps<"/cohorts/[id]"
                     </thead>
                     <tbody className="tnum">
                       {overview.data.players.map((p) => {
-                        const currentTeam = overview.data.teams.find((t) => t.team_name === p.teams[p.teams.length - 1]);
+                        // The API says which squad they are in now. This used to be
+                        // guessed from the last team name in the row, which made one
+                        // guest appearance look like a transfer.
+                        const from = p.current_team_season_id;
                         return (
                           <tr key={p.player.id} className="border-b border-border/40 last:border-0">
                             <td className="sticky left-0 z-10 bg-card py-2.5 pl-4 pr-2 font-medium">{p.player.display_name}</td>
-                            <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">{p.teams.join(" → ")}</td>
+                            <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">
+                              {p.teams.join(" → ") || "—"}
+                              {p.guest_teams.length > 0 && (
+                                <span className="text-xs"> · guest at {p.guest_teams.join(", ")}</span>
+                              )}
+                            </td>
                             <td className="px-3 py-2.5 text-right">{p.appearances}</td>
                             <td className="px-3 py-2.5 text-right">{p.goals}</td>
                             <td className="px-3 py-2.5 text-right">{p.assists}</td>
@@ -132,7 +140,7 @@ export default function CohortOverviewPage({ params }: PageProps<"/cohorts/[id]"
                                     <ArrowRightLeft className="size-4" />
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onSelect={() => currentTeam && setMoving({ player: p.player, from: currentTeam.team_season_id })} disabled={!currentTeam}>
+                                    <DropdownMenuItem onSelect={() => from !== null && setMoving({ player: p.player, from })} disabled={from === null}>
                                       Move to another team…
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>

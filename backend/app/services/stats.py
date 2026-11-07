@@ -396,6 +396,12 @@ class StatsService:
             played = self.fixtures.list_played(ts.id)
             league = [f for f in played if f.competition.type == CompetitionType.LEAGUE]
             rows, _ = self._rows(ts.id, None)
+            members = self.squad.list_for_team_season(ts.id)
+            # Who is in this squad *today*: a moved player keeps their old row, carrying
+            # `left_at`, so that the team's past results still read correctly.
+            current_here = {
+                m.player_id for m in members if m.left_at is None and m.player.left_date is None
+            }
             teams.append(
                 CohortTeamRecord(
                     team_season_id=ts.id,
@@ -404,7 +410,7 @@ class StatsService:
                     overall=team_record(played),
                     league=team_record(league),
                     form=form(played),
-                    squad_size=len(self.squad.list_for_team_season(ts.id)),
+                    squad_size=len(members),
                 )
             )
             for r in rows:
@@ -413,13 +419,22 @@ class StatsService:
                     agg = by_player[r.player.id] = CohortPlayerRow(
                         player=r.player,
                         teams=[],
+                        guest_teams=[],
+                        current_team_season_id=None,
                         appearances=0,
                         starts=0,
                         goals=0,
                         assists=0,
                         minutes=None,
                     )
-                agg.teams.append(ts.club_team.name)
+                # Guesting for a team is not joining it. Kept apart so the age-group
+                # table can say "Blacks, guest at Reds" instead of "Blacks → Reds".
+                (agg.guest_teams if r.is_guest else agg.teams).append(ts.club_team.name)
+                if r.player.id in current_here:
+                    # Teams are walked in order, so the last current squad wins. A player
+                    # should only be in one at a time; `move` guarantees it by closing the
+                    # old row, but nothing stops a coach adding them to two by hand.
+                    agg.current_team_season_id = ts.id
                 agg.appearances += r.appearances
                 agg.starts += r.starts
                 agg.goals += r.goals

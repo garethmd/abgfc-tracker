@@ -70,9 +70,24 @@ fixture page; never blocks saving.
 ## Cohort overview — `StatsService.cohort_overview(cohort_id, season_id)`
 
 For each team season in the cohort/season: overall + league records, form, squad size.
-Then every player's rows across those team seasons are merged: `teams` lists each team
-they appeared for, appearances/starts/goals/assists summed, minutes summed only where
-known. Sorted by appearances ↓ then name — the "is game time fair across the group" view.
+Then every player's rows across those team seasons are merged:
+appearances/starts/goals/assists summed, minutes summed only where known. Sorted by
+appearances ↓ then name — the "is game time fair across the group" view.
+
+Three fields describe *where* a player belongs, and they are deliberately separate:
+
+- `teams` — whose squad they are or were in, in team order. A player who has moved keeps
+  the old team here, because the appearances they made there are still theirs.
+- `guest_teams` — teams they only turned out for. **A guest spell is not a transfer.**
+- `current_team_season_id` — the squad they are in *now* (`left_at` null), or `null` for
+  nobody's. This is what the "move player" dialog acts on.
+
+That last field exists because the frontend used to infer the current team from the last
+name in `teams`, which mixed guests in and ordered by team sort order rather than by
+anything temporal. One guest appearance for a team sorted after their own silently read
+as a transfer: the move dialog then offered every team *except* the one they had guested
+for — refusing the move a coach actually wanted — and any move it did offer failed with
+"not in that squad". `tests/test_guests.py` pins both halves.
 
 ## The oracle
 

@@ -1733,8 +1733,12 @@ export interface components {
             appearances: number;
             /** Assists */
             assists: number;
+            /** Current Team Season Id */
+            current_team_season_id: number | null;
             /** Goals */
             goals: number;
+            /** Guest Teams */
+            guest_teams: string[];
             /** Minutes */
             minutes: number | null;
             player: components["schemas"]["PlayerSummary"];

@@ -665,9 +665,27 @@
             "title": "Assists",
             "type": "integer"
           },
+          "current_team_season_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Team Season Id"
+          },
           "goals": {
             "title": "Goals",
             "type": "integer"
+          },
+          "guest_teams": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Guest Teams",
+            "type": "array"
           },
           "minutes": {
             "anyOf": [
@@ -698,6 +716,8 @@
         "required": [
           "player",
           "teams",
+          "guest_teams",
+          "current_team_season_id",
           "appearances",
           "starts",
           "goals",
