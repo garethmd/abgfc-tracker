@@ -122,6 +122,25 @@ already has one.
    on the way in**, which is the hole in this flow: a parent has to go looking for it. See
    [Roadmap](12-roadmap.md#parent-onboarding-the-unfinished-half).
 
+**Coming back to the same link.** They will: the invitation sits in their WhatsApp history
+and the obvious way back into the app is to tap it again. The token is spent by then, so
+the page asks `GET /auth/me` before it says anything:
+
+- **Signed in** (almost always — the cookie lasts 30 days) → straight into the app, no
+  message. Nothing to read, nothing to understand.
+- **Not signed in, invitation already accepted** (`410`) → "You're already set up", and a
+  **Sign in** button.
+- **Not signed in, link expired or unknown** (`404`) → "This link has expired", the same
+  button, and only then "ask your coach for a new link".
+
+Before this, every one of those showed *"Invitations last a fortnight… ask your coach to
+send another one"*, with no way forward on the page — so a parent who was already signed in
+was told to go and bother a volunteer, and coaches were talking people through deleting
+`/invite/<token>` off the end of the URL by hand. The probe is a bare `fetch`, not
+`fetchClient`: the client's middleware turns a 401 into a redirect to `/login`, which would
+throw away the explanation and, for a genuinely expired invitation, park them on a sign-in
+form for an account that does not exist.
+
 `proxy.ts` exempts `/invite/` and `/signin/` from the cookie gate: an emailed link must
 not be bounced to the coaches' sign-in page.
 

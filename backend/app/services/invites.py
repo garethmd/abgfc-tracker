@@ -23,7 +23,13 @@ from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session, selectinload
 
 from app.config import Settings
-from app.core.errors import ConflictError, ForbiddenError, NotFoundError, ValidationError
+from app.core.errors import (
+    ConflictError,
+    ForbiddenError,
+    GoneError,
+    NotFoundError,
+    ValidationError,
+)
 from app.core.security import hash_login_token, hash_password, new_login_token
 from app.models import (
     LoginToken,
@@ -505,7 +511,16 @@ class InviteService:
             .where(LoginToken.token_hash == hash_login_token(raw), LoginToken.purpose == purpose)
             .options(selectinload(LoginToken.player), selectinload(LoginToken.invited_by))
         )
-        if token is None or not token.is_live:
+        if token is None:
+            raise NotFoundError("That link has expired or has already been used")
+        if token.used_at is not None:
+            # Separated from the rest on purpose. An invitation that was *used* is the
+            # commonest reason this endpoint is hit a second time - the parent accepted it
+            # and then tapped the same WhatsApp message again - and the honest answer is
+            # "you already have an account", not "ask your coach for another link". The
+            # caller proved possession of the token, so saying which it is reveals nothing.
+            raise GoneError("You have already used this invitation - sign in instead")
+        if not token.is_live:
             raise NotFoundError("That link has expired or has already been used")
         return token
 

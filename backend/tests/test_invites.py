@@ -187,8 +187,8 @@ def test_a_link_works_once(auth_client: TestClient, demo: DemoSeason):
         f"{API}/auth/invitations/{token}/accept",
         json={"display_name": "Jo", "password": "correct horse"},
     )
-    assert r.status_code == 404
-    assert parent.get(f"{API}/auth/invitations/{token}").status_code == 404
+    assert r.status_code == 410
+    assert parent.get(f"{API}/auth/invitations/{token}").status_code == 410
 
 
 def test_expired_revoked_and_unknown_links(auth_client: TestClient, db, demo: DemoSeason):
@@ -209,6 +209,23 @@ def test_expired_revoked_and_unknown_links(auth_client: TestClient, db, demo: De
         client.get(f"{API}/auth/invitations/{second['link'].rsplit('/', 1)[1]}").status_code == 404
     )
     assert auth_client.delete(f"{API}/invitations/{second['id']}").status_code == 404
+
+
+def test_a_spent_invitation_is_gone_not_merely_missing(auth_client: TestClient, demo: DemoSeason):
+    """410 and 404 are different advice. A parent who tapped the WhatsApp message twice has
+    an account already and needs to sign in; an expired link needs a new one from a coach.
+    The page can only say the right thing if the API distinguishes them."""
+    token = _invite(auth_client, demo.players["Archie"].id).json()["link"].rsplit("/", 1)[1]
+    parent = TestClient(auth_client.app)
+    parent.post(
+        f"{API}/auth/invitations/{token}/accept",
+        json={"display_name": "Jo", "password": "correct horse"},
+    )
+    r = parent.get(f"{API}/auth/invitations/{token}")
+    assert r.status_code == 410
+    assert "sign in" in r.json()["detail"].lower()
+    # Unknown and expired stay 404: nothing was ever used, so there is nothing to sign in to.
+    assert parent.get(f"{API}/auth/invitations/nonsense").status_code == 404
 
 
 def test_reinviting_replaces_the_earlier_link(auth_client: TestClient, demo: DemoSeason):

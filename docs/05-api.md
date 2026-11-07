@@ -20,7 +20,7 @@ per 5 minutes per account and per IP → `429`. These need no session:
 | POST | `/auth/forgot-password` | `{email}` → always `204`, whether or not the address has an account |
 | POST | `/auth/reset-password/{token}` | `{new_password}` → spends the link, signs in, bumps `session_version` |
 | POST | `/auth/signin-link/{token}` | spends a legacy emailed sign-in link → `MeRead` |
-| GET | `/auth/invitations/{token}` | `InvitePreview` — does **not** spend the token |
+| GET | `/auth/invitations/{token}` | `InvitePreview` — does **not** spend the token. `410` if it was already accepted, `404` if expired or unknown: different advice, so the page needs to tell them apart |
 | POST | `/auth/invitations/{token}/accept` | `{display_name, password, email?}` → creates the account and signs in |
 
 With a session: `POST /auth/set-password` `{new_password}` for an account that has none,

@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { use, useState } from "react";
+import Link from "next/link";
+import { use, useEffect, useState } from "react";
 import { fetchClient, errorMessage, type Schema } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,10 +27,12 @@ export default function InvitePage({ params }: PageProps<"/invite/[token]">) {
     queryKey: ["invite", token],
     retry: false,
     queryFn: async () => {
-      const { data, error } = await fetchClient.GET("/api/v1/auth/invitations/{token}", {
+      const { data, error, response } = await fetchClient.GET("/api/v1/auth/invitations/{token}", {
         params: { path: { token } },
       });
-      if (error) throw error;
+      // The status is what matters downstream, not the message: 410 means this exact
+      // invitation was already accepted, which needs different words from "expired".
+      if (error) throw Object.assign(new Error("gone"), { status: response.status });
       return data as Preview;
     },
   });
@@ -58,17 +61,54 @@ export default function InvitePage({ params }: PageProps<"/invite/[token]">) {
     window.location.assign("/");
   }
 
+  // A used-up link is only a dead end if they aren't already in - and overwhelmingly they
+  // are. The parent accepts the invitation, then taps the same WhatsApp message again (or
+  // presses Back), and the token is spent even though their cookie is fine. That used to
+  // say "ask your coach for another one", so coaches were talking parents through deleting
+  // /invite/<token> off the end of the URL. Ask who we are before saying anything.
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    if (!q.error) return;
+    let cancelled = false;
+    (async () => {
+      // A bare fetch, not fetchClient: its middleware turns any 401 into a redirect to
+      // /login, which would throw away the chance to explain why the link didn't work -
+      // and for a genuinely expired invitation it would park them on a sign-in form for
+      // an account that doesn't exist yet. Here a 401 is an answer, not a failure.
+      const res = await fetch("/api/v1/auth/me", { credentials: "include" }).catch(() => null);
+      if (cancelled) return;
+      // The same full reload the accept flow does; "/" routes them on from there.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      if (res?.ok) window.location.assign("/");
+      else setStuck(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [q.error]);
+  const alreadyAccepted = (q.error as { status?: number } | null)?.status === 410;
 
   return (
     <Shell>
-      {q.isPending ? (
+      {q.isPending || (q.error && !stuck) ? (
+        // Also covers the moment we're checking for a session: don't flash an error at
+        // somebody who is about to be sent straight into the app.
         <Skeleton className="h-56 rounded-xl" />
       ) : q.error ? (
         <Card>
-          <h2 className="text-base font-semibold">This link has expired</h2>
+          <h2 className="text-base font-semibold">
+            {alreadyAccepted ? "You're already set up" : "This link has expired"}
+          </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Invitations last a fortnight and can only be used once. Ask your coach to send
-            another one.
+            {alreadyAccepted
+              ? "An invitation only works once and you've used yours - which means your account is ready. Sign in with your email address and the password you chose."
+              : "Invitations last a fortnight and work once. If you've already set yours up, sign in below; if not, ask your coach for a new link."}
+          </p>
+          <Button asChild className="mt-4 h-11 w-full">
+            <Link href="/login">Sign in</Link>
+          </Button>
+          <p className="mt-3 text-center text-xs text-muted-foreground">
+            Forgotten the password? You can ask for a new one there.
           </p>
         </Card>
       ) : (
